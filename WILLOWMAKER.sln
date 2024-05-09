@@ -2,17 +2,23 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.34818.151
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WILLOWMAKER", "WILLOWMAKER\WILLOWMAKER.csproj", "{558B8459-3260-4B90-AC23-7EF38844365B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WILLOWMAKER", "WILLOWMAKER\WILLOWMAKER.csproj", "{56610D9E-BECC-4EA7-B0C7-35949E93972E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WILLOWMAKER.Desktop", "WILLOWMAKER.Desktop\WILLOWMAKER.Desktop.csproj", "{ED76ABC2-F953-4E80-B7F6-97F172A2A6A9}"
 EndProject
 Global
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {58BCECCE-E5D1-4F17-8BD1-6386B13A38EA}
+		SolutionGuid = {8F0163D1-F2E9-41F3-ADF1-F0A7C6E0DB21}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{558B8459-3260-4B90-AC23-7EF38844365B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{558B8459-3260-4B90-AC23-7EF38844365B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{558B8459-3260-4B90-AC23-7EF38844365B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{558B8459-3260-4B90-AC23-7EF38844365B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{56610D9E-BECC-4EA7-B0C7-35949E93972E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{56610D9E-BECC-4EA7-B0C7-35949E93972E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{56610D9E-BECC-4EA7-B0C7-35949E93972E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{56610D9E-BECC-4EA7-B0C7-35949E93972E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED76ABC2-F953-4E80-B7F6-97F172A2A6A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED76ABC2-F953-4E80-B7F6-97F172A2A6A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED76ABC2-F953-4E80-B7F6-97F172A2A6A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED76ABC2-F953-4E80-B7F6-97F172A2A6A9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
