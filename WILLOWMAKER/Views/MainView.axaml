@@ -3,7 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:WILLOWMAKER.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="1200" Width="1200" d:DesignHeight="600" Height="600"
+             mc:Ignorable="d" d:DesignWidth="1150" Width="1150" d:DesignHeight="600" Height="600"
              x:Class="WILLOWMAKER.Views.MainView"
              x:DataType="vm:MainViewModel">
 
@@ -14,7 +14,7 @@
   </Design.DataContext>
 
     <StackPanel>
-        <Grid ColumnDefinitions="Auto, Auto, Auto" Height="600" Background="DarkMagenta">
+        <Grid ColumnDefinitions="Auto, Auto" Height="600">
             <StackPanel Grid.Column="0" Width="150" HorizontalAlignment="Center" VerticalAlignment="Center" Background="Red">
                 <TextBlock Height="150" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding GitHubLink}" />
                 <TextBlock Height="150" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding WebPortalLink}" />
@@ -22,8 +22,6 @@
                 <TextBlock Height="150" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding DiscordLink}" />
             </StackPanel>
             <StackPanel Grid.Column="1" Width="1000" Background="Green">
-            </StackPanel>
-            <StackPanel Grid.Column="2" Width="50" Background="Blue">
             </StackPanel>
         </Grid>
     </StackPanel>
