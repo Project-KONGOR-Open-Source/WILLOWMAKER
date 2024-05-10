@@ -13,16 +13,18 @@
     <vm:MainViewModel />
   </Design.DataContext>
 
+    <!-- Colours & Palettes: https://materialui.co/ -->
+    
     <StackPanel>
         <Grid ColumnDefinitions="Auto, Auto" Height="600">
-            <StackPanel Grid.Column="0" Width="150" HorizontalAlignment="Center" VerticalAlignment="Center" Background="Red">
+            <StackPanel Grid.Column="0" Width="150" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#131418">
                 <TextBlock Height="150" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding GitHubLink}" />
                 <TextBlock Height="150" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding WebPortalLink}" />
                 <TextBlock Height="150" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding RedditLink}" />
                 <TextBlock Height="150" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding DiscordLink}" />
             </StackPanel>
             
-            <StackPanel Grid.Column="1" Width="1000" Background="Green">
+            <StackPanel Grid.Column="1" Width="1000" Background="#131418">
                 <Label Width="200" VerticalAlignment="Center" HorizontalAlignment="Center">Master Server Address</Label>
                 <ComboBox SelectedValueBinding="{Binding MasterServerAddress}" Name="dropdown" SelectedIndex="0" Width="200" VerticalAlignment="Center" HorizontalAlignment="Center">
                     <ComboBoxItem>api.kongor.online</ComboBoxItem>
