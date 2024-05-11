@@ -18,10 +18,10 @@
     <StackPanel>
         <Grid ColumnDefinitions="Auto, Auto" Height="600">
             <StackPanel Grid.Column="0" Width="150" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#131418">
-                <TextBlock Height="150" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding GitHubLink}" />
-                <TextBlock Height="150" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding WebPortalLink}" />
-                <TextBlock Height="150" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding RedditLink}" />
-                <TextBlock Height="150" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding DiscordLink}" />
+                <Image Source="/Assets/github-logo.png" Height="120" Margin="15" />
+                <Image Source="/Assets/world-wide-web.png" Height="120" Margin="15" />
+                <Image Source="/Assets/reddit-logo.png" Height="120" Margin="15" />
+                <Image Source="/Assets/discord-logo.png" Height="120" Margin="15" />
             </StackPanel>
             
             <StackPanel Grid.Column="1" Width="1000" Background="#131418">
