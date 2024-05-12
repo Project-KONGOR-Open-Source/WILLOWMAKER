@@ -78,15 +78,12 @@
                 </StackPanel.Background>
                 
                 <Label Width="200" HorizontalAlignment="Center" HorizontalContentAlignment="Center">Master Server Address</Label>
-                <ComboBox SelectedValueBinding="{Binding MasterServerAddress}" Name="dropdown" SelectedIndex="0" Width="200" HorizontalAlignment="Center">
+                <ComboBox SelectedValue="{Binding MasterServerAddress}" Name="dropdown" SelectedIndex="0" Width="200" HorizontalAlignment="Center">
                     <ComboBoxItem>api.kongor.online</ComboBoxItem>
                     <ComboBoxItem>localhost:55555</ComboBoxItem>
                     <ComboBoxItem>custom ...</ComboBoxItem>
                 </ComboBox>
-                
-                <!-- TODO: Make TextBox Visible When ComboBox Is Set To Custom Value -->
-                
-                <TextBox Text="{Binding MasterServerAddress}" Width="200" HorizontalAlignment="Center" />
+                <TextBox Text="{Binding CustomMasterServerAddress}" Width="200" HorizontalAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" />
                 <Button Width="200" HorizontalAlignment="Center" HorizontalContentAlignment="Center" Background="#131418">Play Heroes Of Newerth</Button>
             </StackPanel>
         </Grid>
