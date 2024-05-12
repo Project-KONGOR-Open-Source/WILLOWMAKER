@@ -35,6 +35,9 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _canShowCustomMasterServerAddressField = false;
 
+    [ObservableProperty]
+    private bool _canLaunchGame = true;
+
     [RelayCommand]
     private void GoToURL(string url)
         => Process.Start(new ProcessStartInfo() { FileName = url, UseShellExecute = true });
@@ -42,6 +45,19 @@ public partial class MainViewModel : ObservableObject
     partial void OnMasterServerAddressChanged(ComboBoxItem? oldValue, ComboBoxItem? newValue)
     {
         if (newValue is not null)
+        {
             CanShowCustomMasterServerAddressField = newValue.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false;
+
+            CanLaunchGame = (MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false) is false
+                ? true
+                : (MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false) is true && string.IsNullOrWhiteSpace(CustomMasterServerAddress) is false
+                    ? true : false;
+        }
+    }
+
+    partial void OnCustomMasterServerAddressChanged(string? oldValue, string? newValue)
+    {
+        CanLaunchGame = (MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false) is true && string.IsNullOrWhiteSpace(CustomMasterServerAddress) is false
+            ? true : false;
     }
 }
