@@ -18,10 +18,58 @@
     <StackPanel>
         <Grid ColumnDefinitions="Auto, Auto" Height="600">
             <StackPanel Grid.Column="0" Width="150" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#131418">
-                <Image Source="/Assets/github-logo.png" Height="120" Margin="15" />
-                <Image Source="/Assets/world-wide-web.png" Height="120" Margin="15" />
-                <Image Source="/Assets/reddit-logo.png" Height="120" Margin="15" />
-                <Image Source="/Assets/discord-logo.png" Height="120" Margin="15" />
+                <Button Height="150" Command="{Binding GoToURLCommand}" CommandParameter="{Binding GitHubLink}" Cursor="Hand" Background="#131418" >
+                    <Image Source="/Assets/github-logo.png" Margin="15" />
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover > Image">
+                            <Setter Property="Width" Value="130" />
+                            <Setter Property="Height" Value="130" />
+                            <Setter Property="Margin" Value="10"/>
+                        </Style>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="Transparent" />
+                        </Style>
+                    </Button.Styles>
+                </Button>
+                <Button Height="150" Command="{Binding GoToURLCommand}" CommandParameter="{Binding WebPortalLink}" Cursor="Hand" Background="#131418" >
+                    <Image Source="/Assets/world-wide-web.png" Margin="15" />
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover > Image">
+                            <Setter Property="Width" Value="130" />
+                            <Setter Property="Height" Value="130" />
+                            <Setter Property="Margin" Value="10"/>
+                        </Style>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="Transparent" />
+                        </Style>
+                    </Button.Styles>
+                </Button>
+                <Button Height="150" Command="{Binding GoToURLCommand}" CommandParameter="{Binding RedditLink}" Cursor="Hand" Background="#131418" >
+                    <Image Source="/Assets/reddit-logo.png" Margin="15" />
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover > Image">
+                            <Setter Property="Width" Value="130" />
+                            <Setter Property="Height" Value="130" />
+                            <Setter Property="Margin" Value="10"/>
+                        </Style>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="Transparent" />
+                        </Style>
+                    </Button.Styles>
+                </Button>
+                <Button Height="150" Command="{Binding GoToURLCommand}" CommandParameter="{Binding DiscordLink}" Cursor="Hand" Background="#131418" >
+                    <Image Source="/Assets/discord-logo.png" Margin="15" />
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover > Image">
+                            <Setter Property="Width" Value="130" />
+                            <Setter Property="Height" Value="130" />
+                            <Setter Property="Margin" Value="10"/>
+                        </Style>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="Transparent" />
+                        </Style>
+                    </Button.Styles>
+                </Button>
             </StackPanel>
             
             <StackPanel Grid.Column="1" Width="1000" Background="#131418">

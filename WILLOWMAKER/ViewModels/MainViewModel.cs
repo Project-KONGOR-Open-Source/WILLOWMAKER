@@ -1,4 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System.Diagnostics;
 
 namespace WILLOWMAKER.ViewModels;
 
@@ -11,14 +13,18 @@ public partial class MainViewModel : ObservableObject
     private string? _gitHubLink = "https://github.com/Project-KONGOR-Open-Source";
 
     [ObservableProperty]
-    private string? _webPortalLink = "https://kongor.online/";
+    private string? _webPortalLink = "https://kongor.online";
 
     [ObservableProperty]
-    private string? _redditLink = "https://www.reddit.com/r/Project_KONGOR/";
+    private string? _redditLink = "https://www.reddit.com/r/Project_KONGOR";
 
     [ObservableProperty]
     private string? _discordLink = "ლ(ಠ益ಠლ) But At What Cost?";
 
     [ObservableProperty]
     private string? _masterServerAddress;
+
+    [RelayCommand]
+    private void GoToURL(string url)
+        => Process.Start(new ProcessStartInfo() { FileName = url, UseShellExecute = true });
 }
