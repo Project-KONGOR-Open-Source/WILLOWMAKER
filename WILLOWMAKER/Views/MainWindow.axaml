@@ -7,7 +7,7 @@
         mc:Ignorable="d" d:DesignWidth="1150" Width="1150" d:DesignHeight="600" Height="600"
         CanResize="False"
         x:Class="WILLOWMAKER.Views.MainWindow"
-        Icon="/Assets/willowmaker.png"
+        Icon="/Assets/hon-logo.png"
         Title="WILLOWMAKER">
 
         <views:MainView />
