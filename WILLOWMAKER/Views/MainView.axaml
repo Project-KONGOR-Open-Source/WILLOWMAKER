@@ -76,15 +76,31 @@
                 <StackPanel.Background>
                     <ImageBrush Source="/Assets/caldavar.png" />
                 </StackPanel.Background>
-                
-                <Label Width="200" HorizontalAlignment="Center" HorizontalContentAlignment="Center">Master Server Address</Label>
-                <ComboBox SelectedValue="{Binding MasterServerAddress}" Name="dropdown" SelectedIndex="0" Width="200" HorizontalAlignment="Center">
-                    <ComboBoxItem>api.kongor.online</ComboBoxItem>
-                    <ComboBoxItem>localhost:55555</ComboBoxItem>
-                    <ComboBoxItem>Custom Address ...</ComboBoxItem>
-                </ComboBox>
-                <TextBox Text="{Binding CustomMasterServerAddress}" Width="200" HorizontalAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" />
-                <Button Width="200" HorizontalAlignment="Center" HorizontalContentAlignment="Center" IsEnabled="{Binding CanLaunchGame}" Background="#131418">Play Heroes Of Newerth</Button>
+
+                <Grid ColumnDefinitions="Auto, Auto, Auto">
+                    <StackPanel Grid.Column="0" Width="333" />
+
+                    <StackPanel Grid.Column="1" Width="333" Margin="0, 225, 0, 0" >
+                        <Label Width="200" HorizontalAlignment="Center" HorizontalContentAlignment="Center">Master Server Address</Label>
+                        
+                        <ComboBox SelectedValue="{Binding MasterServerAddress}" Name="dropdown" SelectedIndex="0" Width="200" HorizontalAlignment="Center">
+                            <ComboBoxItem>api.kongor.online</ComboBoxItem>
+                            <ComboBoxItem>localhost:55555</ComboBoxItem>
+                            <ComboBoxItem>Custom Address ...</ComboBoxItem>
+                        </ComboBox>
+                        
+                        <TextBox Text="{Binding CustomMasterServerAddress}" Width="200" HorizontalAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" />
+
+                        <Button Width="200" Height="60" HorizontalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchGame}" Background="#131418">Play Heroes Of Newerth</Button>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Width="333">
+                        <!-- TODO: Remove This Once WILLOWMAKER Is In A More Advanced State Of Completion -->
+                        <Label Width="200" HorizontalAlignment="Right" Margin="0, 10, -10, 0" >Development In Progress</Label>
+                    </StackPanel>
+                </Grid>
+
+                <TextBlock />
             </StackPanel>
         </Grid>
     </StackPanel>
