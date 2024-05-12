@@ -38,6 +38,12 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _canLaunchGame = true;
 
+    [ObservableProperty]
+    private string? _logTextArea = $@"[{DateTime.UtcNow}] [PARAMETERS] -masterserver api.kongor.online -webserver api.kongor.online -messageserver api.kongor.online" + Environment.NewLine;
+
+    [ObservableProperty]
+    private int _caretIndexForAutoScroll = int.MaxValue;
+
     [RelayCommand]
     private void GoToURL(string url)
         => Process.Start(new ProcessStartInfo() { FileName = url, UseShellExecute = true });
@@ -52,6 +58,13 @@ public partial class MainViewModel : ObservableObject
                 ? true
                 : (MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false) is true && string.IsNullOrWhiteSpace(CustomMasterServerAddress) is false
                     ? true : false;
+
+            if (CanShowCustomMasterServerAddressField is false)
+            {
+                CustomMasterServerAddress = null;
+
+                LogTextArea += LogLaunchParameters();
+            }
         }
     }
 
@@ -59,5 +72,17 @@ public partial class MainViewModel : ObservableObject
     {
         CanLaunchGame = (MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false) is true && string.IsNullOrWhiteSpace(CustomMasterServerAddress) is false
             ? true : false;
+
+        if (string.IsNullOrWhiteSpace(newValue) is false)
+            LogTextArea += LogLaunchParameters();
+    }
+
+    private string LogLaunchParameters()
+    {
+        string address = MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false
+            ? CustomMasterServerAddress ?? throw new NullReferenceException("Custom Master Server Address Is NULL")
+            : MasterServerAddress?.Content?.ToString() ?? throw new NullReferenceException("Master Server Address Is NULL");
+
+        return $@"[{DateTime.UtcNow}] [PARAMETERS] -masterserver {address} -webserver {address} -messageserver {address}" + Environment.NewLine;
     }
 }

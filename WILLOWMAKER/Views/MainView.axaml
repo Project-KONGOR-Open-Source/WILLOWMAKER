@@ -74,33 +74,38 @@
             
             <StackPanel Grid.Column="1" Width="1000" Background="#131418">
                 <StackPanel.Background>
-                    <ImageBrush Source="/Assets/caldavar.png" />
+                    <ImageBrush Source="/Assets/caldavar.png" Opacity="200" />
                 </StackPanel.Background>
 
-                <Grid ColumnDefinitions="Auto, Auto, Auto">
-                    <StackPanel Grid.Column="0" Width="333" />
+                <Grid RowDefinitions="Auto, Auto">
+                    <Grid Grid.Row="0" Height="480" ColumnDefinitions="Auto, Auto, Auto">
+                        <StackPanel Grid.Column="0" Width="333" />
 
-                    <StackPanel Grid.Column="1" Width="333" Margin="0, 225, 0, 0" >
-                        <Label Width="200" HorizontalAlignment="Center" HorizontalContentAlignment="Center">Master Server Address</Label>
-                        
-                        <ComboBox SelectedValue="{Binding MasterServerAddress}" Name="dropdown" SelectedIndex="0" Width="200" HorizontalAlignment="Center">
-                            <ComboBoxItem>api.kongor.online</ComboBoxItem>
-                            <ComboBoxItem>localhost:55555</ComboBoxItem>
-                            <ComboBoxItem>Custom Address ...</ComboBoxItem>
-                        </ComboBox>
-                        
-                        <TextBox Text="{Binding CustomMasterServerAddress}" Width="200" HorizontalAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" />
+                        <StackPanel Grid.Column="1" Width="333" Margin="0, 225, 0, 0" >
+                            <Label Width="200" HorizontalAlignment="Center" HorizontalContentAlignment="Center">Master Server Address</Label>
 
-                        <Button Width="200" Height="60" HorizontalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchGame}" Background="#131418">Play Heroes Of Newerth</Button>
-                    </StackPanel>
+                            <ComboBox SelectedValue="{Binding MasterServerAddress}" Name="MasterServerAddressDropdown" SelectedIndex="0" Width="200" HorizontalAlignment="Center">
+                                <ComboBoxItem>api.kongor.online</ComboBoxItem>
+                                <ComboBoxItem>localhost:55555</ComboBoxItem>
+                                <ComboBoxItem>Custom Address ...</ComboBoxItem>
+                            </ComboBox>
 
-                    <StackPanel Grid.Column="2" Width="333">
-                        <!-- TODO: Remove This Once WILLOWMAKER Is In A More Advanced State Of Completion -->
-                        <Label Width="200" HorizontalAlignment="Right" Margin="0, 10, -10, 0" >Development In Progress</Label>
+                            <TextBox Text="{Binding CustomMasterServerAddress}" Width="200" HorizontalAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" />
+
+                            <Button Width="200" Height="60" Margin="0, 40, 0, 0" Cursor="Hand" HorizontalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchGame}" Background="#131418">Play Heroes Of Newerth</Button>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Width="333">
+                            <!-- TODO: Remove This Once WILLOWMAKER Is In A More Advanced State Of Completion -->
+                            <Label Width="200" HorizontalAlignment="Right" Margin="0, 10, -10, 0" Foreground="OrangeRed">Development In Progress</Label>
+                        </StackPanel>
+                    </Grid>
+
+                    <StackPanel Grid.Row="1" Height="120">
+                        <TextBlock Height="20" Margin="10, 0, 0, 0">LOG</TextBlock>
+                        <TextBox Width="980" Height="85" Margin="0, 5, 0, 0" Text="{Binding LogTextArea}" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" CaretIndex="{Binding CaretIndexForAutoScroll}" CaretBrush="Transparent" />
                     </StackPanel>
                 </Grid>
-
-                <TextBlock />
             </StackPanel>
         </Grid>
     </StackPanel>
