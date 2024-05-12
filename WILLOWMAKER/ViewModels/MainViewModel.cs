@@ -62,6 +62,7 @@ public partial class MainViewModel : ObservableObject
             if (CanShowCustomMasterServerAddressField is false)
             {
                 CustomMasterServerAddress = null;
+                CanLaunchGame = true;
 
                 LogTextArea += LogLaunchParameters();
             }
