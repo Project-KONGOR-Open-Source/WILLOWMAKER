@@ -92,7 +92,16 @@
 
                             <TextBox Text="{Binding CustomMasterServerAddress}" Width="200" HorizontalAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" />
 
-                            <Button Width="200" Height="60" Margin="0, 40, 0, 0" Cursor="Hand" HorizontalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchGame}" Background="#131418">Play Heroes Of Newerth</Button>
+                            <Button Width="200" Height="60" Margin="0, 40, 0, 0" Cursor="Hand" HorizontalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchGame}" Background="Green">
+                                <Button.Styles>
+                                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                        <Setter Property="Background" Value="Green" />
+                                        <Setter Property="FontWeight" Value="Medium" />
+                                    </Style>
+                                </Button.Styles>
+                                
+                                Play Heroes Of Newerth
+                            </Button>
                         </StackPanel>
 
                         <StackPanel Grid.Column="2" Width="333">
