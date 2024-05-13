@@ -39,7 +39,7 @@ public partial class MainViewModel : ObservableObject
     private bool _canLaunchGame = true;
 
     [ObservableProperty]
-    private string? _logTextArea = $@"[{DateTime.UtcNow}] [PARAMETERS] -masterserver api.kongor.online -webserver api.kongor.online -messageserver api.kongor.online" + Environment.NewLine;
+    private string? _logTextArea = $@"[{DateTime.Now:s}] [PARAMETERS] -masterserver api.kongor.online -webserver api.kongor.online -messageserver api.kongor.online" + Environment.NewLine;
 
     [ObservableProperty]
     private int _caretIndexForAutoScroll = int.MaxValue;
@@ -84,6 +84,6 @@ public partial class MainViewModel : ObservableObject
             ? CustomMasterServerAddress ?? throw new NullReferenceException("Custom Master Server Address Is NULL")
             : MasterServerAddress?.Content?.ToString() ?? throw new NullReferenceException("Master Server Address Is NULL");
 
-        return $@"[{DateTime.UtcNow}] [PARAMETERS] -masterserver {address} -webserver {address} -messageserver {address}" + Environment.NewLine;
+        return $@"[{DateTime.Now:s}] [PARAMETERS] -masterserver {address} -webserver {address} -messageserver {address}" + Environment.NewLine;
     }
 }

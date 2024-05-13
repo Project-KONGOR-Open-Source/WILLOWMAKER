@@ -7,4 +7,8 @@
     <Application.Styles>
         <FluentTheme />
     </Application.Styles>
+
+    <Application.Resources>
+        <FontFamily x:Key="Monaspace">/Assets/monaspace-krypton-medium-font.otf</FontFamily>
+    </Application.Resources>
 </Application>
