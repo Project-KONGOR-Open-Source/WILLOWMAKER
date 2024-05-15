@@ -9,6 +9,8 @@
     </Application.Styles>
 
     <Application.Resources>
-        <FontFamily x:Key="Monaspace">/Assets/monaspace-krypton-medium-font.otf</FontFamily>
+        <!-- Importing The Font With The Family Name Is Required, Otherwise The Font Will Not Be Used -->
+        <!-- Font Metadata Can Be Inspected With This Tool: https://products.aspose.app/font/metadata/ttf -->
+        <FontFamily x:Key="MonoSpaceFont">/Assets/roboto-mono-medium.ttf#Roboto Mono</FontFamily>
     </Application.Resources>
 </Application>

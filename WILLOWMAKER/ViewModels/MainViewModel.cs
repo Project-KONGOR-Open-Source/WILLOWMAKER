@@ -27,7 +27,7 @@ public partial class MainViewModel : ObservableObject
     private string? _discordLink = "ლ(ಠ益ಠლ) But At What Cost?";
 
     [ObservableProperty]
-    private ComboBoxItem? _masterServerAddress;
+    private ComboBoxItem? _masterServerAddress = new() { Content = "api.kongor.online" }; // Needs To Match The Default Value In The XAML
 
     [ObservableProperty]
     private string? _customMasterServerAddress;
@@ -86,4 +86,43 @@ public partial class MainViewModel : ObservableObject
 
         return $@"[{DateTime.Now:s}] [PARAMETERS] -masterserver {address} -webserver {address} -messageserver {address}" + Environment.NewLine;
     }
+
+    [RelayCommand]
+    private void Launch()
+    {
+        FileInfo[] executableMatchesWindows = new DirectoryInfo(Environment.CurrentDirectory).GetFiles("hon_x64.exe", SearchOption.TopDirectoryOnly);
+        FileInfo[] executableMatchesLinux = new DirectoryInfo(Environment.CurrentDirectory).GetFiles("hon-x86_64", SearchOption.TopDirectoryOnly);
+        FileInfo[] executableMatchesMacOS = new DirectoryInfo(Environment.CurrentDirectory).GetFiles("HoN64", SearchOption.TopDirectoryOnly);
+
+        FileInfo[] executableMatches = Array.Empty<FileInfo>().Union(executableMatchesWindows).Union(executableMatchesLinux).Union(executableMatchesMacOS).ToArray();
+
+        if (executableMatches.Length is 0)
+        {
+            LogTextArea += $"[{DateTime.Now:s}] [EXECUTABLE] Unable to locate the game executable in the current directory." + Environment.NewLine;
+            return;
+        }
+
+        else if (executableMatches.Length is 1)
+        {
+            LogTextArea += $@"[{DateTime.Now:s}] [EXECUTABLE] Launching ""{executableMatches.Single().FullName}"" with set parameters ..." + Environment.NewLine;
+        }
+
+        else
+        {
+            LogTextArea += $"[{DateTime.Now:s}] [EXECUTABLE] Multiple game executables were located in the current directory: {string.Join(", ", executableMatches.Select(match => match.Name))}." + Environment.NewLine;
+            return;
+        }
+
+        string address = MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false
+            ? CustomMasterServerAddress ?? throw new NullReferenceException("Custom Master Server Address Is NULL")
+            : MasterServerAddress?.Content?.ToString() ?? throw new NullReferenceException("Master Server Address Is NULL");
+
+        Process.Start(new ProcessStartInfo()
+        {
+            FileName = executableMatches.Single().FullName,
+            Arguments = $"-masterserver {address} -webserver {address} -messageserver {address}",
+            UseShellExecute = false
+        });
+    }
 }
+ 
