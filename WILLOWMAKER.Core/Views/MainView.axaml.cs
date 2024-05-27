@@ -1,6 +1,4 @@
-﻿using Avalonia.Controls;
-
-namespace WILLOWMAKER.Views;
+﻿namespace WILLOWMAKER.Core.Views;
 
 public partial class MainView : UserControl
 {

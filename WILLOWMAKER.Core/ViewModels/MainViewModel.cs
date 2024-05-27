@@ -1,16 +1,7 @@
-﻿using Avalonia;
-using Avalonia.Controls;
-
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-
-using System.Collections.ObjectModel;
-using System.Diagnostics;
-
-namespace WILLOWMAKER.ViewModels;
+﻿namespace WILLOWMAKER.Core.ViewModels;
 
 // This class needs to be partial, to create an injection point for the auto-generated code produced by CommunityToolkit.Mvvm.
-// Dependencies > Analyzers > CommunityToolkit.Mvvm.SourceGenerators > CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator > WILLOWMAKER.ViewModels.MainViewModel.g.cs
+// Dependencies > Analyzers > CommunityToolkit.Mvvm.SourceGenerators > CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator > WILLOWMAKER.Core.ViewModels.MainViewModel.g.cs
 
 public partial class MainViewModel : ObservableObject
 {
