@@ -1,4 +1,4 @@
 <Solution>
-  <Project Path="WILLOWMAKER.Desktop\WILLOWMAKER.Desktop.csproj" />
   <Project Path="WILLOWMAKER\WILLOWMAKER.csproj" />
+  <Project Path="WILLOWMAKER.Core\WILLOWMAKER.Core.csproj" />
 </Solution>
