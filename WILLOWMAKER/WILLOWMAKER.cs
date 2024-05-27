@@ -1,10 +1,6 @@
-﻿using System;
+﻿namespace WILLOWMAKER;
 
-using Avalonia;
-
-namespace WILLOWMAKER.Desktop;
-
-public class Program
+public class WILLOWMAKER
 {
     [STAThread]
     public static void Main(string[] args)
