@@ -15,9 +15,9 @@ Publish Self-Contained Binaries For Windows/Linux/macOS
 
 ```powershell
 # In The Context Of The Solution Directory
-pwsh ./publish-self-contained-binaries.ps1
+pwsh .\Publish-Self-Contained-Binaries.ps1
 
-# PowerShell 7 or greater needs to be installed
+# Publish Directory: ..\WILLOWMAKER\WILLOWMAKER\bin\Publish
 ```
 
 <br/>
