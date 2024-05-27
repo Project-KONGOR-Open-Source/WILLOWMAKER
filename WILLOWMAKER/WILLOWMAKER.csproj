@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<OutputType>exe</OutputType>
+		<OutputType>WinExe</OutputType>
 		<TargetFramework>net8.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
@@ -8,10 +8,18 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Avalonia.Desktop" Version="11.0.10"/>
+		<PackageReference Include="Avalonia.Desktop" Version="11.0.10" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\WILLOWMAKER.Core\WILLOWMAKER.Core.csproj"/>
+		<ProjectReference Include="..\WILLOWMAKER.Core\WILLOWMAKER.Core.csproj" />
 	</ItemGroup>
+
+	<ItemGroup>
+		<Content Include="Assets\willowmaker.ico" />
+	</ItemGroup>
+
+	<PropertyGroup>
+		<ApplicationIcon>Assets\willowmaker.ico</ApplicationIcon>
+	</PropertyGroup>
 </Project>
