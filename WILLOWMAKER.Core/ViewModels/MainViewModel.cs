@@ -79,7 +79,7 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void Launch()
+    private async Task Launch()
     {
         FileInfo[] executableMatchesWindows = new DirectoryInfo(Environment.CurrentDirectory).GetFiles("hon_x64.exe", SearchOption.TopDirectoryOnly);
         FileInfo[] executableMatchesLinux = new DirectoryInfo(Environment.CurrentDirectory).GetFiles("hon-x86_64", SearchOption.TopDirectoryOnly);
@@ -108,11 +108,16 @@ public partial class MainViewModel : ObservableObject
             ? CustomMasterServerAddress ?? throw new NullReferenceException("Custom Master Server Address Is NULL")
             : MasterServerAddress?.Content?.ToString() ?? throw new NullReferenceException("Master Server Address Is NULL");
 
-        Process.Start(new ProcessStartInfo()
+        Process? process = Process.Start(new ProcessStartInfo()
         {
             FileName = executableMatches.Single().FullName,
             Arguments = $"-masterserver {address} -webserver {address} -messageserver {address}",
             UseShellExecute = false
         });
+
+        while (process?.MainWindowHandle == IntPtr.Zero)
+            await Task.Delay(250);
+
+        Environment.Exit(0);
     }
 }
