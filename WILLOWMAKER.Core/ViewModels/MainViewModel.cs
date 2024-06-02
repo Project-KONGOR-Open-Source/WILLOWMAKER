@@ -15,7 +15,7 @@ public partial class MainViewModel : ObservableObject
     private string? _redditLink = "https://www.reddit.com/r/Project_KONGOR";
 
     [ObservableProperty]
-    private string? _discordLink = "ლ(ಠ益ಠლ) But At What Cost?";
+    private string? _discordLink = "https://discord.com/invite/b5bsjK7ej3";
 
     [ObservableProperty]
     private ComboBoxItem? _masterServerAddress = new() { Content = "api.kongor.online" }; // Needs To Match The Default Value In The XAML
