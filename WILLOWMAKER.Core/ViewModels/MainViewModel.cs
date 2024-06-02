@@ -30,7 +30,7 @@ public partial class MainViewModel : ObservableObject
     private bool _canLaunchGame = true;
 
     [ObservableProperty]
-    private string? _logTextArea = $@"[{DateTime.Now:s}] [PARAMETERS] -masterserver api.kongor.online -webserver api.kongor.online -messageserver api.kongor.online" + Environment.NewLine;
+    private string? _logTextArea = $"[{DateTime.Now:s}] [PARAMETERS] -masterserver api.kongor.online -webserver api.kongor.online -messageserver api.kongor.online" + Environment.NewLine;
 
     [ObservableProperty]
     private int _caretIndexForAutoScroll = int.MaxValue;
@@ -75,7 +75,10 @@ public partial class MainViewModel : ObservableObject
             ? CustomMasterServerAddress ?? throw new NullReferenceException("Custom Master Server Address Is NULL")
             : MasterServerAddress?.Content?.ToString() ?? throw new NullReferenceException("Master Server Address Is NULL");
 
-        return $@"[{DateTime.Now:s}] [PARAMETERS] -masterserver {address} -webserver {address} -messageserver {address}" + Environment.NewLine;
+        // The Game Client Does Not Understand "localhost" As A Valid Address, So We Need To Replace It With The Loopback Address "127.0.0.1" For Locally Hosted Master Servers
+        address = address.Replace("localhost", IPAddress.Loopback.MapToIPv4().ToString());
+
+        return $"[{DateTime.Now:s}] [PARAMETERS] -masterserver {address} -webserver {address} -messageserver {address}" + Environment.NewLine;
     }
 
     [RelayCommand]
@@ -108,10 +111,32 @@ public partial class MainViewModel : ObservableObject
             ? CustomMasterServerAddress ?? throw new NullReferenceException("Custom Master Server Address Is NULL")
             : MasterServerAddress?.Content?.ToString() ?? throw new NullReferenceException("Master Server Address Is NULL");
 
-        Process? process = Process.Start(new ProcessStartInfo()
+        // The Game Client Does Not Understand "localhost" As A Valid Address, So We Need To Replace It With The Loopback Address "127.0.0.1" For Locally Hosted Master Servers
+        address = address.Replace("localhost", IPAddress.Loopback.MapToIPv4().ToString());
+
+        string[] arguments =
+        [
+            // services
+            $"-masterserver {address}",
+            $"-webserver {address}",
+            $"-messageserver {address}",
+
+            // debug
+            @"-execute ""setsave http_printdebuginfo true""",
+            @"-execute ""setsave php_printdebuginfo true""",
+
+            // console
+            @"-execute ""con_height 0.50""",
+            @"-execute ""con_alpha 0.25"""
+        ];
+
+        LogTextArea += $"[{DateTime.Now:s}] [PARAMETERS] {arguments.Single(argument => argument.Contains("http_printdebuginfo"))} {arguments.Single(argument => argument.Contains("php_printdebuginfo"))}" + Environment.NewLine;
+        LogTextArea += $"[{DateTime.Now:s}] [PARAMETERS] {arguments.Single(argument => argument.Contains("con_height"))} {arguments.Single(argument => argument.Contains("con_alpha"))}" + Environment.NewLine;
+
+        Process? process = Process.Start(new ProcessStartInfo
         {
             FileName = executableMatches.Single().FullName,
-            Arguments = $"-masterserver {address} -webserver {address} -messageserver {address}",
+            Arguments = string.Join(" ", arguments),
             UseShellExecute = false
         });
 

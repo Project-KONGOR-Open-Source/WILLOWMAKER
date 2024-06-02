@@ -7,8 +7,8 @@ global using Avalonia.Markup.Xaml;
 global using CommunityToolkit.Mvvm.ComponentModel;
 global using CommunityToolkit.Mvvm.Input;
 
-global using System.Collections.ObjectModel;
 global using System.Diagnostics;
+global using System.Net;
 
 global using WILLOWMAKER.Core.ViewModels;
 global using WILLOWMAKER.Core.Views;
