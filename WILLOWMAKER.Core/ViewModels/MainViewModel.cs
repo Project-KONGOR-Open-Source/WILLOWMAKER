@@ -9,7 +9,7 @@ public partial class MainViewModel : ObservableObject
     private string? _gitHubLink = "https://github.com/Project-KONGOR-Open-Source";
 
     [ObservableProperty]
-    private string? _webPortalLink = "https://kongor.online";
+    private string? _webPortalLink = "https://kongor.net";
 
     [ObservableProperty]
     private string? _redditLink = "https://www.reddit.com/r/Project_KONGOR";
@@ -18,7 +18,7 @@ public partial class MainViewModel : ObservableObject
     private string? _discordLink = "https://discord.com/invite/b5bsjK7ej3";
 
     [ObservableProperty]
-    private ComboBoxItem? _masterServerAddress = new() { Content = "api.kongor.online" }; // Needs To Match The Default Value In The XAML
+    private ComboBoxItem? _masterServerAddress = new() { Content = "api.kongor.net" }; // Needs To Match The Default Value In The XAML
 
     [ObservableProperty]
     private string? _customMasterServerAddress;
@@ -30,7 +30,7 @@ public partial class MainViewModel : ObservableObject
     private bool _canLaunchGame = true;
 
     [ObservableProperty]
-    private string? _logTextArea = $"[{DateTime.Now:s}] [PARAMETERS] -masterserver api.kongor.online -webserver api.kongor.online -messageserver api.kongor.online" + Environment.NewLine;
+    private string? _logTextArea = $"[{DateTime.Now:s}] [PARAMETERS] -masterserver api.kongor.net -webserver api.kongor.net -messageserver api.kongor.net" + Environment.NewLine;
 
     [ObservableProperty]
     private int _caretIndexForAutoScroll = int.MaxValue;
