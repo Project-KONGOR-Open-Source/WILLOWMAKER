@@ -76,7 +76,8 @@ public partial class MainViewModel : ObservableObject
             : MasterServerAddress?.Content?.ToString() ?? throw new NullReferenceException("Master Server Address Is NULL");
 
         // The Game Client Does Not Understand "localhost" As A Valid Address, So We Need To Replace It With The Loopback Address "127.0.0.1" For Locally Hosted Master Servers
-        address = address.Replace("localhost", IPAddress.Loopback.MapToIPv4().ToString());
+        // We Also Want To Wait Until Reaching The Colon Before Replacing The Local IP Address, Otherwise "localhost" Appears In The Log With The "t" Missing From The End
+        address = address.Replace("localhost" + ":", IPAddress.Loopback.MapToIPv4() + ":");
 
         return $"[{DateTime.Now:s}] [PARAMETERS] -masterserver {address} -webserver {address} -messageserver {address}" + Environment.NewLine;
     }
