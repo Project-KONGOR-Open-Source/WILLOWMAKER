@@ -12,7 +12,7 @@ public partial class MainViewModel : ObservableObject
     private string? _webPortalLink = "https://kongor.net";
 
     [ObservableProperty]
-    private string? _redditLink = "https://www.reddit.com/r/Project_KONGOR";
+    private string? _redditLink = "https://www.reddit.com/r/newerth";
 
     [ObservableProperty]
     private string? _discordLink = "https://discord.com/invite/N6pKzGDqUH";
