@@ -128,7 +128,10 @@ public partial class MainViewModel : ObservableObject
 
             // console
             @"-execute ""set con_height 0.50""",
-            @"-execute ""set con_alpha 0.25"""
+            @"-execute ""set con_alpha 0.25""",
+
+            // performance
+            @"-execute ""setsave host_affinity -1"""
         ];
 
         LogTextArea += $"[{DateTime.Now:s}] [PARAMETERS] {arguments.Single(argument => argument.Contains("http_printdebuginfo"))} {arguments.Single(argument => argument.Contains("php_printdebuginfo"))}" + Environment.NewLine;
