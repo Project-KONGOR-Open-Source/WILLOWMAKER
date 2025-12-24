@@ -136,6 +136,7 @@ public partial class MainViewModel : ObservableObject
 
         LogTextArea += $"[{DateTime.Now:s}] [PARAMETERS] {arguments.Single(argument => argument.Contains("http_printdebuginfo"))} {arguments.Single(argument => argument.Contains("php_printdebuginfo"))}" + Environment.NewLine;
         LogTextArea += $"[{DateTime.Now:s}] [PARAMETERS] {arguments.Single(argument => argument.Contains("con_height"))} {arguments.Single(argument => argument.Contains("con_alpha"))}" + Environment.NewLine;
+        LogTextArea += $"[{DateTime.Now:s}] [PARAMETERS] {arguments.Single(argument => argument.Contains("host_affinity"))}" + Environment.NewLine;
 
         Process? process = Process.Start(new ProcessStartInfo
         {
