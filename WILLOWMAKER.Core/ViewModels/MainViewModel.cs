@@ -127,8 +127,8 @@ public partial class MainViewModel : ObservableObject
             @"-execute ""setsave php_printdebuginfo true""",
 
             // console
-            @"-execute ""set con_height 0.50""",
-            @"-execute ""set con_alpha 0.25""",
+            @"-execute ""setsave con_height 0.50""",
+            @"-execute ""setsave con_alpha 0.25""",
 
             // performance
             @"-execute ""setsave host_affinity -1"""
