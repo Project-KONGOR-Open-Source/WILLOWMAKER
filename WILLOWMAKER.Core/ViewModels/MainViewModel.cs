@@ -148,7 +148,7 @@ public partial class MainViewModel : ObservableObject
             "KONGOR/extensions", // custom resource files to override default game resources; reserved for mods and extensions
 
             // relative to configuration directory
-            "/" // the last path in the mod stack is used as the sub-directory of the configuration directory; "/" means the configuration directory itself
+            "/" // the last path in the mod stack is used as the sub-directory of the configuration directory, where configuration files are stored; "/" means the configuration directory itself
         ];
 
         LogTextArea += $"[{DateTime.Now:s}] [PARAMETERS] -mod {string.Join(";", resources)}" + Environment.NewLine;
