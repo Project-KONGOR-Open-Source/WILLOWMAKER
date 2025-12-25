@@ -1,0 +1,71 @@
+name: "Publish Release"
+
+on:
+
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: write
+
+jobs:
+
+  publish-release:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: "Check Out Branch"
+      uses: "actions/checkout@v4"
+
+    - name: "Install .NET 10"
+      uses: "actions/setup-dotnet@v4"
+      with:
+        dotnet-version: "10.x"
+
+    - name: "Print .NET Version"
+      run: "dotnet --version"
+
+    - name: Restore Dependencies
+      run: dotnet restore
+
+    - name: Build For Windows x64
+      run: dotnet publish "WILLOWMAKER" -p:PublishProfile=Windows.SingleFile.pubxml
+
+    - name: Build For Linux x64
+      run: dotnet publish "WILLOWMAKER" -p:PublishProfile=Linux.SingleFile.pubxml
+
+    - name: Build For macOS x64
+      run: dotnet publish "WILLOWMAKER" -p:PublishProfile=macOS.SingleFile.pubxml
+
+    - name: Create Windows Asset
+      run: |
+        cd WILLOWMAKER/bin/Publish/win-x64-single-file
+        zip -r ../../../../../windows-x64-${{ github.ref_name }}.zip .
+        cd ../../../../../
+
+    - name: Create Linux Asset
+      run: |
+        cd WILLOWMAKER/bin/Publish/linux-x64-single-file
+        zip -r ../../../../../linux-x64-${{ github.ref_name }}.zip .
+        cd ../../../../../
+
+    - name: Create macOS Asset
+      run: |
+        cd WILLOWMAKER/bin/Publish/osx-x64-single-file
+        zip -r ../../../../../macos-x64-${{ github.ref_name }}.zip .
+        cd ../../../../../
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          windows-x64-${{ github.ref_name }}.zip
+          linux-x64-${{ github.ref_name }}.zip
+          macos-x64-${{ github.ref_name }}.zip
+        body: |
+          Full Changelog: https://github.com/${{ github.repository }}/commits/${{ github.ref_name }}
+        draft: false
+        prerelease: ${{ contains(github.ref_name, '-') }}
+        generate_release_notes: true
