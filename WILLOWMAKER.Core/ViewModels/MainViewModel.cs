@@ -136,7 +136,7 @@ public partial class MainViewModel : ObservableObject
 
         File.WriteAllText(customConfigurationFilePath, customConfigurationFileContent);
 
-        LogTextArea += $"[{DateTime.Now:s}] [INITIALISE] Custom configuration file created at: {customConfigurationFilePath}." + Environment.NewLine;
+        LogTextArea += $@"[{DateTime.Now:s}] [INITIALISE] Custom configuration file ""./KONGOR/configuration/init.cfg"" was created." + Environment.NewLine;
 
         string[] resources =
         [
@@ -148,7 +148,7 @@ public partial class MainViewModel : ObservableObject
             "KONGOR/extensions", // custom resource files to override default game resources; reserved for mods and extensions
 
             // relative to configuration directory
-            "configuration" // the last path in the mod stack is used as the sub-directory of the configuration directory, where configuration files will write to and read from
+            "/" // the last path in the mod stack is used as the sub-directory of the configuration directory; "/" means the configuration directory itself
         ];
 
         LogTextArea += $"[{DateTime.Now:s}] [PARAMETERS] -mod {string.Join(";", resources)}" + Environment.NewLine;
