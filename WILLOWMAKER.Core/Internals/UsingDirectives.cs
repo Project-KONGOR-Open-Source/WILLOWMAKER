@@ -9,6 +9,7 @@ global using CommunityToolkit.Mvvm.Input;
 
 global using System.Diagnostics;
 global using System.Net;
+global using System.Text;
 
 global using WILLOWMAKER.Core.ViewModels;
 global using WILLOWMAKER.Core.Views;
