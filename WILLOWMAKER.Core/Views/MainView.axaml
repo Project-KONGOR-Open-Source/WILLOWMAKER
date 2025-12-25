@@ -72,7 +72,7 @@
                 </Button>
             </StackPanel>
             
-            <StackPanel Grid.Column="1" Width="1000" Background="#131418">
+            <StackPanel Grid.Column="1" Width="1000" Background="#131418" Focusable="True" PointerPressed="Background_PointerPressed">
                 <StackPanel.Background>
                     <ImageBrush Source="/Assets/caldavar.png" Opacity="200" />
                 </StackPanel.Background>
@@ -90,7 +90,7 @@
                                 <ComboBoxItem>Custom Address ...</ComboBoxItem>
                             </ComboBox>
 
-                            <TextBox Text="{Binding CustomMasterServerAddress}" Width="200" HorizontalAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" />
+                            <TextBox Text="{Binding CustomMasterServerAddress}" Width="200" HorizontalAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" LostFocus="CustomMasterServerAddress_LostFocus" KeyDown="CustomMasterServerAddress_KeyDown" />
 
                             <Button Command="{Binding LaunchCommand}" Width="200" Height="60" Margin="0, 40, 0, 0" Cursor="Hand" HorizontalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchGame}" Background="Green">
                                 <Button.Styles>

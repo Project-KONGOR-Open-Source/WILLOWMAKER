@@ -36,6 +36,13 @@ public partial class MainViewModel : ObservableObject
     private void GoToURL(string url)
         => Process.Start(new ProcessStartInfo() { FileName = url, UseShellExecute = true });
 
+    [RelayCommand]
+    private void LogCustomMasterServerAddress()
+    {
+        if (string.IsNullOrWhiteSpace(CustomMasterServerAddress) is false)
+            LogTextArea += LogLaunchParameters();
+    }
+
     partial void OnMasterServerAddressChanged(ComboBoxItem? oldValue, ComboBoxItem? newValue)
     {
         if (newValue is not null)
@@ -61,9 +68,6 @@ public partial class MainViewModel : ObservableObject
     {
         CanLaunchGame = (MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false) is true && string.IsNullOrWhiteSpace(CustomMasterServerAddress) is false
             ? true : false;
-
-        if (string.IsNullOrWhiteSpace(newValue) is false)
-            LogTextArea += LogLaunchParameters();
     }
 
     private string LogLaunchParameters()
