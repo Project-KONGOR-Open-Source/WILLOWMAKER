@@ -140,7 +140,7 @@ public partial class MainViewModel : ObservableObject
 
         File.WriteAllText(customConfigurationFilePath, customConfigurationFileContent);
 
-        LogTextArea += $@"[{DateTime.Now:s}] [INITIALISE] Custom configuration file ""./KONGOR/configuration/init.cfg"" was created." + Environment.NewLine;
+        LogTextArea += $"[{DateTime.Now:s}] [INITIALISE] {customConfigurationFilePath}" + Environment.NewLine;
 
         string[] resources =
         [
