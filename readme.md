@@ -8,16 +8,77 @@
 
 <br/>
 
-Publish Self-Contained Binaries For Windows/Linux/macOS
+## 🛠️ Build & Deployment Guide
 
-> [!NOTE]
-> PowerShell 7 or greater needs to be installed: https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell.
+This guide describes how to build the Client (`WILLOWMAKER.exe`) from source and deploy it to your Heroes of Newerth game installation.
+
+### 📋 Prerequisites
+
+*   **.NET SDK**: Ensure you have the .NET SDK installed (Release 10.0 or newer).
+    *   [Download .NET SDK](https://dotnet.microsoft.com/download)
+
+
+### 🚀 Quick Deployment Script
+
+You can use the following PowerShell snippet to build and deploy in one step.
+**Important:** Open your terminal in the repository root (where `WILLOWMAKER.slnx` is located).
+
+**Just update the `$GameClientDir` variable!**
 
 ```powershell
-# In The Context Of The Solution Directory
-pwsh .\Publish-Self-Contained-Binaries.ps1
+# --- CONFIGURATION ---
+$GameClientDir = "C:\Games\Heroes of Newerth" # <--- REPLACE THIS WITH YOUR FOLDER
 
-# Publish Directory: ..\WILLOWMAKER\WILLOWMAKER\bin\Publish
+# --- CHECK DIRECTORY ---
+if (-not (Test-Path ".\WILLOWMAKER.slnx")) {
+    Write-Error "❌ Wrong Directory! Please run this from the repository root (where WILLOWMAKER.slnx is)."
+    return
+}
+
+# --- BUILD & DEPLOY ---
+Write-Host "Building WILLOWMAKER..."
+dotnet build -c Release
+
+Write-Host "Deploying to $GameClientDir..."
+$BuildDir = ".\WILLOWMAKER\bin\Release\net10.0"
+
+if (Test-Path $BuildDir) {
+    Copy-Item -Path "$BuildDir\*" -Destination $GameClientDir -Recurse -Force
+    Write-Host "✅ Deployment Complete!" -ForegroundColor Green
+    Write-Host "You can now run WILLOWMAKER.exe from: $GameClientDir"
+} else {
+    Write-Host "❌ Build failed or path not found: $BuildDir" -ForegroundColor Red
+}
 ```
 
 <br/>
+
+
+<br/>
+
+### 🛠️ Manual Build & Deployment (Alternative)
+
+If you prefer to run the steps manually:
+
+1.  **Build**:
+    ```powershell
+    dotnet build -c Release
+    ```
+2.  **Locate Artifacts**:
+    *   Navigate to: `.\WILLOWMAKER\bin\Release\net10.0`
+3.  **Copy**:
+    *   Copy **ALL** contents to your game folder ensuring you overwrite existing files in your Game Client folder.
+
+![alt text](image-1.png)
+
+<br/>
+
+### 🎮 How to Play
+
+1.  **Launch Client**: Open the game client folder you deployed to and run `WILLOWMAKER.exe`.
+2.  **Connect**:
+    *   **Online Play**: Enter the Master Server URL provided by your community.
+    *   **Local Testing**: Choose **Local** mode to connect to your local development environment.
+
+
+![alt text](image-2.png)
