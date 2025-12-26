@@ -61,8 +61,6 @@ jobs:
           windows-x64-${{ github.ref_name }}.zip
           linux-x64-${{ github.ref_name }}.zip
           macos-x64-${{ github.ref_name }}.zip
-        body: |
-          Full Changelog: https://github.com/${{ github.repository }}/commits/${{ github.ref_name }}
         draft: false
         prerelease: ${{ contains(github.ref_name, '-') }}
         generate_release_notes: true
