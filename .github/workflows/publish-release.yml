@@ -42,17 +42,17 @@ jobs:
     - name: Create Windows Asset
       run: |
         cd WILLOWMAKER/bin/Publish/windows-x64-single-file
-        zip -r $GITHUB_WORKSPACE/windows-x64-${{ github.ref_name }}.zip .
+        zip -r $GITHUB_WORKSPACE/windows-x64-${{ github.ref_name }}.zip . -x "*.pdb"
 
     - name: Create Linux Asset
       run: |
         cd WILLOWMAKER/bin/Publish/linux-x64-single-file
-        zip -r $GITHUB_WORKSPACE/linux-x64-${{ github.ref_name }}.zip .
+        zip -r $GITHUB_WORKSPACE/linux-x64-${{ github.ref_name }}.zip . -x "*.pdb"
 
     - name: Create macOS Asset
       run: |
         cd WILLOWMAKER/bin/Publish/macos-x64-single-file
-        zip -r $GITHUB_WORKSPACE/macos-x64-${{ github.ref_name }}.zip .
+        zip -r $GITHUB_WORKSPACE/macos-x64-${{ github.ref_name }}.zip . -x "*.pdb"
 
     - name: Create Release
       uses: softprops/action-gh-release@v2
