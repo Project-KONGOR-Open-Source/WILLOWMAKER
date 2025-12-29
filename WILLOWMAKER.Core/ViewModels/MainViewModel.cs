@@ -134,6 +134,9 @@ public partial class MainViewModel : ObservableObject
         setsave con_height 0.50
         setsave con_alpha 0.25
 
+        // interface
+        setsave ui_showQuickStart true
+
         """;
 
         Directory.CreateDirectory(Path.GetDirectoryName(customConfigurationFilePath) ?? throw new NullReferenceException("Custom Configuration File Path Is NULL"));
