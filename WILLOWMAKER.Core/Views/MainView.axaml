@@ -86,7 +86,7 @@
 
                             <ComboBox SelectedValue="{Binding MasterServerAddress}" Name="MasterServerAddressDropdown" SelectedIndex="0" Width="200" HorizontalAlignment="Center">
                                 <ComboBoxItem>api.kongor.net</ComboBoxItem>
-                                <ComboBoxItem>localhost:55555</ComboBoxItem>
+                                <ComboBoxItem>localhost:5555</ComboBoxItem>
                                 <ComboBoxItem>Custom Address ...</ComboBoxItem>
                             </ComboBox>
 
