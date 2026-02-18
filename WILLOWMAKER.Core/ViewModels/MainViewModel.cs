@@ -127,15 +127,24 @@ public partial class MainViewModel : ObservableObject
         setsave host_affinity -1
 
         // debugging
+        setsave con_verbose true
         setsave http_printdebuginfo true
         setsave php_printdebuginfo true
+        setsave sys_dumpOnFatal true
+
+        // real-time debugging (set "con_notify" to "true" to enable)
+        setsave con_notify false
+        setsave con_notifyLines 48
+        setsave con_notifyTime 15000
 
         // console (CTRL+F8)
         setsave con_height 0.50
         setsave con_alpha 0.25
+        setsave con_showNet true
 
         // interface
         setsave ui_showQuickStart true
+        setsave cg_24hourClock true
 
         """;
 
