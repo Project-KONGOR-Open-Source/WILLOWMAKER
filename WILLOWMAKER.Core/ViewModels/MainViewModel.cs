@@ -2,6 +2,8 @@
 
 public partial class MainViewModel : ObservableObject
 {
+    private readonly Logger _logger = new(Path.Combine(Environment.CurrentDirectory, "WILLOWMAKER.log"));
+
     [ObservableProperty]
     private string? _gitHubLink = "https://github.com/Project-KONGOR-Open-Source";
 
@@ -27,10 +29,15 @@ public partial class MainViewModel : ObservableObject
     private bool _canLaunchGame = true;
 
     [ObservableProperty]
-    private string? _logTextArea = $"[{DateTime.Now:s}] [PARAMETERS] -masterserver api.kongor.net -webserver api.kongor.net -messageserver api.kongor.net" + Environment.NewLine;
+    private string? _logTextArea;
 
     [ObservableProperty]
     private int _caretIndexForAutoScroll = int.MaxValue;
+
+    public MainViewModel()
+    {
+        Log(LogCategory.Parameters, "-masterserver api.kongor.net -webserver api.kongor.net -messageserver api.kongor.net");
+    }
 
     [RelayCommand]
     private void GoToURL(string url)
@@ -40,7 +47,7 @@ public partial class MainViewModel : ObservableObject
     private void LogCustomMasterServerAddress()
     {
         if (string.IsNullOrWhiteSpace(CustomMasterServerAddress) is false)
-            LogTextArea += LogLaunchParameters();
+            LogLaunchParameters();
     }
 
     partial void OnMasterServerAddressChanged(ComboBoxItem? oldValue, ComboBoxItem? newValue)
@@ -59,7 +66,7 @@ public partial class MainViewModel : ObservableObject
                 CustomMasterServerAddress = null;
                 CanLaunchGame = true;
 
-                LogTextArea += LogLaunchParameters();
+                LogLaunchParameters();
             }
         }
     }
@@ -70,7 +77,12 @@ public partial class MainViewModel : ObservableObject
             ? true : false;
     }
 
-    private string LogLaunchParameters()
+    private void Log(string category, string message)
+    {
+        LogTextArea += _logger.Log(category, message);
+    }
+
+    private void LogLaunchParameters()
     {
         string address = MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false
             ? CustomMasterServerAddress ?? throw new NullReferenceException("Custom Master Server Address Is NULL")
@@ -80,7 +92,7 @@ public partial class MainViewModel : ObservableObject
         // We Also Want To Wait Until Reaching The Colon Before Replacing The Local IP Address, Otherwise "localhost" Appears In The Log With The "t" Missing From The End
         address = address.Replace("localhost" + ":", IPAddress.Loopback.MapToIPv4() + ":");
 
-        return $"[{DateTime.Now:s}] [PARAMETERS] -masterserver {address} -webserver {address} -messageserver {address}" + Environment.NewLine;
+        Log(LogCategory.Parameters, $"-masterserver {address} -webserver {address} -messageserver {address}");
     }
 
     [RelayCommand]
@@ -94,18 +106,18 @@ public partial class MainViewModel : ObservableObject
 
         if (executableMatches.Length is 0)
         {
-            LogTextArea += $"[{DateTime.Now:s}] [EXECUTABLE] Unable to locate the game executable in the current directory." + Environment.NewLine;
+            Log(LogCategory.Executable, "Unable to locate the game executable in the current directory.");
             return;
         }
 
         else if (executableMatches.Length is 1)
         {
-            LogTextArea += $@"[{DateTime.Now:s}] [EXECUTABLE] Launching ""{executableMatches.Single().FullName}"" with set parameters ..." + Environment.NewLine;
+            Log(LogCategory.Executable, $@"Launching ""{executableMatches.Single().FullName}"" with set parameters ...");
         }
 
         else
         {
-            LogTextArea += $"[{DateTime.Now:s}] [EXECUTABLE] Multiple game executables were located in the current directory: {string.Join(", ", executableMatches.Select(match => match.Name))}." + Environment.NewLine;
+            Log(LogCategory.Executable, $"Multiple game executables were located in the current directory: {string.Join(", ", executableMatches.Select(match => match.Name))}.");
             return;
         }
 
@@ -152,7 +164,7 @@ public partial class MainViewModel : ObservableObject
 
         File.WriteAllText(customConfigurationFilePath, customConfigurationFileContent);
 
-        LogTextArea += $"[{DateTime.Now:s}] [INITIALISE] {customConfigurationFilePath}" + Environment.NewLine;
+        Log(LogCategory.Initialise, customConfigurationFilePath);
 
         string[] resources =
         [
@@ -167,7 +179,7 @@ public partial class MainViewModel : ObservableObject
             "configuration" // the last path in the mod stack defines where user configuration files are saved to and loaded from; making this value dynamic is equivalent to having configuration profiles
         ];
 
-        LogTextArea += $"[{DateTime.Now:s}] [PARAMETERS] -mod {string.Join(";", resources)}" + Environment.NewLine;
+        Log(LogCategory.Parameters, $"-mod {string.Join(";", resources)}");
 
         string[] arguments =
         [
@@ -179,6 +191,8 @@ public partial class MainViewModel : ObservableObject
             // resources
             $"-mod {string.Join(";", resources)}"
         ];
+
+        Log(LogCategory.Command, $@"""{executableMatches.Single().FullName}"" {string.Join(" ", arguments)}");
 
         Process? process = Process.Start(new ProcessStartInfo
         {
