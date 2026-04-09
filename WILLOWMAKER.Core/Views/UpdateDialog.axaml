@@ -2,16 +2,33 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="WILLOWMAKER.Core.Views.UpdateDialog"
         Title="Update Available"
-        Width="450" Height="180"
+        Width="450" SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
-        CanResize="False">
+        CanResize="False"
+        TransparencyLevelHint="Transparent"
+        Background="#F2131418">
 
-    <StackPanel Margin="24" VerticalAlignment="Center">
-        <TextBlock x:Name="MessageText" TextWrapping="Wrap" Margin="0, 0, 0, 24" />
+    <StackPanel Margin="24">
+        <TextBlock x:Name="MessageText" TextWrapping="Wrap" Margin="0, 0, 0, 16" />
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12">
-            <Button Content="Update" Click="Update_Click" />
-            <Button Content="Not Now" Click="Skip_Click" />
+            <Button Content="Update" Click="Update_Click" Background="Green" Cursor="Hand" Width="90" Height="32" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                <Button.Styles>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="Green" />
+                        <Setter Property="FontWeight" Value="Medium" />
+                    </Style>
+                </Button.Styles>
+            </Button>
+            <Button Content="Not Now" Click="Skip_Click" Background="Green" Cursor="Hand" Width="90" Height="32" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                <Button.Styles>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="Green" />
+                        <Setter Property="FontWeight" Value="Medium" />
+                    </Style>
+                </Button.Styles>
+            </Button>
         </StackPanel>
     </StackPanel>
 
 </Window>
+

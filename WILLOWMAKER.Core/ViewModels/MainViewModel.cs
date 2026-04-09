@@ -142,7 +142,7 @@ public partial class MainViewModel : ObservableObject
         if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop || desktop.MainWindow is null)
             return;
 
-        UpdateDialog dialog = new($"WILLOWMAKER {latestVersionDisplay} Is Available (Current Version: {VersionChecker.CurrentVersionDisplay}). Would You Like To Update?");
+        UpdateDialog dialog = new($"WILLOWMAKER {latestVersionDisplay} Is Available");
 
         bool shouldUpdate = await dialog.ShowDialog<bool>(desktop.MainWindow);
 
