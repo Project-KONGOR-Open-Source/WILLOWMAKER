@@ -106,9 +106,22 @@ public partial class MainViewModel : ObservableObject
             result = await VersionChecker.CheckForLatestVersion();
         }
 
+        catch (HttpRequestException httpException)
+        {
+            string statusCode = httpException.StatusCode is not null
+                ? $"{(int)httpException.StatusCode} ({httpException.StatusCode})"
+                : "Unknown Status Code";
+
+            Log(LogCategory.Version, $"The WILLOWMAKER Releases Repository Is Not Reachable: HTTP {statusCode}");
+
+            ReleasesRepositoryIsUnreachable = true;
+
+            return;
+        }
+
         catch (Exception exception)
         {
-            Log(LogCategory.Version, $"The WILLOWMAKER Releases Repository Is Not Reachable: {exception.Message}");
+            Log(LogCategory.Version, $"The WILLOWMAKER Releases Repository Is Not Reachable: {exception.GetType().Name}");
 
             ReleasesRepositoryIsUnreachable = true;
 
