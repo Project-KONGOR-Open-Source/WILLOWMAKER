@@ -10,7 +10,9 @@ global using CommunityToolkit.Mvvm.ComponentModel;
 global using CommunityToolkit.Mvvm.Input;
 
 global using System.Diagnostics;
+global using System.IO.Compression;
 global using System.Net;
+global using System.Text.Json;
 
 global using WILLOWMAKER.Core.ViewModels;
 global using WILLOWMAKER.Core.Views;

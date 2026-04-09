@@ -24,6 +24,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <WarningsAsErrors>nullable</WarningsAsErrors>
+        <Version>1.2.0</Version>
     </PropertyGroup>
 
     <ItemGroup>

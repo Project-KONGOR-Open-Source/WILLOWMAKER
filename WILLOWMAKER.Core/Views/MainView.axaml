@@ -105,8 +105,10 @@
                         </StackPanel>
 
                         <StackPanel Grid.Column="2" Width="333">
-                            <!-- TODO: Remove This Once WILLOWMAKER Is In A More Advanced State Of Completion -->
-                            <Label Width="200" HorizontalAlignment="Right" Margin="0, 10, -10, 0" Foreground="OrangeRed">Development In Progress</Label>
+                            <Label Width="200" HorizontalAlignment="Right" Margin="0, 10, -10, 0" Content="{Binding VersionDisplay}" />
+                            <Label Width="333" HorizontalAlignment="Right" Margin="0, 0, -10, 0" Foreground="OrangeRed" FontSize="11"
+                                   Content="The WILLOWMAKER Releases Repository Is Not Reachable"
+                                   IsVisible="{Binding ReleasesRepositoryIsUnreachable}" />
                         </StackPanel>
                     </Grid>
 

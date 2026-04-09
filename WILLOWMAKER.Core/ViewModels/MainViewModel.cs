@@ -34,9 +34,17 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private int _caretIndexForAutoScroll = int.MaxValue;
 
+    [ObservableProperty]
+    private string _versionDisplay = VersionChecker.CurrentVersionDisplay;
+
+    [ObservableProperty]
+    private bool _releasesRepositoryIsUnreachable = false;
+
     public MainViewModel()
     {
         Log(LogCategory.Parameters, "-masterserver api.kongor.net -webserver api.kongor.net -messageserver api.kongor.net");
+
+        _ = CheckForUpdates();
     }
 
     [RelayCommand]
@@ -80,6 +88,82 @@ public partial class MainViewModel : ObservableObject
     private void Log(string category, string message)
     {
         LogTextArea += _logger.Log(category, message);
+    }
+
+    private async Task CheckForUpdates()
+    {
+        // allow the UI to fully initialise before checking
+        // TODO: find better way to do this without an arbitrary delay
+        await Task.Delay(TimeSpan.FromMilliseconds(2_500));
+
+        Log(LogCategory.Version, $"Current Version: {VersionChecker.CurrentVersionDisplay}");
+        Log(LogCategory.Version, "Checking For Updates ...");
+
+        VersionCheckResult result;
+
+        try
+        {
+            result = await VersionChecker.CheckForLatestVersion();
+        }
+
+        catch (Exception exception)
+        {
+            Log(LogCategory.Version, $"The WILLOWMAKER Releases Repository Is Not Reachable: {exception.Message}");
+
+            ReleasesRepositoryIsUnreachable = true;
+
+            return;
+        }
+
+        if (result.IsUpdateAvailable is false || result.LatestVersion is null)
+        {
+            Log(LogCategory.Version, "WILLOWMAKER Is Up To Date");
+
+            return;
+        }
+
+        string latestVersionDisplay = $"v{result.LatestVersion.Major}.{result.LatestVersion.Minor}.{result.LatestVersion.Build}";
+
+        Log(LogCategory.Version, $"Update Available: {latestVersionDisplay}");
+
+        if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop || desktop.MainWindow is null)
+            return;
+
+        UpdateDialog dialog = new($"WILLOWMAKER {latestVersionDisplay} Is Available (Current Version: {VersionChecker.CurrentVersionDisplay}). Would You Like To Update?");
+
+        bool shouldUpdate = await dialog.ShowDialog<bool>(desktop.MainWindow);
+
+        if (shouldUpdate is false)
+        {
+            Log(LogCategory.Update, "Update Skipped By User");
+
+            return;
+        }
+
+        if (result.DownloadURL is null)
+        {
+            Log(LogCategory.Update, "No Downloadable Asset Found; Opening The Releases Page ...");
+
+            Process.Start(new ProcessStartInfo { FileName = result.ReleasePageURL, UseShellExecute = true });
+
+            return;
+        }
+
+        try
+        {
+            Log(LogCategory.Update, $"Downloading Update From {result.DownloadURL} ...");
+
+            string archivePath = await VersionChecker.DownloadUpdate(result.DownloadURL);
+
+            Log(LogCategory.Update, "Applying Update And Restarting ...");
+
+            VersionChecker.ApplyUpdateAndRestart(archivePath);
+        }
+
+        catch (Exception exception)
+        {
+            Log(LogCategory.Update, $"Update Failed: {exception.Message}");
+        }
     }
 
     private void LogLaunchParameters()

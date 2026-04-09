@@ -1,14 +1,26 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<ItemGroup>
-		<AvaloniaResource Include="Assets\**" />
-	</ItemGroup>
+    <ItemGroup>
+        <AvaloniaResource Include="Assets\**" />
+    </ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Avalonia" Version="12.0.0" />
-		<PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.0" />
-		<PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.0" />
-		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-	</ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Avalonia" Version="12.0.0" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.0" />
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.0" />
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    </ItemGroup>
+
+    <!-- Generates A Version String Constant From The Project's Version -->
+    <Target Name="GenerateVersionSource" BeforeTargets="CoreCompile" DependsOnTargets="PrepareForBuild">
+        <PropertyGroup>
+            <_GeneratedVersionFile>$(IntermediateOutputPath)GeneratedVersionInformation.g.cs</_GeneratedVersionFile>
+        </PropertyGroup>
+        <WriteLinesToFile File="$(_GeneratedVersionFile)" Overwrite="true" WriteOnlyWhenDifferent="true"
+            Lines="namespace WILLOWMAKER.Core%3B internal static class GeneratedVersionInformation { internal const string VersionString = &quot;$(Version)&quot;%3B }" />
+        <ItemGroup>
+            <Compile Include="$(_GeneratedVersionFile)" />
+        </ItemGroup>
+    </Target>
 
 </Project>
