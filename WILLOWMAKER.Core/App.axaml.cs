@@ -9,10 +9,6 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        // This line is needed for removing Avalonia data validation.
-        // Without this line, there will be duplicate validations from both Avalonia and CT.
-        BindingPlugins.DataValidators.RemoveAt(0);
-
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = new MainWindow
