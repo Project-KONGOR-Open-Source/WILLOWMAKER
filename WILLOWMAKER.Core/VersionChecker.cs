@@ -46,11 +46,16 @@ public static class VersionChecker
 
         if (updateIsAvailable && root.TryGetProperty("assets", out JsonElement assets))
         {
+            string platformKeyword = OperatingSystem.IsWindows() ? "windows"
+                                   : OperatingSystem.IsMacOS()   ? "macos"
+                                   : OperatingSystem.IsLinux()   ? "linux"
+                                   : throw new ArgumentOutOfRangeException(nameof(platformKeyword), $@"Unsupported Operating System: {Environment.OSVersion.Platform}");
+
             foreach (JsonElement asset in assets.EnumerateArray())
             {
                 string? assetName = asset.GetProperty("name").GetString();
 
-                if (assetName?.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) is true)
+                if (assetName?.Contains(platformKeyword, StringComparison.OrdinalIgnoreCase) is true && assetName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
                 {
                     downloadURL = asset.GetProperty("browser_download_url").GetString();
 
@@ -104,46 +109,78 @@ public static class VersionChecker
         if (OperatingSystem.IsWindows())
             SpawnWindowsUpdateScript(archivePath, tempDirectory, targetDirectory, executablePath);
 
-        else SpawnUNIXUpdateScript(archivePath, tempDirectory, targetDirectory, executablePath);
+        else if (OperatingSystem.IsMacOS())
+            SpawnMacOSUpdateScript(archivePath, tempDirectory, targetDirectory, executablePath);
+
+        else
+            SpawnLinuxUpdateScript(archivePath, tempDirectory, targetDirectory, executablePath);
 
         Environment.Exit(0);
     }
 
     private static void SpawnWindowsUpdateScript(string archivePath, string sourceDirectory, string targetDirectory, string executablePath)
     {
-        string scriptPath = Path.Combine(Path.GetTempPath(), "WILLOWMAKER-update.cmd");
+        string scriptPath = Path.Combine(Path.GetTempPath(), "WILLOWMAKER-update.ps1");
 
         string script =
         $"""
-            @echo off
-            timeout /t 3 /nobreak > nul
-            xcopy /s /y /q "{sourceDirectory}\*" "{targetDirectory}\"
-            start "" "{executablePath}"
-            rmdir /s /q "{sourceDirectory}"
-            del "{archivePath}"
-            del "%~f0"
+            Start-Sleep -Milliseconds 3500
+            Copy-Item -Path '{sourceDirectory}\*' -Destination '{targetDirectory}' -Recurse -Force
+            Start-Process -FilePath '{executablePath}'
+            Remove-Item -Path '{sourceDirectory}' -Recurse -Force
+            Remove-Item -Path '{archivePath}' -Force
+            Remove-Item -Path $MyInvocation.MyCommand.Source -Force
         """;
 
         File.WriteAllText(scriptPath, script);
 
         Process.Start(new ProcessStartInfo
         {
-            FileName = "cmd.exe",
-            Arguments = $@"/c ""{scriptPath}""",
+            FileName = "powershell",
+            Arguments = $@"-ExecutionPolicy Bypass -NoProfile -File ""{scriptPath}""",
             UseShellExecute = false,
             CreateNoWindow = true
         });
     }
 
-    private static void SpawnUNIXUpdateScript(string archivePath, string sourceDirectory, string targetDirectory, string executablePath)
+    private static void SpawnMacOSUpdateScript(string archivePath, string sourceDirectory, string targetDirectory, string executablePath)
     {
         string scriptPath = Path.Combine(Path.GetTempPath(), "WILLOWMAKER-update.sh");
 
         string script =
         $"""
             #!/bin/bash
-            sleep 3
-            cp -rf "{sourceDirectory}/"* "{targetDirectory}/"
+            sleep 3.5
+            cp -Rf
+            chmod +x "{executablePath}"
+            open "{executablePath}"
+            rm -rf "{sourceDirectory}"
+            rm "{archivePath}"
+            rm "$0"
+        """;
+
+        File.WriteAllText(scriptPath, script);
+
+        Process.Start("chmod", $@"+x ""{scriptPath}""")?.WaitForExit();
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = "bash",
+            Arguments = scriptPath,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        });
+    }
+
+    private static void SpawnLinuxUpdateScript(string archivePath, string sourceDirectory, string targetDirectory, string executablePath)
+    {
+        string scriptPath = Path.Combine(Path.GetTempPath(), "WILLOWMAKER-update.sh");
+
+        string script =
+        $"""
+            #!/bin/bash
+            sleep 3.5
+            cp -rf
             chmod +x "{executablePath}"
             "{executablePath}" &
             rm -rf "{sourceDirectory}"
