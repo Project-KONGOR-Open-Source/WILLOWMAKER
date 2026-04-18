@@ -80,14 +80,16 @@ jobs:
         $Version = $env:GITHUB_REF_NAME -replace '^v', ''
         dotnet publish WILLOWMAKER -p:PublishProfile=${{ matrix.profile }} -p:Version=$Version
 
-    # the external `zip` command is invoked rather than PowerShell's native Compress-Archive because Compress-Archive doesn't preserve UNIX executable bits, so a Linux/macOS user would unzip and find the binary non-executable
-    # `zip` ships with Git for Windows (including the ARM64 Git build on windows-11-arm) and is pre-installed on Linux/macOS
-    # pdbs are excluded to keep release zips small; users who need symbols can build from source
+    # the `Compress-Archive` PowerShell cmdlet is used on Windows because `zip` is not reliably on PATH in pwsh on GitHub's Windows runner images, and Windows has no exec-bit concept so dropping UNIX permission metadata is harmless
+    # the external `zip` command is used on Linux/macOS because Compress-Archive would drop the exec bits there, causing the unzipped binary to fail to launch without a manual chmod
+    # pdbs are removed before zipping to keep release zips small; users who need symbols can build from source
     - name: "Create Release Asset"
       shell: "pwsh"
       run: |
         Set-Location "WILLOWMAKER/bin/Publish/${{ matrix.publish_dir }}"
-        zip -r "$env:GITHUB_WORKSPACE/${{ matrix.asset }}-$env:GITHUB_REF_NAME.zip" . -x "*.pdb"
+        Get-ChildItem -Recurse -Filter '*.pdb' | Remove-Item -Force
+        $ZipPath = "$env:GITHUB_WORKSPACE/${{ matrix.asset }}-$env:GITHUB_REF_NAME.zip"
+        if ($IsWindows) { Compress-Archive -Path .\* -DestinationPath $ZipPath } else { zip -r $ZipPath . }
 
     # each matrix job runs on its own isolated runner, so it can't write directly to a shared release
     # instead, each zip is uploaded as a workflow artefact, then the dedicated `release` job downloads all six and publishes them together
