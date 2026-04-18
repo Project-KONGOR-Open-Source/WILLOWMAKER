@@ -3,14 +3,24 @@ namespace WILLOWMAKER.Core;
 /// <summary>
 ///     Provides version checking against GitHub releases, asset downloading, and self-update capabilities.
 /// </summary>
-public static class VersionChecker
+public static partial class VersionChecker
 {
+    // The "/releases/latest" Endpoint Is Chosen Deliberately: GitHub Defines It As The Most Recent Non-Pre-Release, Non-Draft Release, So Stable Users Only Get Newer Stables And Pre-Release Users Only Get The Next Stable
+    // See https://docs.github.com/en/rest/releases/releases#get-the-latest-release
+    // Swapping To "/releases" Would Include Pre-Releases
     private const string LatestReleaseURL = "https://api.github.com/repos/Project-KONGOR-Open-Source/WILLOWMAKER/releases/latest";
 
     /// <summary>
-    ///     The current application version, parsed from the build-time generated version constant.
+    ///     Matches a version string of the form <c>[v]Major.Minor.Patch[suffix]</c>, where the leading <c>v</c> and the trailing suffix (e.g. a Semantic Versioning pre-release like <c>-alpha-2</c> or build metadata like <c>+abc123</c>) are both optional.
+    ///     Exposes the numeric <c>Major.Minor.Patch</c> portion through the <c>numeric</c> named group.
     /// </summary>
-    public static Version CurrentVersion { get; } = Version.Parse(GeneratedVersionInformation.VersionString);
+    [GeneratedRegex(@"^v?(?<numeric>\d+\.\d+\.\d+)(?<suffix>.*)$", RegexOptions.IgnoreCase)]
+    private static partial Regex VersionRegex();
+
+    /// <summary>
+    ///     The current application version, parsed from the build-time generated version constant. Any Semantic Versioning suffix is discarded because <see cref="System.Version"/> accepts only the numeric <c>Major.Minor[.Build[.Revision]]</c> form.
+    /// </summary>
+    public static Version CurrentVersion { get; } = ParseNumericVersion(GeneratedVersionInformation.VersionString);
 
     /// <summary>
     ///     A display-friendly string for the current version (e.g. "v1.2.0").
@@ -34,10 +44,16 @@ public static class VersionChecker
 
         JsonElement root = document.RootElement;
 
-        string tagName = root.GetProperty("tag_name").GetString()?.TrimStart('v') ?? "";
-        string releasePageURL = root.GetProperty("html_url").GetString() ?? "";
+        string tagName = root.GetProperty("tag_name").GetString() ?? string.Empty;
+        string releasePageURL = root.GetProperty("html_url").GetString() ?? string.Empty;
 
-        if (Version.TryParse(tagName, out Version? latestVersion) is false)
+        // Defensive Belt-And-Braces Check In Case A Future API Change Breaks The "/releases/latest" Contract
+        bool isPreRelease = root.TryGetProperty("prerelease", out JsonElement prereleaseElement) && prereleaseElement.GetBoolean();
+
+        if (isPreRelease)
+            return new VersionCheckResult(false, null, null, releasePageURL);
+
+        if (TryParseNumericVersion(tagName, out Version? latestVersion) is false)
             return new VersionCheckResult(false, null, null, releasePageURL);
 
         bool updateIsAvailable = latestVersion > CurrentVersion;
@@ -116,6 +132,36 @@ public static class VersionChecker
             SpawnLinuxUpdateScript(archivePath, tempDirectory, targetDirectory, executablePath);
 
         Environment.Exit(0);
+    }
+
+    /// <summary>
+    ///     Parses the numeric <c>Major.Minor.Patch</c> portion of a version string, tolerating an optional leading <c>v</c> and any trailing Semantic Versioning suffix.
+    ///     Throws <see cref="FormatException"/> if the input does not contain a parseable numeric version.
+    /// </summary>
+    private static Version ParseNumericVersion(string versionString)
+    {
+        if (TryParseNumericVersion(versionString, out Version? version) is false)
+            throw new FormatException($@"Version String ""{versionString}"" Does Not Match The Expected Format: 1) Optional ""v"" Prefix, 2) Then Major.Minor.Patch, 3) Then Optional Suffix");
+
+        return version;
+    }
+
+    /// <summary>
+    ///     Tries to parse the numeric <c>Major.Minor.Patch</c> portion of a version string, tolerating an optional leading <c>v</c> and any trailing Semantic Versioning suffix.
+    ///     Returns <see langword="false"/> and sets <paramref name="version"/> to <see langword="null"/> on failure.
+    /// </summary>
+    private static bool TryParseNumericVersion(string versionString, [NotNullWhen(true)] out Version? version)
+    {
+        Match match = VersionRegex().Match(versionString);
+
+        if (match.Success is false)
+        {
+            version = null;
+
+            return false;
+        }
+
+        return Version.TryParse(match.Groups["numeric"].Value, out version);
     }
 
     private static void SpawnWindowsUpdateScript(string archivePath, string sourceDirectory, string targetDirectory, string executablePath)
