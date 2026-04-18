@@ -24,10 +24,13 @@ jobs:
       # one matrix entry per target RID
       # each job runs on the OS that matches its RID because Native AOT emits native code and requires the target OS's own toolchain (MSVC link.exe on Windows, clang/ld on Linux and macOS)
       # we cannot cross-build all six from one runner
+      # canonical list of valid `runner:` labels (x64 and ARM64, all OSes, with deprecation dates) lives at https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners
+      # per-image software inventories live at https://github.com/actions/runner-images (x64) and https://github.com/actions/partner-runner-images (ARM64); deprecation announcements land at https://github.blog/changelog/label/actions
+      # runners are pinned to explicit image versions rather than floating `-latest` labels, so a GitHub-initiated image rollover cannot silently change our build environment mid-release
       matrix:
         include:
           - asset:       "windows-x64"
-            runner:      "windows-latest"
+            runner:      "windows-2025"
             profile:     "Windows.x64.NativeAOT.pubxml"
             publish_dir: "windows-x64-native-aot"
 
@@ -37,7 +40,7 @@ jobs:
             publish_dir: "windows-arm64-native-aot"
 
           - asset:       "linux-x64"
-            runner:      "ubuntu-latest"
+            runner:      "ubuntu-24.04"
             profile:     "Linux.x64.NativeAOT.pubxml"
             publish_dir: "linux-x64-native-aot"
 
@@ -52,7 +55,7 @@ jobs:
             publish_dir: "macos-x64-native-aot"
 
           - asset:       "macos-arm64"
-            runner:      "macos-latest"
+            runner:      "macos-14"
             profile:     "macOS.arm64.NativeAOT.pubxml"
             publish_dir: "macos-arm64-native-aot"
 
