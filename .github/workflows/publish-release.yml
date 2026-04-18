@@ -50,12 +50,12 @@ jobs:
             publish_dir: "linux-arm64-native-aot"
 
           - asset:       "macos-x64"
-            runner:      "macos-13"
+            runner:      "macos-15-intel"
             profile:     "macOS.x64.NativeAOT.pubxml"
             publish_dir: "macos-x64-native-aot"
 
           - asset:       "macos-arm64"
-            runner:      "macos-14"
+            runner:      "macos-15"
             profile:     "macOS.arm64.NativeAOT.pubxml"
             publish_dir: "macos-arm64-native-aot"
 
