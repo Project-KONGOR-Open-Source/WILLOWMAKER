@@ -1,34 +1,29 @@
 name: "Publish Release"
 
-# Triggers on version-tag pushes only. The second pattern (`-*`) catches
-# prerelease tags like v1.2.3-rc1 so we can cut release candidates through
-# the same workflow; the release job marks them as prerelease automatically
-# by checking for a hyphen in the tag name.
+# triggers on version-tag pushes only
+# the second pattern (`-*`) catches pre-release tags like v1.2.3-rc1 so we can cut release candidates through the same workflow
+# the release job marks them as pre-release automatically by checking for a hyphen in the tag name
 on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
       - "v[0-9]+.[0-9]+.[0-9]+-*"
 
-# The release job creates a GitHub Release, which requires write access to
-# repository contents. Every other permission stays at its restrictive default.
+# the release job creates a GitHub Release, which requires write access to repository contents
+# every other permission stays at its restrictive default
 permissions:
   contents: write
 
 jobs:
-
-  # One matrix entry per target RID. Each job runs on the OS that matches its
-  # RID because Native AOT emits native code and requires the target OS's own
-  # toolchain (MSVC link.exe on Windows, clang/ld on Linux and macOS) — we
-  # cannot cross-build all six from one runner.
-  #
-  # `fail-fast: false` lets the remaining targets finish even if one platform
-  # hits a transient runner outage; we'd rather ship five of six artifacts
-  # and fix the sixth later than cancel the whole release.
   build:
-
     strategy:
+      # let every target run to completion even if one fails for diagnostic value: we see all broken targets in one run rather than chasing them one at a time across successive tag pushes
+      # this does NOT create a partial release: the release job has `needs: build` with no `if: always()` override, so any matrix failure marks the whole build job failed and the release job is skipped regardless of this setting
       fail-fast: false
+
+      # one matrix entry per target RID
+      # each job runs on the OS that matches its RID because Native AOT emits native code and requires the target OS's own toolchain (MSVC link.exe on Windows, clang/ld on Linux and macOS)
+      # we cannot cross-build all six from one runner
       matrix:
         include:
           - asset:       "windows-x64"
@@ -73,56 +68,37 @@ jobs:
       with:
         dotnet-version: "10.x"
 
-    # pwsh is pre-installed on every GitHub-hosted runner (all OSes, both
-    # architectures), so we use it uniformly across the matrix and avoid
-    # splitting shell idioms between Linux/macOS bash and Windows PowerShell.
-    #
-    # The version override strips the leading `v` from the tag name and
-    # passes it to MSBuild. Under normal discipline the tag matches the
-    # <Version> in Directory.Build.props, so this is a no-op in the happy
-    # path — we keep it as a safety belt so if someone cuts a tag without
-    # remembering to bump Directory.Build.props (or vice versa), the binary's
-    # stamped version still matches the tag users downloaded.
+    # pwsh is pre-installed on every GitHub-hosted runner (all OSes, both architectures), so we use it uniformly across the matrix and avoid splitting shell idioms between Linux/macOS bash and Windows PowerShell
+    # the version override strips the leading `v` from the tag name and passes it to MSBuild
+    # under normal discipline the tag matches the <Version> in Directory.Build.props, so this is a no-op in the happy path; we keep it as a safety belt so if someone cuts a tag without remembering to bump Directory.Build.props (or vice versa), the binary's stamped version still matches the tag users downloaded
     - name: "Publish Native AOT"
       shell: "pwsh"
       run: |
         $Version = $env:GITHUB_REF_NAME -replace '^v', ''
         dotnet publish WILLOWMAKER -p:PublishProfile=${{ matrix.profile }} -p:Version=$Version
 
-    # We invoke the external `zip` command rather than PowerShell's native
-    # Compress-Archive because Compress-Archive doesn't preserve Unix
-    # executable bits — a macos/linux user would unzip and find the binary
-    # non-executable. `zip` ships with Git for Windows (including the ARM64
-    # Git build on windows-11-arm) and is pre-installed on Linux/macOS.
-    #
-    # PDBs are excluded to keep release zips small; users who need symbols
-    # can build from source.
+    # we invoke the external `zip` command rather than PowerShell's native Compress-Archive because Compress-Archive doesn't preserve UNIX executable bits, so a Linux/macOS user would unzip and find the binary non-executable
+    # `zip` ships with Git for Windows (including the ARM64 Git build on windows-11-arm) and is pre-installed on Linux/macOS
+    # pdbs are excluded to keep release zips small; users who need symbols can build from source
     - name: "Create Release Asset"
       shell: "pwsh"
       run: |
         Set-Location "WILLOWMAKER/bin/Publish/${{ matrix.publish_dir }}"
         zip -r "$env:GITHUB_WORKSPACE/${{ matrix.asset }}-$env:GITHUB_REF_NAME.zip" . -x "*.pdb"
 
-    # Each matrix job runs on its own isolated runner, so it can't write
-    # directly to a shared release. Instead we upload each zip as a workflow
-    # artifact, then the dedicated `release` job downloads all six and
-    # publishes them together. `if-no-files-found: error` means a silent
-    # publish failure that produced no zip will fail the job loudly rather
-    # than quietly ship a release missing a platform.
-    - name: "Upload Asset Artifact"
+    # each matrix job runs on its own isolated runner, so it can't write directly to a shared release
+    # instead we upload each zip as a workflow artefact, then the dedicated `release` job downloads all six and publishes them together
+    # `if-no-files-found: error` means a silent publish failure that produced no zip will fail the job loudly rather than quietly ship a release missing a platform
+    - name: "Upload Asset Artefact"
       uses: "actions/upload-artifact@v4"
       with:
-        name:              ${{ matrix.asset }}
-        path:              ${{ matrix.asset }}-${{ github.ref_name }}.zip
+        name: ${{ matrix.asset }}
+        path: ${{ matrix.asset }}-${{ github.ref_name }}.zip
         if-no-files-found: "error"
-        retention-days:    1
+        retention-days: 1
 
-  # The release job runs only after every matrix build succeeds (`needs: build`
-  # without `if: always()`). It downloads all six artifacts into one directory
-  # and creates a single GitHub Release containing all of them, producing the
-  # layout in the reference screenshot: one zip per platform, auto-generated
-  # source code archives, "Full Changelog" link, and a "Latest" badge when the
-  # tag isn't a prerelease.
+  # the release job runs only after every matrix build succeeds (`needs: build` without `if: always()`)
+  # it downloads all six artefacts into one directory and creates a single GitHub Release containing all of them: one zip per platform, auto-generated source code archives, "Full Changelog" link, and a "Latest" badge when the tag isn't a pre-release
   release:
 
     needs: build
@@ -130,29 +106,20 @@ jobs:
 
     steps:
 
-    # `merge-multiple: true` flattens all six per-platform artifact folders
-    # into a single `artifacts/` directory containing just the zips.
+    # `merge-multiple: true` flattens all six per-platform artefact folders into a single `artefacts/` directory containing just the zips
     - name: "Download All Assets"
       uses: "actions/download-artifact@v4"
       with:
-        path:           "artifacts"
+        path: "artefacts"
         merge-multiple: true
 
-    # `generate_release_notes: true` produces the "Full Changelog: v1.1.1...v1.1.2"
-    # link visible in the reference screenshot and summarizes merged PRs since
-    # the previous tag.
-    #
-    # `prerelease: ${{ contains(github.ref_name, '-') }}` flags tags that
-    # contain a hyphen (e.g. v1.2.3-rc1) as prerelease automatically, so they
-    # don't steal the "Latest" badge from the real release.
-    #
-    # `fail_on_unmatched_files: true` is belt-and-braces — if the artifact
-    # download somehow delivered no zips, fail loudly instead of publishing
-    # an empty release.
+    # `generate_release_notes: true` produces the "Full Changelog: v1.0.0...v1.2.3" link and summarises merged PRs since the previous tag
+    # `prerelease: ${{ contains(github.ref_name, '-') }}` flags tags that contain a hyphen (e.g. v1.2.3-rc1) as pre-release automatically, so they don't steal the "Latest" badge from the real release
+    # `fail_on_unmatched_files: true` is belt-and-braces: if the artefact download somehow delivered no zips, fail loudly instead of publishing an empty release
     - name: "Publish Release"
       uses: "softprops/action-gh-release@v2"
       with:
-        files: "artifacts/*.zip"
+        files: "artefacts/*.zip"
         draft: false
         prerelease: ${{ contains(github.ref_name, '-') }}
         generate_release_notes: true
