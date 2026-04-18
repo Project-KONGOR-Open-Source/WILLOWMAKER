@@ -1,7 +1,7 @@
 name: "Publish Release"
 
 # triggers on version-tag pushes only
-# the second pattern (`-*`) catches pre-release tags like v1.2.3-rc1 so we can cut release candidates through the same workflow
+# the second pattern (`-*`) catches pre-release tags like v1.2.3-rc1 so release candidates can be cut through the same workflow
 # the release job marks them as pre-release automatically by checking for a hyphen in the tag name
 on:
   push:
@@ -17,16 +17,16 @@ permissions:
 jobs:
   build:
     strategy:
-      # let every target run to completion even if one fails for diagnostic value: we see all broken targets in one run rather than chasing them one at a time across successive tag pushes
+      # let every target run to completion even if one fails for diagnostic value: all broken targets surface in one run rather than one at a time across successive tag pushes
       # this does NOT create a partial release: the release job has `needs: build` with no `if: always()` override, so any matrix failure marks the whole build job failed and the release job is skipped regardless of this setting
       fail-fast: false
 
       # one matrix entry per target RID
       # each job runs on the OS that matches its RID because Native AOT emits native code and requires the target OS's own toolchain (MSVC link.exe on Windows, clang/ld on Linux and macOS)
-      # we cannot cross-build all six from one runner
+      # cross-building all six targets from one runner is not possible
       # canonical list of valid `runner:` labels (x64 and ARM64, all OSes, with deprecation dates) lives at https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners
       # per-image software inventories live at https://github.com/actions/runner-images (x64) and https://github.com/actions/partner-runner-images (ARM64); deprecation announcements land at https://github.blog/changelog/label/actions
-      # runners are pinned to explicit image versions rather than floating `-latest` labels, so a GitHub-initiated image rollover cannot silently change our build environment mid-release
+      # runners are pinned to explicit image versions rather than floating `-latest` labels, so a GitHub-initiated image rollover cannot silently change the build environment mid-release
       matrix:
         include:
           - asset:       "windows-x64"
@@ -71,16 +71,16 @@ jobs:
       with:
         dotnet-version: "10.x"
 
-    # pwsh is pre-installed on every GitHub-hosted runner (all OSes, both architectures), so we use it uniformly across the matrix and avoid splitting shell idioms between Linux/macOS bash and Windows PowerShell
+    # pwsh is pre-installed on every GitHub-hosted runner (all OSes, both architectures) and is used uniformly across the matrix to avoid splitting shell idioms between Linux/macOS bash and Windows PowerShell
     # the version override strips the leading `v` from the tag name and passes it to MSBuild
-    # under normal discipline the tag matches the <Version> in Directory.Build.props, so this is a no-op in the happy path; we keep it as a safety belt so if someone cuts a tag without remembering to bump Directory.Build.props (or vice versa), the binary's stamped version still matches the tag users downloaded
+    # under normal discipline the tag matches the <Version> in Directory.Build.props, so this is a no-op in the happy path; it is kept as a safety belt so if someone cuts a tag without remembering to bump Directory.Build.props (or vice versa), the binary's stamped version still matches the tag users downloaded
     - name: "Publish Native AOT"
       shell: "pwsh"
       run: |
         $Version = $env:GITHUB_REF_NAME -replace '^v', ''
         dotnet publish WILLOWMAKER -p:PublishProfile=${{ matrix.profile }} -p:Version=$Version
 
-    # we invoke the external `zip` command rather than PowerShell's native Compress-Archive because Compress-Archive doesn't preserve UNIX executable bits, so a Linux/macOS user would unzip and find the binary non-executable
+    # the external `zip` command is invoked rather than PowerShell's native Compress-Archive because Compress-Archive doesn't preserve UNIX executable bits, so a Linux/macOS user would unzip and find the binary non-executable
     # `zip` ships with Git for Windows (including the ARM64 Git build on windows-11-arm) and is pre-installed on Linux/macOS
     # pdbs are excluded to keep release zips small; users who need symbols can build from source
     - name: "Create Release Asset"
@@ -90,7 +90,7 @@ jobs:
         zip -r "$env:GITHUB_WORKSPACE/${{ matrix.asset }}-$env:GITHUB_REF_NAME.zip" . -x "*.pdb"
 
     # each matrix job runs on its own isolated runner, so it can't write directly to a shared release
-    # instead we upload each zip as a workflow artefact, then the dedicated `release` job downloads all six and publishes them together
+    # instead, each zip is uploaded as a workflow artefact, then the dedicated `release` job downloads all six and publishes them together
     # `if-no-files-found: error` means a silent publish failure that produced no zip will fail the job loudly rather than quietly ship a release missing a platform
     - name: "Upload Asset Artefact"
       uses: "actions/upload-artifact@v4"
