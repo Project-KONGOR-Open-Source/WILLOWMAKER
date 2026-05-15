@@ -207,7 +207,7 @@ public static class ContentBroker
 
             try
             {
-                File.Delete(fullPath);
+                ForceDelete(fullPath);
 
                 filesDeleted++;
 
@@ -407,6 +407,17 @@ public static class ContentBroker
         {
             // Swallowed Deliberately: Cleanup Of A Failed Download's Partial File Must Not Mask The Original Error
         }
+    }
+
+    private static void ForceDelete(string path)
+    {
+        FileAttributes attributes = File.GetAttributes(path);
+
+        // "File.Delete" Throws "UnauthorizedAccessException" When The Target Carries The Read-Only Attribute, So We Clear The Attribute First
+        if (attributes.HasFlag(FileAttributes.ReadOnly))
+            File.SetAttributes(path, attributes & ~FileAttributes.ReadOnly);
+
+        File.Delete(path);
     }
 
     private sealed record PendingDownload(string RelativePath, string LocalPath, ManifestEntry Entry);
