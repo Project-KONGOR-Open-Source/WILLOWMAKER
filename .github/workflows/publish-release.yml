@@ -82,12 +82,13 @@ jobs:
 
     # the `Compress-Archive` PowerShell cmdlet is used on Windows because `zip` is not reliably on PATH in pwsh on GitHub's Windows runner images, and Windows has no exec-bit concept so dropping UNIX permission metadata is harmless
     # the external `zip` command is used on Linux/macOS because Compress-Archive would drop the exec bits there, causing the unzipped binary to fail to launch without a manual chmod
-    # pdbs are removed before zipping to keep release zips small; users who need symbols can build from source
+    # debug artefacts are removed before zipping to keep release zips small: `.pdb` files on Windows, `.dbg` files on Linux, and `.dSYM` bundles (which are directories, not files) on macOS; users who need symbols can build from source
     - name: "Create Release Asset"
       shell: "pwsh"
       run: |
         Set-Location "WILLOWMAKER/bin/Publish/${{ matrix.publish_dir }}"
-        Get-ChildItem -Recurse -Filter '*.pdb' | Remove-Item -Force
+        Get-ChildItem -Recurse -File -Include '*.pdb', '*.dbg' | Remove-Item -Force
+        Get-ChildItem -Recurse -Directory -Filter '*.dSYM' | Remove-Item -Recurse -Force
         $ZipPath = "$env:GITHUB_WORKSPACE/${{ matrix.asset }}-$env:GITHUB_REF_NAME.zip"
         if ($IsWindows) { Compress-Archive -Path .\* -DestinationPath $ZipPath } else { zip -r $ZipPath . }
 
