@@ -1,0 +1,511 @@
+namespace WILLOWMAKER.Core;
+
+/// <summary>
+///     Synchronises the local installation directory with a content bucket described by a remote manifest.
+///     The local tree becomes an exact mirror of the manifest's file list.
+///     Files matching <see cref="Manifest.ExcludeFromSource"/> are remote-side paths that must not be downloaded (e.g. the manifest itself).
+///     Files matching <see cref="Manifest.ExcludeFromTarget"/> are local-side paths that must not be changed in any way (e.g. the launcher's own files); they are neither overwritten by downloads nor removed by deletions.
+/// </summary>
+public static class ContentBroker
+{
+    private const string DefaultBaseURL           = "https://cdn.kongor.net/";
+    private const string ManifestFileName         = "manifest.json";
+    private const string PartialDownloadSuffix    = ".partial";
+    private const int    DefaultParallelTransfers = 8;
+
+    private static readonly JsonSerializerOptions ManifestSerialiserOptions = new ()
+    {
+        PropertyNamingPolicy        = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true,
+        ReadCommentHandling         = JsonCommentHandling.Skip,
+        AllowTrailingCommas         = true
+    };
+
+    /// <summary>
+    ///     Returns the bucket variant that matches the current client operating system.
+    ///     The GEMINI pipeline publishes <c>wac</c>, <c>lac</c>, and <c>mac</c> variants for the Windows, Linux, and macOS client distributions.
+    /// </summary>
+    public static string ResolveDefaultClientVariant()
+    {
+        return OperatingSystem.IsWindows() ? "wac"
+             : OperatingSystem.IsLinux()   ? "lac"
+             : OperatingSystem.IsMacOS()   ? "mac"
+             : throw new PlatformNotSupportedException($@"Unsupported Operating System: {Environment.OSVersion.Platform}");
+    }
+
+    /// <summary>
+    ///     Downloads and parses the manifest for the given <paramref name="variant"/> from the CDN.
+    /// </summary>
+    public static async Task<Manifest> FetchManifest(string variant, string baseURL = DefaultBaseURL, CancellationToken cancellationToken = default)
+    {
+        string manifestURL = BuildManifestURL(baseURL, variant);
+
+        using HttpClient client = CreateClient(timeout: TimeSpan.FromSeconds(30));
+
+        await using Stream stream = await client.GetStreamAsync(manifestURL, cancellationToken);
+
+        Manifest? manifest = await JsonSerializer.DeserializeAsync<Manifest>(stream, ManifestSerialiserOptions, cancellationToken);
+
+        return manifest ?? throw new InvalidOperationException($@"Manifest At ""{manifestURL}"" Deserialised To NULL");
+    }
+
+    /// <summary>
+    ///     Mirrors the manifest's file list into <paramref name="targetDirectory"/>: downloads missing or mismatched files, and removes local files that are not in the manifest.
+    ///     For each manifest entry the download pass asks two questions in order: first, may the file be fetched from the bucket (a remote-side check against <see cref="Manifest.ExcludeFromSource"/>); second, would writing it change a local path that must not be changed (a local-side check against <see cref="Manifest.ExcludeFromTarget"/>).
+    ///     The deletion pass asks the local-side question alone, against <see cref="Manifest.ExcludeFromTarget"/>.
+    ///     Downloads run in parallel and are written atomically via a <c>.partial</c> temporary file that is renamed on success.
+    /// </summary>
+    public static async Task<SyncSummary> Synchronise
+    (
+        Manifest manifest,
+        string variant,
+        string targetDirectory,
+        string baseURL = DefaultBaseURL,
+        int parallelTransfers = DefaultParallelTransfers,
+        IProgress<SyncEvent>? progress = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        ArgumentNullException.ThrowIfNull(manifest);
+        ArgumentException.ThrowIfNullOrWhiteSpace(variant);
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetDirectory);
+
+        if (parallelTransfers < 1)
+            throw new ArgumentOutOfRangeException(nameof(parallelTransfers), parallelTransfers, "At Least One Parallel Transfer Is Required");
+
+        Directory.CreateDirectory(targetDirectory);
+
+        Matcher sourceExclusions = BuildMatcher(manifest.ExcludeFromSource);
+        Matcher targetExclusions = BuildMatcher(manifest.ExcludeFromTarget);
+
+        // First Pass: Decide Which Files Listed In The Manifest Need To Be Downloaded
+
+        List<PendingDownload> pendingDownloads = new ();
+
+        long totalBytesToDownload              = 0;
+        int filesUpToDate                      = 0;
+
+        foreach ((string rawRelativePath, ManifestEntry entry) in manifest.Files)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            string relativePath = NormaliseRelativePath(rawRelativePath);
+
+            // Decision Gate One (Remote Side): May We Download This File From The Bucket?
+            if (MatchesAny(relativePath, sourceExclusions))
+            {
+                progress?.Report(new SyncEvent(SyncEventKind.SkippedExcluded, relativePath, entry.Size));
+
+                continue;
+            }
+
+            // Decision Gate Two (Local Side): Would Writing It Change A Local File That Must Not Be Changed?
+            if (MatchesAny(relativePath, targetExclusions))
+            {
+                progress?.Report(new SyncEvent(SyncEventKind.SkippedExcluded, relativePath, entry.Size));
+
+                continue;
+            }
+
+            string localPath = Path.Combine(targetDirectory, relativePath.Replace('/', Path.DirectorySeparatorChar));
+
+            if (await LocalFileMatchesManifestEntry(localPath, entry, cancellationToken))
+            {
+                filesUpToDate++;
+
+                continue;
+            }
+
+            pendingDownloads.Add(new PendingDownload(relativePath, localPath, entry));
+            totalBytesToDownload += entry.Size;
+        }
+
+        // Second Pass: Decide Which Local Files Are No Longer In The Manifest And Should Be Deleted
+
+        HashSet<string> expectedRelativePaths = new (manifest.Files.Keys.Select(NormaliseRelativePath), StringComparer.OrdinalIgnoreCase);
+
+        List<string> pendingDeletions = new ();
+
+        if (Directory.Exists(targetDirectory))
+        {
+            foreach (string fullPath in Directory.EnumerateFiles(targetDirectory, "*", SearchOption.AllDirectories))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                string relativePath = NormaliseRelativePath(Path.GetRelativePath(targetDirectory, fullPath));
+
+                if (relativePath.EndsWith(PartialDownloadSuffix, StringComparison.OrdinalIgnoreCase))
+                {
+                    pendingDeletions.Add(fullPath);
+
+                    continue;
+                }
+
+                if (expectedRelativePaths.Contains(relativePath))
+                    continue;
+
+                if (MatchesAny(relativePath, targetExclusions))
+                    continue;
+
+                pendingDeletions.Add(fullPath);
+            }
+        }
+
+        SyncPlan plan = new
+        (
+            FilesToDownload:      pendingDownloads.Count,
+            FilesToDelete:        pendingDeletions.Count,
+            FilesUpToDate:        filesUpToDate,
+            TotalBytesToDownload: totalBytesToDownload
+        );
+
+        progress?.Report(new SyncEvent(SyncEventKind.PlanReady, plan.ToString(), totalBytesToDownload, plan));
+
+        using HttpClient client = CreateClient(timeout: Timeout.InfiniteTimeSpan);
+        using SemaphoreSlim semaphore = new (parallelTransfers, parallelTransfers);
+
+        int filesDownloaded                = 0;
+        int filesFailed                    = 0;
+        long bytesDownloaded               = 0;
+
+        ConcurrentBag<SyncFailure> failures = new ();
+
+        IEnumerable<Task> downloadTasks = pendingDownloads.Select(async download =>
+        {
+            await semaphore.WaitAsync(cancellationToken);
+
+            try
+            {
+                progress?.Report(new SyncEvent(SyncEventKind.DownloadStarted, download.RelativePath, download.Entry.Size));
+
+                await DownloadOne(client, baseURL, variant, download, manifest.HashAlgorithm, cancellationToken);
+
+                Interlocked.Add(ref bytesDownloaded, download.Entry.Size);
+                Interlocked.Increment(ref filesDownloaded);
+
+                progress?.Report(new SyncEvent(SyncEventKind.Downloaded, download.RelativePath, download.Entry.Size));
+            }
+
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+
+            catch (Exception exception)
+            {
+                Interlocked.Increment(ref filesFailed);
+                failures.Add(new SyncFailure(download.RelativePath, exception.Message));
+
+                progress?.Report(new SyncEvent(SyncEventKind.DownloadFailed, $@"{download.RelativePath}: {exception.Message}", download.Entry.Size));
+            }
+
+            finally
+            {
+                semaphore.Release();
+            }
+        });
+
+        await Task.WhenAll(downloadTasks);
+
+        int filesDeleted = 0;
+
+        foreach (string fullPath in pendingDeletions)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                File.Delete(fullPath);
+
+                filesDeleted++;
+
+                progress?.Report(new SyncEvent(SyncEventKind.Deleted, NormaliseRelativePath(Path.GetRelativePath(targetDirectory, fullPath)), 0));
+            }
+
+            catch (Exception exception)
+            {
+                filesFailed++;
+
+                failures.Add(new SyncFailure(fullPath, exception.Message));
+
+                progress?.Report(new SyncEvent(SyncEventKind.DeletionFailed, $@"{fullPath}: {exception.Message}", 0));
+            }
+        }
+
+        RemoveEmptyDirectories(targetDirectory);
+
+        SyncSummary summary = new
+        (
+            FilesDownloaded: filesDownloaded,
+            FilesDeleted:    filesDeleted,
+            FilesUpToDate:   filesUpToDate,
+            FilesFailed:     filesFailed,
+            BytesDownloaded: bytesDownloaded,
+            Failures:        [.. failures]
+        );
+
+        progress?.Report(new SyncEvent(SyncEventKind.Completed, summary.ToString(), bytesDownloaded));
+
+        return summary;
+    }
+
+    private static async Task DownloadOne(HttpClient client, string baseURL, string variant, PendingDownload download, string hashAlgorithm, CancellationToken cancellationToken)
+    {
+        string fileURL    = BuildFileURL(baseURL, variant, download.RelativePath);
+        string partialPath = download.LocalPath + PartialDownloadSuffix;
+
+        string? parentDirectory = Path.GetDirectoryName(download.LocalPath);
+
+        if (string.IsNullOrEmpty(parentDirectory) is false)
+            Directory.CreateDirectory(parentDirectory);
+
+        long bytesWritten = 0;
+        string actualHashHex;
+
+        using (IncrementalHash incrementalHash = CreateIncrementalHash(hashAlgorithm))
+        {
+            await using FileStream fileStream     = new (partialPath, FileMode.Create, FileAccess.Write, FileShare.None);
+            await using Stream     downloadStream = await client.GetStreamAsync(fileURL, cancellationToken);
+
+            byte[] buffer = new byte[81920];
+
+            while (true)
+            {
+                int bytesRead = await downloadStream.ReadAsync(buffer.AsMemory(), cancellationToken);
+
+                if (bytesRead is 0)
+                    break;
+
+                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+
+                incrementalHash.AppendData(buffer, 0, bytesRead);
+
+                bytesWritten += bytesRead;
+            }
+
+            actualHashHex = Convert.ToHexStringLower(incrementalHash.GetHashAndReset());
+        }
+
+        if (bytesWritten != download.Entry.Size)
+        {
+            TryDeleteQuietly(partialPath);
+
+            throw new IOException($@"Size Mismatch For ""{download.RelativePath}"" (Expected {download.Entry.Size:N0}, Got {bytesWritten:N0})");
+        }
+
+        if (string.Equals(actualHashHex, download.Entry.Hash, StringComparison.OrdinalIgnoreCase) is false)
+        {
+            TryDeleteQuietly(partialPath);
+
+            throw new IOException($@"Hash Mismatch For ""{download.RelativePath}"" (Expected ""{download.Entry.Hash}"", Got ""{actualHashHex}"")");
+        }
+
+        if (File.Exists(download.LocalPath))
+            File.Delete(download.LocalPath);
+
+        File.Move(partialPath, download.LocalPath);
+    }
+
+    private static async Task<bool> LocalFileMatchesManifestEntry(string localPath, ManifestEntry entry, CancellationToken cancellationToken)
+    {
+        FileInfo info = new (localPath);
+
+        if (info.Exists is false)
+            return false;
+
+        if (info.Length != entry.Size)
+            return false;
+
+        await using FileStream fileStream = File.OpenRead(localPath);
+
+        using SHA256 sha256 = SHA256.Create();
+
+        byte[] hashBytes = await sha256.ComputeHashAsync(fileStream, cancellationToken);
+
+        string actualHashHex = Convert.ToHexStringLower(hashBytes);
+
+        return string.Equals(actualHashHex, entry.Hash, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static IncrementalHash CreateIncrementalHash(string hashAlgorithm)
+    {
+        return hashAlgorithm.ToUpperInvariant() switch
+        {
+            "SHA256" or "SHA-256" => IncrementalHash.CreateHash(HashAlgorithmName.SHA256),
+            "SHA384" or "SHA-384" => IncrementalHash.CreateHash(HashAlgorithmName.SHA384),
+            "SHA512" or "SHA-512" => IncrementalHash.CreateHash(HashAlgorithmName.SHA512),
+            "SHA1"   or "SHA-1"   => IncrementalHash.CreateHash(HashAlgorithmName.SHA1),
+            "MD5"    or "MD-5"    => IncrementalHash.CreateHash(HashAlgorithmName.MD5),
+            _                     => throw new NotSupportedException($@"Unsupported Manifest Hash Algorithm ""{hashAlgorithm}""")
+        };
+    }
+
+    private static HttpClient CreateClient(TimeSpan timeout)
+    {
+        HttpClient client = new ();
+
+        client.DefaultRequestHeaders.UserAgent.ParseAdd($"WILLOWMAKER/{VersionChecker.CurrentVersionDisplay}");
+        client.Timeout = timeout;
+
+        return client;
+    }
+
+    private static string BuildManifestURL(string baseURL, string variant)
+    {
+        string normalisedBase = baseURL.EndsWith('/') ? baseURL : baseURL + '/';
+
+        return $"{normalisedBase}{Uri.EscapeDataString(variant)}/{ManifestFileName}";
+    }
+
+    private static string BuildFileURL(string baseURL, string variant, string relativePath)
+    {
+        string normalisedBase  = baseURL.EndsWith('/') ? baseURL : baseURL + '/';
+        string escapedVariant  = Uri.EscapeDataString(variant);
+        string escapedRelative = string.Join('/', relativePath.Split('/').Select(Uri.EscapeDataString));
+
+        return $"{normalisedBase}{escapedVariant}/{escapedRelative}";
+    }
+
+    private static string NormaliseRelativePath(string relativePath)
+        => relativePath.Replace('\\', '/');
+
+    private static bool MatchesAny(string relativePath, Matcher matcher)
+        => matcher.Match(relativePath).HasMatches;
+
+    private static Matcher BuildMatcher(IReadOnlyList<string> patterns)
+    {
+        Matcher matcher = new (StringComparison.OrdinalIgnoreCase);
+
+        foreach (string pattern in patterns)
+            matcher.AddInclude(pattern);
+
+        return matcher;
+    }
+
+    private static void RemoveEmptyDirectories(string targetDirectory)
+    {
+        if (Directory.Exists(targetDirectory) is false)
+            return;
+
+        // Walk Bottom-Up So Inner Empty Directories Are Removed Before Their Now-Empty Parents
+        foreach (string directory in Directory.EnumerateDirectories(targetDirectory, "*", SearchOption.AllDirectories).OrderByDescending(path => path.Length))
+        {
+            try
+            {
+                if (Directory.EnumerateFileSystemEntries(directory).Any() is false)
+                    Directory.Delete(directory, recursive: false);
+            }
+
+            catch
+            {
+                // Best-Effort Only: A Failure To Remove An Empty Directory Is Not A Sync Failure
+            }
+        }
+    }
+
+    private static void TryDeleteQuietly(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+
+        catch
+        {
+            // Swallowed Deliberately: Cleanup Of A Failed Download's Partial File Must Not Mask The Original Error
+        }
+    }
+
+    private sealed record PendingDownload(string RelativePath, string LocalPath, ManifestEntry Entry);
+}
+
+/// <summary>
+///     The parsed content manifest published by the GEMINI distribution pipeline.
+///     Lists every file the bucket publishes along with the size and hash needed to verify each one, plus the remote-side and local-side exclusion lists that govern what the sync may transfer and overwrite.
+/// </summary>
+public sealed record Manifest
+{
+    /// <summary>
+    ///     The manifest version string.
+    /// </summary>
+    public required string Version { get; init; }
+
+    /// <summary>
+    ///     The algorithm used for the <see cref="ManifestEntry.Hash"/> values.
+    /// </summary>
+    public required string HashAlgorithm { get; init; }
+
+    /// <summary>
+    ///     Remote-side glob patterns for files that must not be downloaded from the bucket, such as the manifest itself.
+    ///     Entries that appear in <see cref="Files"/> but match one of these patterns are skipped from the download pass.
+    ///     Patterns are matched against the forward-slash relative path using gitignore-style semantics: <c>*</c> matches within a single path component, <c>**</c> matches across path separators (so <c>**/foo</c> matches <c>foo</c> at any depth including the root), <c>?</c> matches one character within a component, and every other character is literal.
+    /// </summary>
+    public required IReadOnlyList<string> ExcludeFromSource { get; init; }
+
+    /// <summary>
+    ///     Local-side glob patterns for files that must not be changed in the target directory, such as the launcher's own files.
+    ///     Matched files are neither overwritten by the download pass nor removed by the deletion pass.
+    ///     Patterns are matched against the forward-slash relative path using gitignore-style semantics: <c>*</c> matches within a single path component, <c>**</c> matches across path separators (so <c>**/foo</c> matches <c>foo</c> at any depth including the root), <c>?</c> matches one character within a component, and every other character is literal.
+    /// </summary>
+    public required IReadOnlyList<string> ExcludeFromTarget { get; init; }
+
+    /// <summary>
+    ///     Every file the manifest declares, keyed by forward-slash relative path.
+    /// </summary>
+    public required IReadOnlyDictionary<string, ManifestEntry> Files { get; init; }
+}
+
+/// <summary>
+///     One entry in <see cref="Manifest.Files"/>: the size in bytes and the lowercase hex hash of the file's contents.
+/// </summary>
+public sealed record ManifestEntry
+{
+    public required long Size { get; init; }
+    public required string Hash { get; init; }
+}
+
+/// <summary>
+///     A single observable step in the sync pipeline. <see cref="ContentBroker"/> reports one of these per file transition so the UI can render progress.
+///     <see cref="Plan"/> is populated only on the initial <see cref="SyncEventKind.PlanReady"/> event.
+/// </summary>
+public sealed record SyncEvent(SyncEventKind Kind, string Detail, long Size, SyncPlan? Plan = null);
+
+/// <summary>
+///     The work the sync has decided to do, calculated up-front and reported once via the <see cref="SyncEventKind.PlanReady"/> event.
+///     The UI uses this to display "X to download, Y to delete, Z up to date" before downloads begin.
+/// </summary>
+public sealed record SyncPlan(int FilesToDownload, int FilesToDelete, int FilesUpToDate, long TotalBytesToDownload)
+{
+    public override string ToString()
+        => $"{FilesToDownload} To Download ({TotalBytesToDownload:N0} Bytes), {FilesToDelete} To Delete, {FilesUpToDate} Up To Date";
+}
+
+/// <summary>
+///     Classifies the entries reported by <see cref="ContentBroker"/> via the <see cref="IProgress{T}"/> callback.
+/// </summary>
+public enum SyncEventKind
+{
+    PlanReady,
+    DownloadStarted,
+    Downloaded,
+    SkippedExcluded,
+    Deleted,
+    DownloadFailed,
+    DeletionFailed,
+    Completed
+}
+
+/// <summary>
+///     A single non-fatal failure that occurred during sync. Multiple failures are collected and returned via <see cref="SyncSummary.Failures"/>.
+/// </summary>
+public sealed record SyncFailure(string Path, string Reason);
+
+/// <summary>
+///     The final outcome of a sync run.
+/// </summary>
+public sealed record SyncSummary(int FilesDownloaded, int FilesDeleted, int FilesUpToDate, int FilesFailed, long BytesDownloaded, IReadOnlyList<SyncFailure> Failures)
+{
+    public override string ToString()
+        => $"{FilesDownloaded} Downloaded, {FilesDeleted} Deleted, {FilesUpToDate} Up To Date, {FilesFailed} Failed, {BytesDownloaded:N0} Bytes Transferred";
+}

@@ -33,7 +33,7 @@ public static partial class VersionChecker
     /// </summary>
     public static async Task<VersionCheckResult> CheckForLatestVersion()
     {
-        using HttpClient client = new();
+        using HttpClient client = new ();
 
         client.DefaultRequestHeaders.UserAgent.ParseAdd("WILLOWMAKER");
         client.Timeout = TimeSpan.FromSeconds(10);
@@ -90,7 +90,7 @@ public static partial class VersionChecker
     {
         string archivePath = Path.Combine(Path.GetTempPath(), "WILLOWMAKER-update.zip");
 
-        using HttpClient client = new();
+        using HttpClient client = new ();
 
         client.DefaultRequestHeaders.UserAgent.ParseAdd("WILLOWMAKER");
 
