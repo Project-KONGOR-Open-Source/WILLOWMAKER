@@ -13,14 +13,6 @@ public static class ContentBroker
     private const string PartialDownloadSuffix    = ".partial";
     private const int    DefaultParallelTransfers = 8;
 
-    private static readonly JsonSerializerOptions ManifestSerialiserOptions = new ()
-    {
-        PropertyNamingPolicy        = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-        ReadCommentHandling         = JsonCommentHandling.Skip,
-        AllowTrailingCommas         = true
-    };
-
     /// <summary>
     ///     Returns the bucket variant that matches the current client operating system.
     ///     The GEMINI pipeline publishes <c>wac</c>, <c>lac</c>, and <c>mac</c> variants for the Windows, Linux, and macOS client distributions.
@@ -44,7 +36,7 @@ public static class ContentBroker
 
         await using Stream stream = await client.GetStreamAsync(manifestURL, cancellationToken);
 
-        Manifest? manifest = await JsonSerializer.DeserializeAsync<Manifest>(stream, ManifestSerialiserOptions, cancellationToken);
+        Manifest? manifest = await JsonSerializer.DeserializeAsync(stream, ManifestJSONContext.Default.Manifest, cancellationToken);
 
         return manifest ?? throw new InvalidOperationException($@"Manifest At ""{manifestURL}"" Deserialised To NULL");
     }
@@ -509,3 +501,11 @@ public sealed record SyncSummary(int FilesDownloaded, int FilesDeleted, int File
     public override string ToString()
         => $"{FilesDownloaded} Downloaded, {FilesDeleted} Deleted, {FilesUpToDate} Up To Date, {FilesFailed} Failed, {BytesDownloaded:N0} Bytes Transferred";
 }
+
+/// <summary>
+///     Source-generated serialisation metadata for <see cref="Manifest"/>. Required because the solution is published with Native AOT, which strips reflection-based <see cref="JsonSerializer"/> paths.
+///     The source generator walks <see cref="Manifest"/> and emits typed metadata for every reachable type, including <see cref="ManifestEntry"/> and the dictionary and list members.
+/// </summary>
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true, ReadCommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true)]
+[JsonSerializable(typeof(Manifest))]
+internal sealed partial class ManifestJSONContext : JsonSerializerContext;
