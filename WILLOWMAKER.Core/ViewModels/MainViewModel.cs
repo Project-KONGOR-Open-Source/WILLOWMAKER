@@ -17,6 +17,9 @@ public partial class MainViewModel : ObservableObject
     private string? _discordLink = "https://discord.com/invite/N6pKzGDqUH";
 
     [ObservableProperty]
+    private string? _elementLink = "https://app.element.io/#/room/#newerth:matrix.org";
+
+    [ObservableProperty]
     private ComboBoxItem? _masterServerAddress = new() { Content = "api.kongor.net" }; // Needs To Match The Default Value In The XAML
 
     [ObservableProperty]
