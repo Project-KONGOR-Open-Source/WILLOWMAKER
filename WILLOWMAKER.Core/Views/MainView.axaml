@@ -14,7 +14,7 @@
   </Design.DataContext>
 
     <!-- Colours & Palettes: https://materialui.co/ -->
-    
+
     <StackPanel>
         <Grid ColumnDefinitions="Auto, Auto" Height="600">
             <StackPanel Grid.Column="0" Width="150" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#131418">
@@ -71,7 +71,7 @@
                     </Button.Styles>
                 </Button>
             </StackPanel>
-            
+
             <StackPanel Grid.Column="1" Width="1000" Background="#131418" Focusable="True" PointerPressed="Background_PointerPressed">
                 <StackPanel.Background>
                     <ImageBrush Source="/Assets/caldavar.png" Opacity="200" />
@@ -99,7 +99,7 @@
                                         <Setter Property="FontWeight" Value="Medium" />
                                     </Style>
                                 </Button.Styles>
-                                
+
                                 Play Heroes Of Newerth
                             </Button>
                         </StackPanel>
@@ -113,8 +113,12 @@
                     </Grid>
 
                     <StackPanel Grid.Row="1" Height="120">
-                        <TextBlock Height="20" Margin="10, 0, 0, 0">LOG</TextBlock>
-                        <TextBox Width="980" Height="85" Margin="0, 5, 0, 0" Text="{Binding LogTextArea}" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" CaretIndex="{Binding CaretIndexForAutoScroll}" CaretBrush="Transparent" FontFamily="{StaticResource MonoSpaceFont}" FontSize="12" />
+                        <Grid Height="20" Margin="10, 0, 10, 0" ColumnDefinitions="Auto, *">
+                            <TextBlock Grid.Column="0" Text="LOG" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding SyncStatusMessage}" VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="10" Foreground="#CCCCCC" />
+                        </Grid>
+                        <ProgressBar Width="980" Height="6" Margin="0, 0, 0, 2" Minimum="0" Maximum="100" Value="{Binding SyncProgressPercent}" />
+                        <TextBox Width="980" Height="80" Text="{Binding LogTextArea}" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" CaretIndex="{Binding CaretIndexForAutoScroll}" CaretBrush="Transparent" FontFamily="{StaticResource MonoSpaceFont}" FontSize="12" />
                     </StackPanel>
                 </Grid>
             </StackPanel>

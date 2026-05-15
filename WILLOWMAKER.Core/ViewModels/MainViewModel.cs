@@ -2,7 +2,7 @@
 
 public partial class MainViewModel : ObservableObject
 {
-    private readonly Logger _logger = new(Path.Combine(Environment.CurrentDirectory, "WILLOWMAKER.log"));
+    private readonly Logger _logger = new (Path.Combine(Environment.CurrentDirectory, "WILLOWMAKER.log"));
 
     [ObservableProperty]
     private string? _gitHubLink = "https://github.com/Project-KONGOR-Open-Source";
@@ -17,7 +17,10 @@ public partial class MainViewModel : ObservableObject
     private string? _discordLink = "https://discord.com/invite/N6pKzGDqUH";
 
     [ObservableProperty]
-    private ComboBoxItem? _masterServerAddress = new() { Content = "api.kongor.net" }; // Needs To Match The Default Value In The XAML
+    private string? _elementLink = "https://app.element.io/#/room/#newerth:matrix.org";
+
+    [ObservableProperty]
+    private ComboBoxItem? _masterServerAddress = new () { Content = "api.kongor.net" }; // Needs To Match The Default Value In The XAML
 
     [ObservableProperty]
     private string? _customMasterServerAddress;
@@ -39,6 +42,15 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _releasesRepositoryIsUnreachable = false;
+
+    [ObservableProperty]
+    private bool _syncIsActive = false;
+
+    [ObservableProperty]
+    private double _syncProgressPercent = 0;
+
+    [ObservableProperty]
+    private string _syncStatusMessage = string.Empty;
 
     public MainViewModel()
     {
@@ -142,7 +154,7 @@ public partial class MainViewModel : ObservableObject
         if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop || desktop.MainWindow is null)
             return;
 
-        UpdateDialog dialog = new($"WILLOWMAKER {latestVersionDisplay} Is Available");
+        UpdateDialog dialog = new ($"WILLOWMAKER {latestVersionDisplay} Is Available");
 
         bool shouldUpdate = await dialog.ShowDialog<bool>(desktop.MainWindow);
 
@@ -192,9 +204,145 @@ public partial class MainViewModel : ObservableObject
         Log(LogCategory.Parameters, $"-masterserver {address} -webserver {address} -messageserver {address}");
     }
 
+    private async Task<bool> SynchroniseContent()
+    {
+        SyncIsActive = true;
+        SyncProgressPercent = 0;
+        SyncStatusMessage = "Preparing Synchronisation ...";
+
+        try
+        {
+            string variant = ContentBroker.ResolveDefaultClientVariant();
+
+            Log(LogCategory.Content, $@"Fetching Manifest For Variant ""{variant}"" From CDN");
+
+            Manifest manifest = await ContentBroker.FetchManifest(variant);
+
+            Log(LogCategory.Content, $"Manifest Version {manifest.Version} Lists {manifest.Files.Count} File(s)");
+
+            int filesDownloaded = 0;
+            int filesDeleted    = 0;
+            long bytesDownloaded = 0;
+
+            SyncPlan? plan      = null;
+
+            Progress<SyncEvent> progress = new (syncEvent =>
+            {
+                switch (syncEvent.Kind)
+                {
+                    case SyncEventKind.PlanReady:
+                        plan = syncEvent.Plan;
+
+                        if (plan is not null)
+                        {
+                            Log(LogCategory.Content, $"Plan: {plan}");
+
+                            SyncStatusMessage = $"To Download: {plan.FilesToDownload}  |  To Delete: {plan.FilesToDelete}  |  Up To Date: {plan.FilesUpToDate}";
+
+                            // If There Is No Work, Pre-Fill The Progress Bar To Avoid A Lingering Empty State
+                            if (plan.FilesToDownload is 0 && plan.FilesToDelete is 0)
+                                SyncProgressPercent = 100;
+                        }
+
+                        break;
+
+                    case SyncEventKind.Downloaded:
+                        filesDownloaded++;
+                        bytesDownloaded += syncEvent.Size;
+
+                        if (plan is not null)
+                        {
+                            SyncStatusMessage = $"Downloaded {filesDownloaded}/{plan.FilesToDownload}  |  Deleted {filesDeleted}/{plan.FilesToDelete}  |  Up To Date: {plan.FilesUpToDate}";
+
+                            if (plan.TotalBytesToDownload > 0)
+                                SyncProgressPercent = Math.Min(100, (double)bytesDownloaded / plan.TotalBytesToDownload * 100);
+                        }
+
+                        break;
+
+                    case SyncEventKind.Deleted:
+                        filesDeleted++;
+
+                        if (plan is not null)
+                            SyncStatusMessage = $"Downloaded {filesDownloaded}/{plan.FilesToDownload}  |  Deleted {filesDeleted}/{plan.FilesToDelete}  |  Up To Date: {plan.FilesUpToDate}";
+
+                        break;
+
+                    case SyncEventKind.DownloadFailed:
+                    case SyncEventKind.DeletionFailed:
+                        Log(LogCategory.Content, $"Failed | {syncEvent.Detail}");
+
+                        break;
+
+                    case SyncEventKind.SkippedExcluded:
+                        Log(LogCategory.Content, $"Skipped (Excluded) | {syncEvent.Detail}");
+
+                        break;
+
+                    case SyncEventKind.Completed:
+                        SyncProgressPercent = 100;
+                        Log(LogCategory.Content, $"Sync Complete | {syncEvent.Detail}");
+
+                        break;
+                }
+            });
+
+            SyncSummary summary = await ContentBroker.Synchronise
+            (
+                manifest:        manifest,
+                variant:         variant,
+                targetDirectory: Environment.CurrentDirectory,
+                progress:        progress
+            );
+
+            if (summary.FilesFailed > 0)
+            {
+                SyncStatusMessage = $"Synchronisation Failed: {summary.FilesFailed} File(s) Could Not Be Transferred";
+
+                Log(LogCategory.Content, $"Aborting Launch: {summary.FilesFailed} File(s) Failed");
+
+                return false;
+            }
+
+            SyncStatusMessage = $"Synchronisation Complete  |  Downloaded: {summary.FilesDownloaded}  |  Deleted: {summary.FilesDeleted}  |  Up To Date: {summary.FilesUpToDate}";
+
+            return true;
+        }
+
+        catch (HttpRequestException exception)
+        {
+            string statusCode = exception.StatusCode is not null
+                ? $"{(int)exception.StatusCode} ({exception.StatusCode})"
+                : "Unknown Status Code";
+
+            Log(LogCategory.Content, $"CDN Unreachable: HTTP {statusCode}");
+
+            SyncStatusMessage = "CDN Unreachable; Synchronisation Aborted";
+
+            return false;
+        }
+
+        catch (Exception exception)
+        {
+            Log(LogCategory.Content, $"Synchronisation Error: {exception.GetType().Name} | {exception.Message}");
+
+            SyncStatusMessage = $"Synchronisation Error: {exception.Message}";
+
+            return false;
+        }
+
+        finally
+        {
+            SyncIsActive = false;
+        }
+    }
+
     [RelayCommand]
     private async Task Launch()
     {
+        if (await SynchroniseContent() is false)
+            return;
+
         FileInfo[] executableMatchesWindows = new DirectoryInfo(Environment.CurrentDirectory).GetFiles("hon_x64.exe", SearchOption.TopDirectoryOnly);
         FileInfo[] executableMatchesLinux = new DirectoryInfo(Environment.CurrentDirectory).GetFiles("hon-x86_64", SearchOption.TopDirectoryOnly);
         FileInfo[] executableMatchesMacOS = new DirectoryInfo(Environment.CurrentDirectory).GetFiles("HoN64", SearchOption.TopDirectoryOnly);

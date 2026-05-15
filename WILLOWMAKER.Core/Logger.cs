@@ -6,7 +6,7 @@ namespace WILLOWMAKER.Core;
 public sealed class Logger
 {
     private readonly string _filePath;
-    private readonly Lock _lock = new();
+    private readonly Lock _lock = new ();
 
     public Logger(string filePath)
     {

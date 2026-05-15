@@ -1,21 +1,68 @@
 name: "Publish Release"
 
+# triggers on version-tag pushes only
+# the second pattern (`-*`) catches pre-release tags like v1.2.3-rc1 so release candidates can be cut through the same workflow
+# the release job marks them as pre-release automatically by checking for a hyphen in the tag name
 on:
-
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
 
+# the release job creates a GitHub Release, which requires write access to repository contents
+# every other permission stays at its restrictive default
 permissions:
   contents: write
 
 jobs:
+  build:
+    strategy:
+      # let every target run to completion even if one fails for diagnostic value: all broken targets surface in one run rather than one at a time across successive tag pushes
+      # this does NOT create a partial release: the release job has `needs: build` with no `if: always()` override, so any matrix failure marks the whole build job failed and the release job is skipped regardless of this setting
+      fail-fast: false
 
-  publish-release:
+      # one matrix entry per target RID
+      # each job runs on the OS that matches its RID because Native AOT emits native code and requires the target OS's own toolchain (MSVC link.exe on Windows, clang/ld on Linux and macOS)
+      # cross-building all six targets from one runner is not possible
+      # canonical list of valid `runner:` labels (x64 and ARM64, all OSes, with deprecation dates) lives at https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners
+      # per-image software inventories live at https://github.com/actions/runner-images (x64) and https://github.com/actions/partner-runner-images (ARM64); deprecation announcements land at https://github.blog/changelog/label/actions
+      # runners are pinned to explicit image versions rather than floating `-latest` labels, so a GitHub-initiated image rollover cannot silently change the build environment mid-release
+      matrix:
+        include:
+          - asset:       "windows-x64"
+            runner:      "windows-2025"
+            profile:     "Windows.x64.NativeAOT.pubxml"
+            publish_dir: "windows-x64-native-aot"
 
-    runs-on: ubuntu-latest
+          - asset:       "windows-arm64"
+            runner:      "windows-11-arm"
+            profile:     "Windows.arm64.NativeAOT.pubxml"
+            publish_dir: "windows-arm64-native-aot"
+
+          - asset:       "linux-x64"
+            runner:      "ubuntu-24.04"
+            profile:     "Linux.x64.NativeAOT.pubxml"
+            publish_dir: "linux-x64-native-aot"
+
+          - asset:       "linux-arm64"
+            runner:      "ubuntu-24.04-arm"
+            profile:     "Linux.arm64.NativeAOT.pubxml"
+            publish_dir: "linux-arm64-native-aot"
+
+          - asset:       "macos-x64"
+            runner:      "macos-15-intel"
+            profile:     "macOS.x64.NativeAOT.pubxml"
+            publish_dir: "macos-x64-native-aot"
+
+          - asset:       "macos-arm64"
+            runner:      "macos-15"
+            profile:     "macOS.arm64.NativeAOT.pubxml"
+            publish_dir: "macos-arm64-native-aot"
+
+    runs-on: ${{ matrix.runner }}
 
     steps:
+
     - name: "Check Out Branch"
       uses: "actions/checkout@v4"
 
@@ -24,43 +71,61 @@ jobs:
       with:
         dotnet-version: "10.x"
 
-    - name: "Print .NET Version"
-      run: "dotnet --version"
-
-    - name: Restore Dependencies
-      run: dotnet restore
-
-    - name: Build For Windows x64
-      run: dotnet publish "WILLOWMAKER" -p:PublishProfile=Windows.SingleFile.pubxml
-
-    - name: Build For Linux x64
-      run: dotnet publish "WILLOWMAKER" -p:PublishProfile=Linux.SingleFile.pubxml
-
-    - name: Build For macOS x64
-      run: dotnet publish "WILLOWMAKER" -p:PublishProfile=macOS.SingleFile.pubxml
-
-    - name: Create Windows Asset
+    # pwsh is pre-installed on every GitHub-hosted runner (all OSes, both architectures) and is used uniformly across the matrix to avoid splitting shell idioms between Linux/macOS bash and Windows PowerShell
+    # the version override strips the leading `v` from the tag name and passes it to MSBuild
+    # under normal discipline the tag matches the <Version> in Directory.Build.props, so this is a no-op in the happy path; it is kept as a safety belt so if someone cuts a tag without remembering to bump Directory.Build.props (or vice versa), the binary's stamped version still matches the tag users downloaded
+    - name: "Publish Native AOT"
+      shell: "pwsh"
       run: |
-        cd WILLOWMAKER/bin/Publish/windows-x64-single-file
-        zip -r $GITHUB_WORKSPACE/windows-x64-${{ github.ref_name }}.zip . -x "*.pdb"
+        $Version = $env:GITHUB_REF_NAME -replace '^v', ''
+        dotnet publish WILLOWMAKER -p:PublishProfile=${{ matrix.profile }} -p:Version=$Version
 
-    - name: Create Linux Asset
+    # the `Compress-Archive` PowerShell cmdlet is used on Windows because `zip` is not reliably on PATH in pwsh on GitHub's Windows runner images, and Windows has no exec-bit concept so dropping UNIX permission metadata is harmless
+    # the external `zip` command is used on Linux/macOS because Compress-Archive would drop the exec bits there, causing the unzipped binary to fail to launch without a manual chmod
+    # pdbs are removed before zipping to keep release zips small; users who need symbols can build from source
+    - name: "Create Release Asset"
+      shell: "pwsh"
       run: |
-        cd WILLOWMAKER/bin/Publish/linux-x64-single-file
-        zip -r $GITHUB_WORKSPACE/linux-x64-${{ github.ref_name }}.zip . -x "*.pdb"
+        Set-Location "WILLOWMAKER/bin/Publish/${{ matrix.publish_dir }}"
+        Get-ChildItem -Recurse -Filter '*.pdb' | Remove-Item -Force
+        $ZipPath = "$env:GITHUB_WORKSPACE/${{ matrix.asset }}-$env:GITHUB_REF_NAME.zip"
+        if ($IsWindows) { Compress-Archive -Path .\* -DestinationPath $ZipPath } else { zip -r $ZipPath . }
 
-    - name: Create macOS Asset
-      run: |
-        cd WILLOWMAKER/bin/Publish/macos-x64-single-file
-        zip -r $GITHUB_WORKSPACE/macos-x64-${{ github.ref_name }}.zip . -x "*.pdb"
-
-    - name: Create Release
-      uses: softprops/action-gh-release@v2
+    # each matrix job runs on its own isolated runner, so it can't write directly to a shared release
+    # instead, each zip is uploaded as a workflow artefact, then the dedicated `release` job downloads all six and publishes them together
+    # `if-no-files-found: error` means a silent publish failure that produced no zip will fail the job loudly rather than quietly ship a release missing a platform
+    - name: "Upload Asset Artefact"
+      uses: "actions/upload-artifact@v4"
       with:
-        files: |
-          windows-x64-${{ github.ref_name }}.zip
-          linux-x64-${{ github.ref_name }}.zip
-          macos-x64-${{ github.ref_name }}.zip
+        name: ${{ matrix.asset }}
+        path: ${{ matrix.asset }}-${{ github.ref_name }}.zip
+        if-no-files-found: "error"
+        retention-days: 1
+
+  # the release job runs only after every matrix build succeeds (`needs: build` without `if: always()`)
+  # it downloads all six artefacts into one directory and creates a single GitHub Release containing all of them: one zip per platform, auto-generated source code archives, "Full Changelog" link, and a "Latest" badge when the tag isn't a pre-release
+  release:
+
+    needs: build
+    runs-on: "ubuntu-latest"
+
+    steps:
+
+    # `merge-multiple: true` flattens all six per-platform artefact folders into a single `artefacts/` directory containing just the zips
+    - name: "Download All Assets"
+      uses: "actions/download-artifact@v4"
+      with:
+        path: "artefacts"
+        merge-multiple: true
+
+    # `generate_release_notes: true` produces the "Full Changelog: v1.0.0...v1.2.3" link and summarises merged PRs since the previous tag
+    # `prerelease: ${{ contains(github.ref_name, '-') }}` flags tags that contain a hyphen (e.g. v1.2.3-rc1) as pre-release automatically, so they don't steal the "Latest" badge from the real release
+    # `fail_on_unmatched_files: true` is belt-and-braces: if the artefact download somehow delivered no zips, fail loudly instead of publishing an empty release
+    - name: "Publish Release"
+      uses: "softprops/action-gh-release@v2"
+      with:
+        files: "artefacts/*.zip"
         draft: false
         prerelease: ${{ contains(github.ref_name, '-') }}
         generate_release_notes: true
+        fail_on_unmatched_files: true
