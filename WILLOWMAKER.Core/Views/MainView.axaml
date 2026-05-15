@@ -3,7 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:WILLOWMAKER.Core.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="1150" Width="1150" d:DesignHeight="690" Height="690"
+             mc:Ignorable="d" d:DesignWidth="1150" Width="1150" d:DesignHeight="600" Height="600"
              x:Class="WILLOWMAKER.Core.Views.MainView"
              x:DataType="vm:MainViewModel">
 
@@ -16,72 +16,54 @@
     <!-- Colours & Palettes: https://materialui.co/ -->
 
     <StackPanel>
-        <Grid ColumnDefinitions="Auto, Auto" Height="690" Background="#131418">
-            <StackPanel Grid.Column="0" Width="150" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#131418" Margin="0, 15, 0, 15" Spacing="15">
-                <Button Height="120" Command="{Binding GoToURLCommand}" CommandParameter="{Binding GitHubLink}" Cursor="Hand" Background="#131418" ClipToBounds="False" >
-                    <Image Source="/Assets/github-logo.png" Margin="15, 0" RenderTransformOrigin="0.5, 0.5" />
+        <Grid ColumnDefinitions="Auto, Auto" Height="600">
+            <StackPanel Grid.Column="0" Width="150" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#131418">
+                <Button Height="150" Command="{Binding GoToURLCommand}" CommandParameter="{Binding GitHubLink}" Cursor="Hand" Background="#131418" >
+                    <Image Source="/Assets/github-logo.png" Margin="15" />
                     <Button.Styles>
                         <Style Selector="Button:pointerover > Image">
-                            <Setter Property="RenderTransform" Value="scale(1.0835)" />
-                        </Style>
-                        <Style Selector="Button /template/ ContentPresenter">
-                            <Setter Property="ClipToBounds" Value="False" />
+                            <Setter Property="Width" Value="130" />
+                            <Setter Property="Height" Value="130" />
+                            <Setter Property="Margin" Value="10"/>
                         </Style>
                         <Style Selector="Button:pointerover /template/ ContentPresenter">
                             <Setter Property="Background" Value="#131418" />
                         </Style>
                     </Button.Styles>
                 </Button>
-                <Button Height="120" Command="{Binding GoToURLCommand}" CommandParameter="{Binding WebPortalLink}" Cursor="Hand" Background="#131418" ClipToBounds="False" >
-                    <Image Source="/Assets/world-wide-web.png" Margin="15, 0" RenderTransformOrigin="0.5, 0.5" />
+                <Button Height="150" Command="{Binding GoToURLCommand}" CommandParameter="{Binding WebPortalLink}" Cursor="Hand" Background="#131418" >
+                    <Image Source="/Assets/world-wide-web.png" Margin="15" />
                     <Button.Styles>
                         <Style Selector="Button:pointerover > Image">
-                            <Setter Property="RenderTransform" Value="scale(1.0835)" />
-                        </Style>
-                        <Style Selector="Button /template/ ContentPresenter">
-                            <Setter Property="ClipToBounds" Value="False" />
+                            <Setter Property="Width" Value="130" />
+                            <Setter Property="Height" Value="130" />
+                            <Setter Property="Margin" Value="10"/>
                         </Style>
                         <Style Selector="Button:pointerover /template/ ContentPresenter">
                             <Setter Property="Background" Value="#131418" />
                         </Style>
                     </Button.Styles>
                 </Button>
-                <Button Height="120" Command="{Binding GoToURLCommand}" CommandParameter="{Binding RedditLink}" Cursor="Hand" Background="#131418" ClipToBounds="False" >
-                    <Image Source="/Assets/reddit-logo.png" Margin="15, 0" RenderTransformOrigin="0.5, 0.5" />
+                <Button Height="150" Command="{Binding GoToURLCommand}" CommandParameter="{Binding RedditLink}" Cursor="Hand" Background="#131418" >
+                    <Image Source="/Assets/reddit-logo.png" Margin="15" />
                     <Button.Styles>
                         <Style Selector="Button:pointerover > Image">
-                            <Setter Property="RenderTransform" Value="scale(1.0835)" />
-                        </Style>
-                        <Style Selector="Button /template/ ContentPresenter">
-                            <Setter Property="ClipToBounds" Value="False" />
+                            <Setter Property="Width" Value="130" />
+                            <Setter Property="Height" Value="130" />
+                            <Setter Property="Margin" Value="10"/>
                         </Style>
                         <Style Selector="Button:pointerover /template/ ContentPresenter">
                             <Setter Property="Background" Value="#131418" />
                         </Style>
                     </Button.Styles>
                 </Button>
-                <Button Height="120" Command="{Binding GoToURLCommand}" CommandParameter="{Binding DiscordLink}" Cursor="Hand" Background="#131418" ClipToBounds="False" >
-                    <Image Source="/Assets/discord-logo.png" Margin="15, 0" RenderTransformOrigin="0.5, 0.5" />
+                <Button Height="150" Command="{Binding GoToURLCommand}" CommandParameter="{Binding DiscordLink}" Cursor="Hand" Background="#131418" >
+                    <Image Source="/Assets/discord-logo.png" Margin="15" />
                     <Button.Styles>
                         <Style Selector="Button:pointerover > Image">
-                            <Setter Property="RenderTransform" Value="scale(1.0835)" />
-                        </Style>
-                        <Style Selector="Button /template/ ContentPresenter">
-                            <Setter Property="ClipToBounds" Value="False" />
-                        </Style>
-                        <Style Selector="Button:pointerover /template/ ContentPresenter">
-                            <Setter Property="Background" Value="#131418" />
-                        </Style>
-                    </Button.Styles>
-                </Button>
-                <Button Height="120" Command="{Binding GoToURLCommand}" CommandParameter="{Binding ElementLink}" Cursor="Hand" Background="#131418" ClipToBounds="False" >
-                    <Image Source="/Assets/element-logo.png" Margin="15, 0" RenderTransformOrigin="0.5, 0.5" />
-                    <Button.Styles>
-                        <Style Selector="Button:pointerover > Image">
-                            <Setter Property="RenderTransform" Value="scale(1.0835)" />
-                        </Style>
-                        <Style Selector="Button /template/ ContentPresenter">
-                            <Setter Property="ClipToBounds" Value="False" />
+                            <Setter Property="Width" Value="130" />
+                            <Setter Property="Height" Value="130" />
+                            <Setter Property="Margin" Value="10"/>
                         </Style>
                         <Style Selector="Button:pointerover /template/ ContentPresenter">
                             <Setter Property="Background" Value="#131418" />
@@ -92,14 +74,14 @@
 
             <StackPanel Grid.Column="1" Width="1000" Background="#131418" Focusable="True" PointerPressed="Background_PointerPressed">
                 <StackPanel.Background>
-                    <ImageBrush Source="/Assets/caldavar.png" Opacity="200" Stretch="UniformToFill" />
+                    <ImageBrush Source="/Assets/caldavar.png" Opacity="200" />
                 </StackPanel.Background>
 
                 <Grid RowDefinitions="Auto, Auto">
-                    <Grid Grid.Row="0" Height="570" ColumnDefinitions="Auto, Auto, Auto">
+                    <Grid Grid.Row="0" Height="480" ColumnDefinitions="Auto, Auto, Auto">
                         <StackPanel Grid.Column="0" Width="333" />
 
-                        <StackPanel Grid.Column="1" Width="333" Margin="0, 270, 0, 0" >
+                        <StackPanel Grid.Column="1" Width="333" Margin="0, 225, 0, 0" >
                             <Label Width="200" HorizontalAlignment="Center" HorizontalContentAlignment="Center">Master Server Address</Label>
 
                             <ComboBox SelectedValue="{Binding MasterServerAddress}" Name="MasterServerAddressDropdown" SelectedIndex="0" Width="200" HorizontalAlignment="Center">
