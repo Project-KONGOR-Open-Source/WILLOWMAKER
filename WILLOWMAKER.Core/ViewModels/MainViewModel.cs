@@ -32,12 +32,6 @@ public partial class MainViewModel : ObservableObject
     private bool _canLaunchGame = true;
 
     [ObservableProperty]
-    private string? _logTextArea;
-
-    [ObservableProperty]
-    private int _caretIndexForAutoScroll = int.MaxValue;
-
-    [ObservableProperty]
     private string _versionDisplay = VersionChecker.CurrentVersionDisplay;
 
     [ObservableProperty]
@@ -99,7 +93,7 @@ public partial class MainViewModel : ObservableObject
 
     private void Log(string category, string message)
     {
-        LogTextArea += _logger.Log(category, message);
+        _logger.Log(category, message);
     }
 
     private async Task CheckForUpdates()

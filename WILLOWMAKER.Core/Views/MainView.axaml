@@ -78,7 +78,7 @@
                 </StackPanel.Background>
 
                 <Grid RowDefinitions="Auto, Auto">
-                    <Grid Grid.Row="0" Height="480" ColumnDefinitions="Auto, Auto, Auto">
+                    <Grid Grid.Row="0" Height="560" ColumnDefinitions="Auto, Auto, Auto">
                         <StackPanel Grid.Column="0" Width="333" />
 
                         <StackPanel Grid.Column="1" Width="333" Margin="0, 225, 0, 0" >
@@ -112,13 +112,9 @@
                         </Grid>
                     </Grid>
 
-                    <StackPanel Grid.Row="1" Height="120">
-                        <Grid Height="20" Margin="10, 0, 10, 0" ColumnDefinitions="Auto, *">
-                            <TextBlock Grid.Column="0" Text="LOG" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="{Binding SyncStatusMessage}" VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="10" Foreground="#CCCCCC" />
-                        </Grid>
+                    <StackPanel Grid.Row="1" Height="40">
+                        <TextBlock Height="20" Margin="10, 0, 10, 0" Text="{Binding SyncStatusMessage}" VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="10" Foreground="#CCCCCC" />
                         <ProgressBar Width="980" Height="6" Margin="0, 0, 0, 2" Minimum="0" Maximum="100" Value="{Binding SyncProgressPercent}" />
-                        <TextBox Width="980" Height="80" Text="{Binding LogTextArea}" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" CaretIndex="{Binding CaretIndexForAutoScroll}" CaretBrush="Transparent" FontFamily="{StaticResource MonoSpaceFont}" FontSize="12" />
                     </StackPanel>
                 </Grid>
             </StackPanel>
