@@ -122,14 +122,20 @@ public static partial class VersionChecker
 
         string executablePath = Environment.ProcessPath ?? Path.Combine(targetDirectory, "WILLOWMAKER.exe");
 
+        // Enumerate The Files The New Release Ships So The Update Script Can Force-Delete Each Pre-Existing Counterpart (Including Read-Only Ones) Before Copying The New Files Into Place
+        string[] relativePathsToReplace = Directory
+            .EnumerateFiles(tempDirectory, "*", SearchOption.AllDirectories)
+            .Select(absolutePath => Path.GetRelativePath(tempDirectory, absolutePath))
+            .ToArray();
+
         if (OperatingSystem.IsWindows())
-            SpawnWindowsUpdateScript(archivePath, tempDirectory, targetDirectory, executablePath);
+            SpawnWindowsUpdateScript(archivePath, tempDirectory, targetDirectory, executablePath, relativePathsToReplace);
 
         else if (OperatingSystem.IsMacOS())
-            SpawnMacOSUpdateScript(archivePath, tempDirectory, targetDirectory, executablePath);
+            SpawnMacOSUpdateScript(archivePath, tempDirectory, targetDirectory, executablePath, relativePathsToReplace);
 
         else
-            SpawnLinuxUpdateScript(archivePath, tempDirectory, targetDirectory, executablePath);
+            SpawnLinuxUpdateScript(archivePath, tempDirectory, targetDirectory, executablePath, relativePathsToReplace);
 
         Environment.Exit(0);
     }
@@ -164,17 +170,31 @@ public static partial class VersionChecker
         return Version.TryParse(match.Groups["numeric"].Value, out version);
     }
 
-    private static void SpawnWindowsUpdateScript(string archivePath, string sourceDirectory, string targetDirectory, string executablePath)
+    private static void SpawnWindowsUpdateScript(string archivePath, string sourceDirectory, string targetDirectory, string executablePath, string[] relativePathsToReplace)
     {
         string scriptPath = Path.Combine(Path.GetTempPath(), "WILLOWMAKER-update.ps1");
 
+        // The Relative Paths Are Embedded As A PowerShell Single-Quoted Array Literal So Each One Can Be Force-Deleted Before The New Files Are Copied In
+        string pathArrayLiteral = string.Join(", ", relativePathsToReplace.Select(relativePath => $"'{relativePath}'"));
+
         string script =
-        $"""
+        $$"""
             Start-Sleep -Milliseconds 3500
-            Copy-Item -Path '{sourceDirectory}\*' -Destination '{targetDirectory}' -Recurse -Force
-            Start-Process -FilePath '{executablePath}'
-            Remove-Item -Path '{sourceDirectory}' -Recurse -Force
-            Remove-Item -Path '{archivePath}' -Force
+            $relativePathsToReplace = @({{pathArrayLiteral}})
+            foreach ($relativePath in $relativePathsToReplace) {
+                $stalePath = Join-Path '{{targetDirectory}}' $relativePath
+                if (Test-Path -LiteralPath $stalePath) {
+                    $staleItem = Get-Item -LiteralPath $stalePath -Force
+                    if ($staleItem.Attributes -band [System.IO.FileAttributes]::ReadOnly) {
+                        $staleItem.Attributes = $staleItem.Attributes -band -bnot [System.IO.FileAttributes]::ReadOnly
+                    }
+                    Remove-Item -LiteralPath $stalePath -Force
+                }
+            }
+            Copy-Item -Path '{{sourceDirectory}}\*' -Destination '{{targetDirectory}}' -Recurse -Force
+            Start-Process -FilePath '{{executablePath}}'
+            Remove-Item -Path '{{sourceDirectory}}' -Recurse -Force
+            Remove-Item -Path '{{archivePath}}' -Force
             Remove-Item -Path $MyInvocation.MyCommand.Source -Force
         """;
 
@@ -189,15 +209,25 @@ public static partial class VersionChecker
         });
     }
 
-    private static void SpawnMacOSUpdateScript(string archivePath, string sourceDirectory, string targetDirectory, string executablePath)
+    private static void SpawnMacOSUpdateScript(string archivePath, string sourceDirectory, string targetDirectory, string executablePath, string[] relativePathsToReplace)
     {
         string scriptPath = Path.Combine(Path.GetTempPath(), "WILLOWMAKER-update.sh");
+
+        // The Relative Paths Are Embedded As A Bash Single-Quoted Word List So Each One Can Be Force-Deleted Before The New Files Are Copied In
+        string pathWordList = string.Join(" ", relativePathsToReplace.Select(relativePath => $"'{relativePath}'"));
 
         string script =
         $"""
             #!/bin/bash
             sleep 3.5
-            cp -Rf
+            for relativePath in {pathWordList}; do
+                stalePath="{targetDirectory}/$relativePath"
+                if [ -e "$stalePath" ]; then
+                    chmod u+w "$stalePath" 2>/dev/null || true
+                    rm -f "$stalePath"
+                fi
+            done
+            cp -Rf "{sourceDirectory}/." "{targetDirectory}/"
             chmod +x "{executablePath}"
             open "{executablePath}"
             rm -rf "{sourceDirectory}"
@@ -218,15 +248,25 @@ public static partial class VersionChecker
         });
     }
 
-    private static void SpawnLinuxUpdateScript(string archivePath, string sourceDirectory, string targetDirectory, string executablePath)
+    private static void SpawnLinuxUpdateScript(string archivePath, string sourceDirectory, string targetDirectory, string executablePath, string[] relativePathsToReplace)
     {
         string scriptPath = Path.Combine(Path.GetTempPath(), "WILLOWMAKER-update.sh");
+
+        // The Relative Paths Are Embedded As A Bash Single-Quoted Word List So Each One Can Be Force-Deleted Before The New Files Are Copied In
+        string pathWordList = string.Join(" ", relativePathsToReplace.Select(relativePath => $"'{relativePath}'"));
 
         string script =
         $"""
             #!/bin/bash
             sleep 3.5
-            cp -rf
+            for relativePath in {pathWordList}; do
+                stalePath="{targetDirectory}/$relativePath"
+                if [ -e "$stalePath" ]; then
+                    chmod u+w "$stalePath" 2>/dev/null || true
+                    rm -f "$stalePath"
+                fi
+            done
+            cp -rf "{sourceDirectory}/." "{targetDirectory}/"
             chmod +x "{executablePath}"
             "{executablePath}" &
             rm -rf "{sourceDirectory}"
