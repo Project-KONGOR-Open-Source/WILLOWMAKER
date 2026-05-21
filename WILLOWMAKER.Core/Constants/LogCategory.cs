@@ -1,4 +1,4 @@
-namespace WILLOWMAKER.Core;
+namespace WILLOWMAKER.Core.Constants;
 
 /// <summary>
 ///     Defines the available log entry categories.

@@ -1,4 +1,4 @@
-namespace WILLOWMAKER.Core;
+namespace WILLOWMAKER.Core.Utilities;
 
 /// <summary>
 ///     Provides dual logging to both a UI-bound string property and a log file on disc.

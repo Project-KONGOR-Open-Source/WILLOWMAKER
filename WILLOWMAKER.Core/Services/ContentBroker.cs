@@ -1,4 +1,4 @@
-namespace WILLOWMAKER.Core;
+namespace WILLOWMAKER.Core.Services;
 
 /// <summary>
 ///     Synchronises the local installation directory with a content bucket described by a remote manifest.

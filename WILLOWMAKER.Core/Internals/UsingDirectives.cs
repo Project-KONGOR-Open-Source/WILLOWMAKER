@@ -21,5 +21,8 @@ global using System.Text.Json;
 global using System.Text.Json.Serialization;
 global using System.Text.RegularExpressions;
 
+global using WILLOWMAKER.Core.Constants;
+global using WILLOWMAKER.Core.Services;
+global using WILLOWMAKER.Core.Utilities;
 global using WILLOWMAKER.Core.ViewModels;
 global using WILLOWMAKER.Core.Views;

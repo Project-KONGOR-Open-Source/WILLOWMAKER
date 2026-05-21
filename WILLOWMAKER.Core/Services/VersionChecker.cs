@@ -1,4 +1,4 @@
-namespace WILLOWMAKER.Core;
+namespace WILLOWMAKER.Core.Services;
 
 /// <summary>
 ///     Provides version checking against GitHub releases, asset downloading, and self-update capabilities.
