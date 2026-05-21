@@ -159,6 +159,8 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
+        Log(LogCategory.Update, "Update Accepted By User");
+
         if (result.DownloadURL is null)
         {
             Log(LogCategory.Update, "No Downloadable Asset Found; Opening The Releases Page ...");
@@ -334,6 +336,8 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task Launch()
     {
+        Log(LogCategory.Executable, "Game Launch Initiated");
+
         if (await SynchroniseContent() is false)
             return;
 
@@ -376,6 +380,8 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task LaunchEditor()
     {
+        Log(LogCategory.Executable, "Map Editor Launch Initiated");
+
         if (await SynchroniseContent() is false)
             return;
 
@@ -417,20 +423,26 @@ public partial class MainViewModel : ObservableObject
 
         if (executableMatches.Length is 0)
         {
-            Log(LogCategory.Executable, "Unable to locate the game executable in the current directory.");
+            Log(LogCategory.Executable, "Unable To Locate The Game Executable In The Current Directory");
+
             executable = null;
+
             return false;
         }
 
         if (executableMatches.Length > 1)
         {
-            Log(LogCategory.Executable, $"Multiple game executables were located in the current directory: {string.Join(", ", executableMatches.Select(match => match.Name))}.");
+            Log(LogCategory.Executable, $"Multiple Game Executables Were Located In The Current Directory: {string.Join(", ", executableMatches.Select(match => match.Name))}");
+
             executable = null;
+
             return false;
         }
 
         executable = executableMatches.Single();
-        Log(LogCategory.Executable, $@"Launching ""{executable.FullName}"" with set parameters ...");
+
+        Log(LogCategory.Executable, $@"Resolved Game Executable: ""{executable.FullName}""");
+
         return true;
     }
 
@@ -496,7 +508,14 @@ public partial class MainViewModel : ObservableObject
             UseShellExecute = false
         });
 
-        while (process?.MainWindowHandle == IntPtr.Zero)
+        if (process is null)
+        {
+            Log(LogCategory.Executable, $@"Process Failed To Start: ""{executable.FullName}""");
+
+            return;
+        }
+
+        while (process.MainWindowHandle == IntPtr.Zero)
             await Task.Delay(TimeSpan.FromMilliseconds(250));
 
         Environment.Exit(0);
