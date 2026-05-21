@@ -1,6 +1,6 @@
 ﻿namespace WILLOWMAKER.Core;
 
-public partial class App : Application
+public partial class ClientLauncher : Application
 {
     public override void Initialize()
     {

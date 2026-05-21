@@ -7,5 +7,5 @@ public class WILLOWMAKER
         => BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
 
     public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>().UsePlatformDetect().WithInterFont().LogToTrace();
+        => AppBuilder.Configure<ClientLauncher>().UsePlatformDetect().WithInterFont().LogToTrace();
 }

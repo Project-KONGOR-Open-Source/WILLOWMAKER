@@ -52,7 +52,7 @@ public partial class MainViewModel : ObservableObject
     }
 
     /// <summary>
-    ///     Invoked by <see cref="App"/> from the MainWindow's <see cref="Window.Opened"/> event once the window is realised and able to host a modal dialog.
+    ///     Invoked by <see cref="ClientLauncher"/> from the MainWindow's <see cref="Window.Opened"/> event once the window is realised and able to host a modal dialog.
     /// </summary>
     internal void OnMainWindowOpened()
     {
