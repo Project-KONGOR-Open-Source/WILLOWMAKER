@@ -229,6 +229,7 @@ public partial class MainViewModel : ObservableObject
                 switch (syncEvent.Kind)
                 {
                     case SyncEventKind.PlanReady:
+                    {
                         plan = syncEvent.Plan;
 
                         if (plan is not null)
@@ -243,9 +244,12 @@ public partial class MainViewModel : ObservableObject
                         }
 
                         break;
+                    }
 
                     case SyncEventKind.Downloaded:
+                    {
                         filesDownloaded++;
+
                         bytesDownloaded += syncEvent.Size;
 
                         if (plan is not null)
@@ -253,35 +257,45 @@ public partial class MainViewModel : ObservableObject
                             SyncStatusMessage = $"Downloaded {filesDownloaded}/{plan.FilesToDownload} | Deleted {filesDeleted}/{plan.FilesToDelete} | Up To Date: {plan.FilesUpToDate}";
 
                             if (plan.TotalBytesToDownload > 0)
-                                SyncProgressPercent = Math.Min(100, (double)bytesDownloaded / plan.TotalBytesToDownload * 100);
+                                SyncProgressPercent = Math.Min(100, (double) bytesDownloaded / plan.TotalBytesToDownload * 100);
                         }
 
                         break;
+                    }
 
                     case SyncEventKind.Deleted:
+                    {
                         filesDeleted++;
 
                         if (plan is not null)
                             SyncStatusMessage = $"Downloaded {filesDownloaded}/{plan.FilesToDownload} | Deleted {filesDeleted}/{plan.FilesToDelete} | Up To Date: {plan.FilesUpToDate}";
 
                         break;
+                    }
 
                     case SyncEventKind.DownloadFailed:
                     case SyncEventKind.DeletionFailed:
+                    {
                         Log(LogCategory.Content, $"Failed | {syncEvent.Detail}");
 
                         break;
+                    }
 
-                    case SyncEventKind.SkippedExcluded:
+                    case SyncEventKind.Skipped:
+                    {
                         Log(LogCategory.Content, $"Skipped (Excluded) | {syncEvent.Detail}");
 
                         break;
+                    }
 
                     case SyncEventKind.Completed:
+                    {
                         SyncProgressPercent = 100;
+
                         Log(LogCategory.Content, $"Sync Complete | {syncEvent.Detail}");
 
                         break;
+                    }
                 }
             });
 
