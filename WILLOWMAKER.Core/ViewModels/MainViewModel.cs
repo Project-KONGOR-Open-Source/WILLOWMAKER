@@ -216,11 +216,11 @@ public partial class MainViewModel : ObservableObject
         {
             string variant = ContentBroker.ResolveDefaultClientVariant();
 
-            Log(LogCategory.Content, $@"Fetching Manifest For Variant ""{variant}"" From CDN");
+            Log(LogCategory.Sync, $@"INIT: Fetching Manifest For Variant ""{variant}"" From CDN");
 
             Manifest manifest = await ContentBroker.FetchManifest(variant);
 
-            Log(LogCategory.Content, $"Manifest Version {manifest.Version} Lists {manifest.Files.Count} File(s)");
+            Log(LogCategory.Sync, $"INIT: Manifest Version {manifest.Version} Lists {manifest.Files.Count} File(s)");
 
             int filesDownloaded  = 0;
             int filesDeleted     = 0;
@@ -238,7 +238,7 @@ public partial class MainViewModel : ObservableObject
 
                         if (plan is not null)
                         {
-                            Log(LogCategory.Content, $"Plan: {plan}");
+                            Log(LogCategory.Sync, $"PLAN: {plan}");
 
                             SyncStatusMessage = $"To Download: {plan.FilesToDownload} | To Delete: {plan.FilesToDelete} | Up To Date: {plan.FilesUpToDate}";
 
@@ -251,6 +251,8 @@ public partial class MainViewModel : ObservableObject
 
                     case SyncEventKind.Downloaded:
                     {
+                        Log(LogCategory.Sync, $"PULL: {syncEvent.Detail}");
+
                         filesDownloaded++;
 
                         bytesDownloaded += syncEvent.Size;
@@ -268,6 +270,8 @@ public partial class MainViewModel : ObservableObject
 
                     case SyncEventKind.Deleted:
                     {
+                        Log(LogCategory.Sync, $"NUKE: {syncEvent.Detail}");
+
                         filesDeleted++;
 
                         if (plan is not null)
@@ -279,14 +283,14 @@ public partial class MainViewModel : ObservableObject
                     case SyncEventKind.DownloadFailed:
                     case SyncEventKind.DeletionFailed:
                     {
-                        Log(LogCategory.Content, $"Failed | {syncEvent.Detail}");
+                        Log(LogCategory.Sync, $"FAIL: {syncEvent.Detail}");
 
                         break;
                     }
 
                     case SyncEventKind.Skipped:
                     {
-                        Log(LogCategory.Content, $"Skipped (Excluded) | {syncEvent.Detail}");
+                        Log(LogCategory.Sync, $"SKIP: {syncEvent.Detail}");
 
                         break;
                     }
@@ -295,7 +299,7 @@ public partial class MainViewModel : ObservableObject
                     {
                         SyncProgressPercent = 100;
 
-                        Log(LogCategory.Content, $"Sync Complete | {syncEvent.Detail}");
+                        Log(LogCategory.Sync, $"DONE: {syncEvent.Detail}");
 
                         break;
                     }
@@ -314,7 +318,7 @@ public partial class MainViewModel : ObservableObject
             {
                 SyncStatusMessage = $"Synchronisation Failed: {summary.FilesFailed} File(s) Could Not Be Transferred";
 
-                Log(LogCategory.Content, $"Aborting Launch: {summary.FilesFailed} File(s) Failed");
+                Log(LogCategory.Sync, $"FAIL: {summary.FilesFailed} File(s) Failed To Be Transferred :: Launch Aborted");
 
                 return false;
             }
@@ -327,10 +331,10 @@ public partial class MainViewModel : ObservableObject
         catch (HttpRequestException exception)
         {
             string statusCode = exception.StatusCode is not null
-                ? $"{(int)exception.StatusCode} ({exception.StatusCode})"
+                ? $"{(int) exception.StatusCode} ({exception.StatusCode})"
                 : "Unknown Status Code";
 
-            Log(LogCategory.Content, $"CDN Unreachable: HTTP {statusCode}");
+            Log(LogCategory.Sync, $"FAIL: CDN Unreachable :: HTTP {statusCode}");
 
             SyncStatusMessage = "CDN Unreachable; Synchronisation Aborted";
 
@@ -339,7 +343,7 @@ public partial class MainViewModel : ObservableObject
 
         catch (Exception exception)
         {
-            Log(LogCategory.Content, $"Synchronisation Error: {exception.GetType().Name} | {exception.Message}");
+            Log(LogCategory.Sync, $"FAIL: {exception.GetType().Name} :: {exception.Message}");
 
             SyncStatusMessage = $"Synchronisation Error: {exception.Message}";
 
