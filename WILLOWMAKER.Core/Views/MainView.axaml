@@ -3,7 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:WILLOWMAKER.Core.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="1150" Width="1150" d:DesignHeight="750" Height="750"
+             mc:Ignorable="d" d:DesignWidth="1250" Width="1250" d:DesignHeight="750" Height="750"
              x:Class="WILLOWMAKER.Core.Views.MainView"
              x:DataType="vm:MainViewModel">
 
@@ -85,16 +85,16 @@
                 </Button>
             </StackPanel>
 
-            <StackPanel Grid.Column="1" Width="1000" Background="#131418" Focusable="True" PointerPressed="Background_PointerPressed">
+            <StackPanel Grid.Column="1" Width="1100" Background="#131418" Focusable="True" PointerPressed="Background_PointerPressed">
                 <StackPanel.Background>
                     <ImageBrush Source="/Assets/caldavar.png" Opacity="200" />
                 </StackPanel.Background>
 
                 <Grid RowDefinitions="Auto, Auto">
                     <Grid Grid.Row="0" Height="710" ColumnDefinitions="Auto, Auto, Auto">
-                        <StackPanel Grid.Column="0" Width="333" />
+                        <StackPanel Grid.Column="0" Width="350" />
 
-                        <StackPanel Grid.Column="1" Width="333" Margin="0, 225, 0, 0" >
+                        <StackPanel Grid.Column="1" Width="400" Margin="0, 225, 0, 0" >
                             <Label Width="200" HorizontalAlignment="Center" HorizontalContentAlignment="Center">Master Server Address</Label>
 
                             <ComboBox SelectedValue="{Binding MasterServerAddress}" Name="MasterServerAddressDropdown" SelectedIndex="0" Width="200" HorizontalAlignment="Center">
@@ -117,7 +117,7 @@
                             </Button>
                         </StackPanel>
 
-                        <Grid Grid.Column="2" Width="333" VerticalAlignment="Top" Margin="0, 15, 0, 0" ColumnDefinitions="*, Auto">
+                        <Grid Grid.Column="2" Width="350" VerticalAlignment="Top" Margin="0, 15, 0, 0" ColumnDefinitions="*, Auto">
                             <Label Grid.Column="0" Foreground="OrangeRed" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="5, 0"
                                    Content="Releases Repository Not Reachable"
                                    IsVisible="{Binding ReleasesRepositoryIsUnreachable}" />
@@ -127,7 +127,7 @@
 
                     <StackPanel Grid.Row="1" Height="40">
                         <TextBlock Height="20" Margin="10, 0, 10, 0" Text="{Binding SyncStatusMessage}" VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="10" Foreground="#CCCCCC" />
-                        <ProgressBar Width="980" Height="6" Margin="0, 0, 0, 2" Minimum="0" Maximum="100" Value="{Binding SyncProgressPercent}" />
+                        <ProgressBar Width="1080" Height="6" Margin="0, 0, 0, 2" Minimum="0" Maximum="100" Value="{Binding SyncProgressPercent}" />
                     </StackPanel>
                 </Grid>
             </StackPanel>
