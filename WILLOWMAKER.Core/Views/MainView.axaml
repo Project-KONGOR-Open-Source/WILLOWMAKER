@@ -106,26 +106,52 @@
                             <TextBox Text="{Binding CustomMasterServerAddress}" Width="400" Margin="0, 10, 0, 0" HorizontalAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" LostFocus="CustomMasterServerAddress_LostFocus" KeyDown="CustomMasterServerAddress_KeyDown" />
 
                             <StackPanel Orientation="Horizontal" Margin="0, 10, 0, 0" HorizontalAlignment="Center">
-                                <Button Command="{Binding LaunchCommand}" Width="135" Height="60" Margin="0, 0, 5, 0" Cursor="Hand" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchGame}" Background="DarkGreen">
+                                <Button Command="{Binding LaunchCommand}" Width="175" Height="60" Margin="0, 0, 5, 0" Cursor="Hand" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchGame}" Background="DarkGreen">
                                     <Button.Styles>
+                                        <Style Selector="Button TextBlock">
+                                            <Setter Property="RenderTransform" Value="scale(1)" />
+                                            <Setter Property="FontWeight" Value="Normal" />
+                                        </Style>
+                                        <Style Selector="Button:pointerover TextBlock">
+                                            <Setter Property="RenderTransform" Value="scale(1.10)" />
+                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                        </Style>
                                         <Style Selector="Button:pointerover /template/ ContentPresenter">
                                             <Setter Property="Background" Value="Green" />
-                                            <Setter Property="FontWeight" Value="Medium" />
                                         </Style>
                                     </Button.Styles>
 
-                                    Open Map Editor
+                                    <TextBlock Text="Open Map Editor" RenderTransformOrigin="50%, 50%">
+                                        <TextBlock.Transitions>
+                                            <Transitions>
+                                                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" Easing="CubicEaseOut" />
+                                            </Transitions>
+                                        </TextBlock.Transitions>
+                                    </TextBlock>
                                 </Button>
 
-                                <Button Command="{Binding LaunchCommand}" Width="255" Height="60" Margin="5, 0, 0, 0" Cursor="Hand" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchGame}" Background="DarkGreen">
+                                <Button Command="{Binding LaunchCommand}" Width="215" Height="60" Margin="5, 0, 0, 0" Cursor="Hand" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchGame}" Background="DarkGreen">
                                     <Button.Styles>
+                                        <Style Selector="Button TextBlock">
+                                            <Setter Property="RenderTransform" Value="scale(1)" />
+                                            <Setter Property="FontWeight" Value="Normal" />
+                                        </Style>
+                                        <Style Selector="Button:pointerover TextBlock">
+                                            <Setter Property="RenderTransform" Value="scale(1.10)" />
+                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                        </Style>
                                         <Style Selector="Button:pointerover /template/ ContentPresenter">
                                             <Setter Property="Background" Value="Green" />
-                                            <Setter Property="FontWeight" Value="Medium" />
                                         </Style>
                                     </Button.Styles>
 
-                                    Play Heroes Of Newerth
+                                    <TextBlock Text="Play Heroes Of Newerth" RenderTransformOrigin="50%, 50%">
+                                        <TextBlock.Transitions>
+                                            <Transitions>
+                                                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" Easing="CubicEaseOut" />
+                                            </Transitions>
+                                        </TextBlock.Transitions>
+                                    </TextBlock>
                                 </Button>
                             </StackPanel>
                         </StackPanel>
