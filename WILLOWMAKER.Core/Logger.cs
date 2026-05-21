@@ -5,14 +5,14 @@ namespace WILLOWMAKER.Core;
 /// </summary>
 public sealed class Logger
 {
-    private readonly string _filePath;
-    private readonly Lock _lock = new ();
+    private string FilePath { get; }
+    private Lock FileLock { get; } = new ();
 
     public Logger(string filePath)
     {
-        _filePath = filePath;
+        FilePath = filePath;
 
-        File.AppendAllText(_filePath, $"{Environment.NewLine}=== WILLOWMAKER Session Started At {DateTime.Now:s} ==={Environment.NewLine}");
+        File.AppendAllText(FilePath, Environment.NewLine + $"=== WILLOWMAKER Session Started At {DateTime.Now:O} ===" + Environment.NewLine);
     }
 
     /// <summary>
@@ -20,10 +20,10 @@ public sealed class Logger
     /// </summary>
     public string Log(string category, string message)
     {
-        string entry = $"[{DateTime.Now:s}] [{category}] {message}{Environment.NewLine}";
+        string entry = $"[{DateTime.Now:O}] [{category}] {message}" + Environment.NewLine;
 
-        lock (_lock)
-            File.AppendAllText(_filePath, entry);
+        lock (FileLock)
+            File.AppendAllText(FilePath, entry);
 
         return entry;
     }
