@@ -97,13 +97,13 @@
                         <StackPanel Grid.Column="1" Width="400" Margin="0, 280, 0, 0">
                             <Label Width="400" Margin="0, 0, 0, 5" HorizontalAlignment="Center" HorizontalContentAlignment="Center">Master Server Address</Label>
 
-                            <ComboBox SelectedValue="{Binding MasterServerAddress}" Name="MasterServerAddressDropdown" SelectedIndex="0" Width="400" HorizontalAlignment="Center">
-                                <ComboBoxItem>api.kongor.net</ComboBoxItem>
-                                <ComboBoxItem>localhost:5555</ComboBoxItem>
-                                <ComboBoxItem>Custom Address ...</ComboBoxItem>
+                            <ComboBox SelectedValue="{Binding MasterServerAddress}" Name="MasterServerAddressDropdown" SelectedIndex="0" Width="400" HorizontalAlignment="Center" HorizontalContentAlignment="Center">
+                                <ComboBoxItem HorizontalContentAlignment="Stretch">api.kongor.net</ComboBoxItem>
+                                <ComboBoxItem HorizontalContentAlignment="Stretch">localhost:5555</ComboBoxItem>
+                                <ComboBoxItem HorizontalContentAlignment="Stretch">Custom Address ...</ComboBoxItem>
                             </ComboBox>
 
-                            <TextBox Text="{Binding CustomMasterServerAddress}" Width="400" Margin="0, 10, 0, 0" HorizontalAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" LostFocus="CustomMasterServerAddress_LostFocus" KeyDown="CustomMasterServerAddress_KeyDown" />
+                            <TextBox Text="{Binding CustomMasterServerAddress}" Width="400" Margin="0, 10, 0, 0" HorizontalAlignment="Center" TextAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" LostFocus="CustomMasterServerAddress_LostFocus" KeyDown="CustomMasterServerAddress_KeyDown" />
 
                             <StackPanel Orientation="Horizontal" Margin="0, 10, 0, 0" HorizontalAlignment="Center">
                                 <Button Command="{Binding LaunchCommand}" Width="175" Height="60" Margin="0, 0, 5, 0" Cursor="Hand" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchGame}" Background="DarkGreen">
