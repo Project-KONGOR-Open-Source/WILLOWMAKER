@@ -47,7 +47,7 @@ public static partial class VersionChecker
         string tagName = root.GetProperty("tag_name").GetString() ?? string.Empty;
         string releasePageURL = root.GetProperty("html_url").GetString() ?? string.Empty;
 
-        // Defensive Belt-And-Braces Check In Case A Future API Change Breaks The "/releases/latest" Contract
+        // Defensive Check In Case A Future API Change Breaks The "/releases/latest" Contract
         bool isPreRelease = root.TryGetProperty("prerelease", out JsonElement prereleaseElement) && prereleaseElement.GetBoolean();
 
         if (isPreRelease)
