@@ -41,6 +41,9 @@ public partial class MainViewModel : ObservableObject
     public partial bool SyncIsActive { get; set; } = false;
 
     [ObservableProperty]
+    public partial bool SyncIsScheduled { get; set; } = false;
+
+    [ObservableProperty]
     public partial double SyncProgressPercent { get; set; } = 0;
 
     [ObservableProperty]
@@ -205,6 +208,7 @@ public partial class MainViewModel : ObservableObject
     private async Task<bool> SynchroniseContent()
     {
         SyncIsActive = true;
+        SyncIsScheduled = false;
         SyncProgressPercent = 0;
         SyncStatusMessage = "Preparing Synchronisation ...";
 
@@ -238,9 +242,8 @@ public partial class MainViewModel : ObservableObject
 
                             SyncStatusMessage = $"To Download: {plan.FilesToDownload} | To Delete: {plan.FilesToDelete} | Up To Date: {plan.FilesUpToDate}";
 
-                            // If There Is No Work, Pre-Fill The Progress Bar To Avoid A Lingering Empty State
-                            if (plan.FilesToDownload is 0 && plan.FilesToDelete is 0)
-                                SyncProgressPercent = 100;
+                            // Drives The Progress Bar's Visibility: A Plan With No Downloads And No Deletions Means There Is Nothing To Show Progress Of
+                            SyncIsScheduled = plan.FilesToDownload > 0 || plan.FilesToDelete > 0;
                         }
 
                         break;
