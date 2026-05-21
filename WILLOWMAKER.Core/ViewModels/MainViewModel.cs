@@ -5,46 +5,46 @@ public partial class MainViewModel : ObservableObject
     private readonly Logger _logger = new (Path.Combine(Environment.CurrentDirectory, "WILLOWMAKER.log"));
 
     [ObservableProperty]
-    private string? _gitHubLink = "https://github.com/Project-KONGOR-Open-Source";
+    public partial string? GitHubLink { get; set; } = "https://github.com/Project-KONGOR-Open-Source";
 
     [ObservableProperty]
-    private string? _webPortalLink = "https://kongor.net";
+    public partial string? WebPortalLink { get; set; } = "https://kongor.net";
 
     [ObservableProperty]
-    private string? _redditLink = "https://www.reddit.com/r/newerth";
+    public partial string? RedditLink { get; set; } = "https://www.reddit.com/r/newerth";
 
     [ObservableProperty]
-    private string? _discordLink = "https://discord.com/invite/N6pKzGDqUH";
+    public partial string? DiscordLink { get; set; } = "https://discord.com/invite/N6pKzGDqUH";
 
     [ObservableProperty]
-    private string? _elementLink = "https://app.element.io/#/room/#newerth:matrix.org";
+    public partial string? ElementLink { get; set; } = "https://app.element.io/#/room/#newerth:matrix.org";
 
     [ObservableProperty]
-    private ComboBoxItem? _masterServerAddress = new () { Content = "api.kongor.net" }; // Needs To Match The Default Value In The XAML
+    public partial ComboBoxItem? MasterServerAddress { get; set; } = new () { Content = "api.kongor.net" }; // Needs To Match The Default Value In The XAML
 
     [ObservableProperty]
-    private string? _customMasterServerAddress;
+    public partial string? CustomMasterServerAddress { get; set; }
 
     [ObservableProperty]
-    private bool _canShowCustomMasterServerAddressField = false;
+    public partial bool CanShowCustomMasterServerAddressField { get; set; } = false;
 
     [ObservableProperty]
-    private bool _canLaunchGame = true;
+    public partial bool CanLaunchGame { get; set; } = true;
 
     [ObservableProperty]
-    private string _versionDisplay = VersionChecker.CurrentVersionDisplay;
+    public partial string VersionDisplay { get; set; } = VersionChecker.CurrentVersionDisplay;
 
     [ObservableProperty]
-    private bool _releasesRepositoryIsUnreachable = false;
+    public partial bool ReleasesRepositoryIsUnreachable { get; set; } = false;
 
     [ObservableProperty]
-    private bool _syncIsActive = false;
+    public partial bool SyncIsActive { get; set; } = false;
 
     [ObservableProperty]
-    private double _syncProgressPercent = 0;
+    public partial double SyncProgressPercent { get; set; } = 0;
 
     [ObservableProperty]
-    private string _syncStatusMessage = string.Empty;
+    public partial string SyncStatusMessage { get; set; } = string.Empty;
 
     public MainViewModel()
     {
