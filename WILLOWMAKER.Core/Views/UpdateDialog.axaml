@@ -8,10 +8,10 @@
         TransparencyLevelHint="Transparent"
         Background="#F2131418">
 
-    <StackPanel Margin="24">
-        <TextBlock x:Name="MessageText" TextWrapping="Wrap" Margin="0, 0, 0, 16" />
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12">
-            <Button Content="Update" Click="Update_Click" Background="Green" Cursor="Hand" Width="90" Height="32" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+    <StackPanel Margin="25">
+        <TextBlock x:Name="MessageText" TextWrapping="Wrap" Margin="0, 0, 0, 15" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button Content="Update" Click="Update_Click" Background="Green" Cursor="Hand" Width="90" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
                 <Button.Styles>
                     <Style Selector="Button:pointerover /template/ ContentPresenter">
                         <Setter Property="Background" Value="Green" />
@@ -19,7 +19,7 @@
                     </Style>
                 </Button.Styles>
             </Button>
-            <Button Content="Not Now" Click="Skip_Click" Background="Green" Cursor="Hand" Width="90" Height="32" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+            <Button Content="Not Now" Click="Skip_Click" Background="Green" Cursor="Hand" Width="90" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
                 <Button.Styles>
                     <Style Selector="Button:pointerover /template/ ContentPresenter">
                         <Setter Property="Background" Value="Green" />
