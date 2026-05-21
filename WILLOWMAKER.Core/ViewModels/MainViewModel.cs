@@ -49,7 +49,13 @@ public partial class MainViewModel : ObservableObject
     public MainViewModel()
     {
         Log(LogCategory.Parameters, "-masterserver api.kongor.net -webserver api.kongor.net -messageserver api.kongor.net");
+    }
 
+    /// <summary>
+    ///     Invoked by <see cref="App"/> from the MainWindow's <see cref="Window.Opened"/> event once the window is realised and able to host a modal dialog.
+    /// </summary>
+    internal void OnMainWindowOpened()
+    {
         _ = CheckForUpdates();
     }
 
@@ -98,10 +104,6 @@ public partial class MainViewModel : ObservableObject
 
     private async Task CheckForUpdates()
     {
-        // allow the UI to fully initialise before checking
-        // TODO: find better way to do this without an arbitrary delay
-        await Task.Delay(TimeSpan.FromMilliseconds(2_500));
-
         Log(LogCategory.Version, $"Current Version: {VersionChecker.CurrentVersionDisplay}");
         Log(LogCategory.Version, "Checking For Updates ...");
 
