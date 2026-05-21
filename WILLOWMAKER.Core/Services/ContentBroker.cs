@@ -86,7 +86,7 @@ public static class ContentBroker
             // Decision Gate One (Remote Side): May We Download This File From The Bucket?
             if (MatchesAny(relativePath, sourceExclusions))
             {
-                progress?.Report(new SyncEvent(SyncEventKind.SkippedExcluded, relativePath, entry.Size));
+                progress?.Report(new SyncEvent(SyncEventKind.Skipped, relativePath, entry.Size));
 
                 continue;
             }
@@ -94,7 +94,7 @@ public static class ContentBroker
             // Decision Gate Two (Local Side): Would Writing It Change A Local File That Must Not Be Changed?
             if (MatchesAny(relativePath, targetExclusions))
             {
-                progress?.Report(new SyncEvent(SyncEventKind.SkippedExcluded, relativePath, entry.Size));
+                progress?.Report(new SyncEvent(SyncEventKind.Skipped, relativePath, entry.Size));
 
                 continue;
             }
@@ -492,7 +492,7 @@ public enum SyncEventKind
     PlanReady,
     DownloadStarted,
     Downloaded,
-    SkippedExcluded,
+    Skipped,
     Deleted,
     DownloadFailed,
     DeletionFailed,
