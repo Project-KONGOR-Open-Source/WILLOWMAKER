@@ -2,7 +2,7 @@
 
 public partial class MainViewModel : ObservableObject
 {
-    private readonly Logger _logger = new (Path.Combine(Environment.CurrentDirectory, "WILLOWMAKER.log"));
+    private Logger Logger { get; } = new (Path.Combine(Environment.CurrentDirectory, "WILLOWMAKER.log"));
 
     [ObservableProperty]
     public partial string? GitHubLink { get; set; } = "https://github.com/Project-KONGOR-Open-Source";
@@ -93,7 +93,7 @@ public partial class MainViewModel : ObservableObject
 
     private void Log(string category, string message)
     {
-        _logger.Log(category, message);
+        Logger.Log(category, message);
     }
 
     private async Task CheckForUpdates()
