@@ -87,7 +87,7 @@
 
             <StackPanel Grid.Column="1" Width="1100" Background="#131418" Focusable="True" PointerPressed="Background_PointerPressed">
                 <StackPanel.Background>
-                    <ImageBrush Source="/Assets/caldavar.png" Opacity="200" />
+                    <ImageBrush Source="/Assets/caldavar.png" Stretch="UniformToFill" Opacity="0.20" />
                 </StackPanel.Background>
 
                 <Grid RowDefinitions="Auto, Auto">
