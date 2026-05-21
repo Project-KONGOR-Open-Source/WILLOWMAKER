@@ -12,7 +12,7 @@ public sealed class Logger
     {
         FilePath = filePath;
 
-        File.AppendAllText(FilePath, Environment.NewLine + $"▝▚▞▚▞▚▞▚▖ WILLOWMAKER Session Started At {DateTime.Now:O} ... ლ(ಠ益ಠლ) BUT AT WHAT COST !? ▗▞▚▞▚▞▚▞▘" + Environment.NewLine);
+        File.AppendAllText(FilePath, Environment.NewLine + $"▝▚▞▚▞▚▞▚▖ WILLOWMAKER Session Started At {DateTime.Now:O} ლ(ಠ益ಠლ) BUT AT WHAT COST !? ▗▞▚▞▚▞▚▞▘" + Environment.NewLine);
     }
 
     /// <summary>
