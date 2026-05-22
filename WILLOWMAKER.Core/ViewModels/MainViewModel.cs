@@ -49,6 +49,21 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     public partial string SyncStatusMessage { get; set; } = string.Empty;
 
+    [ObservableProperty]
+    public partial bool SyncIsFailed { get; set; } = false;
+
+    [ObservableProperty]
+    public partial string DownloadedFilesDisplay { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string RemovedFilesDisplay { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string SkippedFilesDisplay { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string UpToDateFilesDisplay { get; set; } = string.Empty;
+
     public MainViewModel()
     {
         Log(LogCategory.Parameters, "-masterserver api.kongor.net -webserver api.kongor.net -messageserver api.kongor.net");
@@ -209,8 +224,13 @@ public partial class MainViewModel : ObservableObject
     {
         SyncIsActive = true;
         SyncIsScheduled = false;
+        SyncIsFailed = false;
         SyncProgressPercent = 0;
-        SyncStatusMessage = "Preparing Synchronisation ...";
+        SyncStatusMessage = string.Empty;
+        DownloadedFilesDisplay = string.Empty;
+        RemovedFilesDisplay = string.Empty;
+        SkippedFilesDisplay = string.Empty;
+        UpToDateFilesDisplay = string.Empty;
 
         try
         {
@@ -224,9 +244,12 @@ public partial class MainViewModel : ObservableObject
 
             int filesDownloaded  = 0;
             int filesDeleted     = 0;
+            int filesSkipped     = 0;
             long bytesDownloaded = 0;
 
             SyncPlan? plan       = null;
+
+            int upToDateTotal    = 0;
 
             Progress<SyncEvent> progress = new (syncEvent =>
             {
@@ -240,7 +263,13 @@ public partial class MainViewModel : ObservableObject
                         {
                             Log(LogCategory.Sync, $"PLAN: {plan}");
 
-                            SyncStatusMessage = $"To Download: {plan.FilesToDownload} | To Delete: {plan.FilesToDelete} | Up To Date: {plan.FilesUpToDate}";
+                            // The Up-To-Date Column Includes Local Deletions So All Four Columns Reach 100% Together When The Sync Completes
+                            upToDateTotal = manifest.Files.Count + plan.FilesToDelete;
+
+                            DownloadedFilesDisplay = FormatSyncColumn("DOWNLOADED",                  0, plan.FilesToDownload);
+                            RemovedFilesDisplay    = FormatSyncColumn("REMOVED"   ,                  0, plan.FilesToDelete  );
+                            SkippedFilesDisplay    = FormatSyncColumn("SKIPPED"   ,                  0, plan.FilesToSkip    );
+                            UpToDateFilesDisplay   = FormatSyncColumn("UP-TO-DATE", plan.FilesUpToDate, upToDateTotal       );
 
                             // Drives The Progress Bar's Visibility: A Plan With No Downloads And No Deletions Means There Is Nothing To Show Progress Of
                             SyncIsScheduled = plan.FilesToDownload > 0 || plan.FilesToDelete > 0;
@@ -259,7 +288,8 @@ public partial class MainViewModel : ObservableObject
 
                         if (plan is not null)
                         {
-                            SyncStatusMessage = $"Downloaded {filesDownloaded}/{plan.FilesToDownload} | Deleted {filesDeleted}/{plan.FilesToDelete} | Up To Date: {plan.FilesUpToDate}";
+                            DownloadedFilesDisplay = FormatSyncColumn("DOWNLOADED", filesDownloaded, plan.FilesToDownload);
+                            UpToDateFilesDisplay   = FormatSyncColumn("UP-TO-DATE", plan.FilesUpToDate + filesDownloaded + filesDeleted + filesSkipped, upToDateTotal);
 
                             if (plan.TotalBytesToDownload > 0)
                                 SyncProgressPercent = Math.Min(100, (double) bytesDownloaded / plan.TotalBytesToDownload * 100);
@@ -275,7 +305,10 @@ public partial class MainViewModel : ObservableObject
                         filesDeleted++;
 
                         if (plan is not null)
-                            SyncStatusMessage = $"Downloaded {filesDownloaded}/{plan.FilesToDownload} | Deleted {filesDeleted}/{plan.FilesToDelete} | Up To Date: {plan.FilesUpToDate}";
+                        {
+                            RemovedFilesDisplay  = FormatSyncColumn("REMOVED", filesDeleted, plan.FilesToDelete);
+                            UpToDateFilesDisplay = FormatSyncColumn("UP-TO-DATE", plan.FilesUpToDate + filesDownloaded + filesDeleted + filesSkipped, upToDateTotal);
+                        }
 
                         break;
                     }
@@ -291,6 +324,14 @@ public partial class MainViewModel : ObservableObject
                     case SyncEventKind.Skipped:
                     {
                         Log(LogCategory.Sync, $"SKIP: {syncEvent.Detail}");
+
+                        filesSkipped++;
+
+                        if (plan is not null)
+                        {
+                            SkippedFilesDisplay  = FormatSyncColumn("SKIPPED", filesSkipped, plan.FilesToSkip);
+                            UpToDateFilesDisplay = FormatSyncColumn("UP-TO-DATE", plan.FilesUpToDate + filesDownloaded + filesDeleted + filesSkipped, upToDateTotal);
+                        }
 
                         break;
                     }
@@ -316,14 +357,13 @@ public partial class MainViewModel : ObservableObject
 
             if (summary.FilesFailed > 0)
             {
+                SyncIsFailed = true;
                 SyncStatusMessage = $"Synchronisation Failed: {summary.FilesFailed} File(s) Could Not Be Transferred";
 
                 Log(LogCategory.Sync, $"FAIL: {summary.FilesFailed} File(s) Failed To Be Transferred :: Launch Aborted");
 
                 return false;
             }
-
-            SyncStatusMessage = $"Synchronisation Complete | Downloaded: {summary.FilesDownloaded} | Deleted: {summary.FilesDeleted} | Up To Date: {summary.FilesUpToDate}";
 
             return true;
         }
@@ -336,6 +376,7 @@ public partial class MainViewModel : ObservableObject
 
             Log(LogCategory.Sync, $"FAIL: CDN Unreachable :: HTTP {statusCode}");
 
+            SyncIsFailed = true;
             SyncStatusMessage = "CDN Unreachable; Synchronisation Aborted";
 
             return false;
@@ -345,6 +386,7 @@ public partial class MainViewModel : ObservableObject
         {
             Log(LogCategory.Sync, $"FAIL: {exception.GetType().Name} :: {exception.Message}");
 
+            SyncIsFailed = true;
             SyncStatusMessage = $"Synchronisation Error: {exception.Message}";
 
             return false;
@@ -354,6 +396,17 @@ public partial class MainViewModel : ObservableObject
         {
             SyncIsActive = false;
         }
+    }
+
+    /// <summary>
+    ///     Formats a single status-row column as <c>LABEL XXX/YYY (ZZZ%)</c> with three-digit zero-padded counters for steady-width display.
+    ///     A zero <paramref name="total"/> is treated as 100% complete (nothing to do is fully done).
+    /// </summary>
+    private static string FormatSyncColumn(string label, int current, int total)
+    {
+        int percent = total > 0 ? (int) ((double) current / total * 100) : 100;
+
+        return $"{label} {current:D3}/{total:D3} ({percent}%)";
     }
 
     [RelayCommand]
