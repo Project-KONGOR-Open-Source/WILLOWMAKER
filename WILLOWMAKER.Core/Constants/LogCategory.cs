@@ -7,6 +7,7 @@ public static class LogCategory
 {
     public const string Command    = "COMMAND___";
     public const string Executable = "EXECUTABLE";
+    public const string Guard      = "GUARD_____";
     public const string Initialise = "INITIALISE";
     public const string Parameters = "PARAMETERS";
     public const string Sync       = "SYNC______";
