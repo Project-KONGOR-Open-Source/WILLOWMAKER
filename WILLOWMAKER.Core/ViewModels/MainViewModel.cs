@@ -29,7 +29,14 @@ public partial class MainViewModel : ObservableObject
     public partial bool CanShowCustomMasterServerAddressField { get; set; } = false;
 
     [ObservableProperty]
-    public partial bool CanLaunchGame { get; set; } = true;
+    [NotifyPropertyChangedFor(nameof(CanLaunchGame))]
+    public partial bool MasterServerAddressIsValid { get; set; } = true;
+
+    public bool SyncIsIdle => SyncIsActive is false;
+
+    public bool CanLaunchGame => MasterServerAddressIsValid && SyncIsIdle;
+
+    public string PlayButtonText => SyncIsActive ? "Updating ..." : "Play Heroes Of Newerth";
 
     [ObservableProperty]
     public partial string VersionDisplay { get; set; } = VersionChecker.CurrentVersionDisplay;
@@ -38,6 +45,9 @@ public partial class MainViewModel : ObservableObject
     public partial bool ReleasesRepositoryIsUnreachable { get; set; } = false;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SyncIsIdle))]
+    [NotifyPropertyChangedFor(nameof(CanLaunchGame))]
+    [NotifyPropertyChangedFor(nameof(PlayButtonText))]
     public partial bool SyncIsActive { get; set; } = false;
 
     [ObservableProperty]
@@ -94,7 +104,7 @@ public partial class MainViewModel : ObservableObject
         {
             CanShowCustomMasterServerAddressField = newValue.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false;
 
-            CanLaunchGame = (MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false) is false
+            MasterServerAddressIsValid = (MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false) is false
                 ? true
                 : (MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false) is true && string.IsNullOrWhiteSpace(CustomMasterServerAddress) is false
                     ? true : false;
@@ -102,7 +112,7 @@ public partial class MainViewModel : ObservableObject
             if (CanShowCustomMasterServerAddressField is false)
             {
                 CustomMasterServerAddress = null;
-                CanLaunchGame = true;
+                MasterServerAddressIsValid = true;
 
                 LogLaunchParameters();
             }
@@ -111,7 +121,7 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnCustomMasterServerAddressChanged(string? oldValue, string? newValue)
     {
-        CanLaunchGame = (MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false) is true && string.IsNullOrWhiteSpace(CustomMasterServerAddress) is false
+        MasterServerAddressIsValid = (MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false) is true && string.IsNullOrWhiteSpace(CustomMasterServerAddress) is false
             ? true : false;
     }
 
