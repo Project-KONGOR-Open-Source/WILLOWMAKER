@@ -32,12 +32,6 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CanLaunchGame))]
     public partial bool MasterServerAddressIsValid { get; set; } = true;
 
-    public bool SyncIsIdle => SyncIsActive is false;
-
-    public bool CanLaunchGame => MasterServerAddressIsValid && SyncIsIdle;
-
-    public string PlayButtonText => SyncIsActive ? "Updating ..." : "Play Heroes Of Newerth";
-
     [ObservableProperty]
     public partial string VersionDisplay { get; set; } = VersionChecker.CurrentVersionDisplay;
 
@@ -73,6 +67,12 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string UpToDateFilesDisplay { get; set; } = string.Empty;
+
+    public bool SyncIsIdle => SyncIsActive is false;
+
+    public bool CanLaunchGame => MasterServerAddressIsValid && SyncIsIdle;
+
+    public string PlayButtonText => SyncIsActive ? "Updating ..." : "Play Heroes Of Newerth";
 
     public MainViewModel()
     {
