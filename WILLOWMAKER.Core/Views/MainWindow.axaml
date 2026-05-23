@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:views="clr-namespace:WILLOWMAKER.Core.Views"
-        mc:Ignorable="d" d:DesignWidth="1150" Width="1150" d:DesignHeight="600" Height="600"
+        mc:Ignorable="d" d:DesignWidth="1250" Width="1250" d:DesignHeight="750" Height="750"
         CanResize="False"
         WindowStartupLocation="CenterScreen"
         x:Class="WILLOWMAKER.Core.Views.MainWindow"

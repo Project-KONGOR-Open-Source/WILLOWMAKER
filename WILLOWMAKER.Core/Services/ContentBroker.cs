@@ -1,4 +1,4 @@
-namespace WILLOWMAKER.Core;
+namespace WILLOWMAKER.Core.Services;
 
 /// <summary>
 ///     Synchronises the local installation directory with a content bucket described by a remote manifest.
@@ -76,6 +76,7 @@ public static class ContentBroker
 
         long totalBytesToDownload              = 0;
         int filesUpToDate                      = 0;
+        int filesToSkip                        = 0;
 
         foreach ((string rawRelativePath, ManifestEntry entry) in manifest.Files)
         {
@@ -86,7 +87,9 @@ public static class ContentBroker
             // Decision Gate One (Remote Side): May We Download This File From The Bucket?
             if (MatchesAny(relativePath, sourceExclusions))
             {
-                progress?.Report(new SyncEvent(SyncEventKind.SkippedExcluded, relativePath, entry.Size));
+                filesToSkip++;
+
+                progress?.Report(new SyncEvent(SyncEventKind.Skipped, relativePath, entry.Size));
 
                 continue;
             }
@@ -94,7 +97,9 @@ public static class ContentBroker
             // Decision Gate Two (Local Side): Would Writing It Change A Local File That Must Not Be Changed?
             if (MatchesAny(relativePath, targetExclusions))
             {
-                progress?.Report(new SyncEvent(SyncEventKind.SkippedExcluded, relativePath, entry.Size));
+                filesToSkip++;
+
+                progress?.Report(new SyncEvent(SyncEventKind.Skipped, relativePath, entry.Size));
 
                 continue;
             }
@@ -147,6 +152,7 @@ public static class ContentBroker
         (
             FilesToDownload:      pendingDownloads.Count,
             FilesToDelete:        pendingDeletions.Count,
+            FilesToSkip:          filesToSkip,
             FilesUpToDate:        filesUpToDate,
             TotalBytesToDownload: totalBytesToDownload
         );
@@ -478,10 +484,10 @@ public sealed record SyncEvent(SyncEventKind Kind, string Detail, long Size, Syn
 ///     The work the sync has decided to do, calculated up-front and reported once via the <see cref="SyncEventKind.PlanReady"/> event.
 ///     The UI uses this to display "X to download, Y to delete, Z up to date" before downloads begin.
 /// </summary>
-public sealed record SyncPlan(int FilesToDownload, int FilesToDelete, int FilesUpToDate, long TotalBytesToDownload)
+public sealed record SyncPlan(int FilesToDownload, int FilesToDelete, int FilesToSkip, int FilesUpToDate, long TotalBytesToDownload)
 {
     public override string ToString()
-        => $"{FilesToDownload} To Download ({TotalBytesToDownload:N0} Bytes), {FilesToDelete} To Delete, {FilesUpToDate} Up To Date";
+        => $"{FilesToDownload} To Download ({TotalBytesToDownload:N0} Bytes), {FilesToDelete} To Delete, {FilesToSkip} To Skip, {FilesUpToDate} Up To Date";
 }
 
 /// <summary>
@@ -492,7 +498,7 @@ public enum SyncEventKind
     PlanReady,
     DownloadStarted,
     Downloaded,
-    SkippedExcluded,
+    Skipped,
     Deleted,
     DownloadFailed,
     DeletionFailed,

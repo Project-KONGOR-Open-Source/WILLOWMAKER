@@ -1,4 +1,4 @@
-namespace WILLOWMAKER.Core;
+namespace WILLOWMAKER.Core.Services;
 
 /// <summary>
 ///     Provides version checking against GitHub releases, asset downloading, and self-update capabilities.
@@ -38,7 +38,7 @@ public static partial class VersionChecker
         client.DefaultRequestHeaders.UserAgent.ParseAdd("WILLOWMAKER");
         client.Timeout = TimeSpan.FromSeconds(10);
 
-        string json = await client.GetStringAsync(LatestReleaseURL);
+        string json = await GetWithTransientRetry(client, LatestReleaseURL);
 
         using JsonDocument document = JsonDocument.Parse(json);
 
@@ -47,7 +47,7 @@ public static partial class VersionChecker
         string tagName = root.GetProperty("tag_name").GetString() ?? string.Empty;
         string releasePageURL = root.GetProperty("html_url").GetString() ?? string.Empty;
 
-        // Defensive Belt-And-Braces Check In Case A Future API Change Breaks The "/releases/latest" Contract
+        // Defensive Check In Case A Future API Change Breaks The "/releases/latest" Contract
         bool isPreRelease = root.TryGetProperty("prerelease", out JsonElement prereleaseElement) && prereleaseElement.GetBoolean();
 
         if (isPreRelease)
@@ -139,6 +139,38 @@ public static partial class VersionChecker
 
         Environment.Exit(0);
     }
+
+    /// <summary>
+    ///     Performs an HTTP GET against the specified URL, retrying transient failures with exponential backoff before surfacing the final exception.
+    ///     Connection-level errors, request timeouts, HTTP 429 (rate limited by GitHub's secondary limiter), and 5xx server errors are treated as transient; every other failure is rethrown immediately because retrying would not change the outcome.
+    /// </summary>
+    private static async Task<string> GetWithTransientRetry(HttpClient client, string url)
+    {
+        TimeSpan[] backoffs = [ TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2) ];
+
+        for (int attemptIndex = 0; ; attemptIndex++)
+        {
+            try
+            {
+                return await client.GetStringAsync(url);
+            }
+
+            catch (Exception exception) when (attemptIndex < backoffs.Length && IsTransientFailure(exception))
+            {
+                await Task.Delay(backoffs[attemptIndex]);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Classifies whether an exception thrown by an HTTP request is transient (worth retrying) or terminal (worth surfacing).
+    /// </summary>
+    private static bool IsTransientFailure(Exception exception) => exception switch
+    {
+        TaskCanceledException              => true,
+        HttpRequestException httpException => httpException.StatusCode is null or HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests or >= HttpStatusCode.InternalServerError,
+        _                                  => false
+    };
 
     /// <summary>
     ///     Parses the numeric <c>Major.Minor.Patch</c> portion of a version string, tolerating an optional leading <c>v</c> and any trailing Semantic Versioning suffix.
