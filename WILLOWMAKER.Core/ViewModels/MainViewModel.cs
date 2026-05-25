@@ -39,22 +39,22 @@ public partial class MainViewModel : ObservableObject
     public partial bool ReleasesRepositoryIsUnreachable { get; set; } = false;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SyncIsIdle))]
+    [NotifyPropertyChangedFor(nameof(SynchronisationIsIdle))]
     [NotifyPropertyChangedFor(nameof(CanLaunchGame))]
     [NotifyPropertyChangedFor(nameof(PlayButtonText))]
-    public partial bool SyncIsActive { get; set; } = false;
+    public partial bool SynchronisationIsActive { get; set; } = false;
 
     [ObservableProperty]
-    public partial bool SyncIsScheduled { get; set; } = false;
+    public partial bool SynchronisationIsScheduled { get; set; } = false;
 
     [ObservableProperty]
-    public partial double SyncProgressPercent { get; set; } = 0;
+    public partial double SynchronisationProgressPercent { get; set; } = 0;
 
     [ObservableProperty]
-    public partial string SyncStatusMessage { get; set; } = string.Empty;
+    public partial string SynchronisationStatusMessage { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial bool SyncIsFailed { get; set; } = false;
+    public partial bool SynchronisationIsFailed { get; set; } = false;
 
     [ObservableProperty]
     public partial string DownloadedFilesDisplay { get; set; } = string.Empty;
@@ -68,11 +68,11 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     public partial string UpToDateFilesDisplay { get; set; } = string.Empty;
 
-    public bool SyncIsIdle => SyncIsActive is false;
+    public bool SynchronisationIsIdle => SynchronisationIsActive is false;
 
-    public bool CanLaunchGame => MasterServerAddressIsValid && SyncIsIdle;
+    public bool CanLaunchGame => MasterServerAddressIsValid && SynchronisationIsIdle;
 
-    public string PlayButtonText => SyncIsActive ? "Updating ..." : "Play Heroes Of Newerth";
+    public string PlayButtonText => SynchronisationIsActive ? "Updating ..." : "Play Heroes Of Newerth";
 
     public MainViewModel()
     {
@@ -283,11 +283,11 @@ public partial class MainViewModel : ObservableObject
 
     private async Task<bool> SynchroniseContent()
     {
-        SyncIsActive = true;
-        SyncIsScheduled = false;
-        SyncIsFailed = false;
-        SyncProgressPercent = 0;
-        SyncStatusMessage = string.Empty;
+        SynchronisationIsActive = true;
+        SynchronisationIsScheduled = false;
+        SynchronisationIsFailed = false;
+        SynchronisationProgressPercent = 0;
+        SynchronisationStatusMessage = string.Empty;
         DownloadedFilesDisplay = string.Empty;
         RemovedFilesDisplay = string.Empty;
         SkippedFilesDisplay = string.Empty;
@@ -297,118 +297,118 @@ public partial class MainViewModel : ObservableObject
         {
             string variant = ContentBroker.ResolveDefaultClientVariant();
 
-            Log(LogCategory.Sync, $@"INIT: Fetching Manifest For Variant ""{variant}"" From CDN");
+            Log(LogCategory.Synchronise, $@"INIT: Fetching Manifest For Variant ""{variant}"" From CDN");
 
             Manifest manifest = await ContentBroker.FetchManifest(variant);
 
-            Log(LogCategory.Sync, $"INIT: Manifest Version {manifest.Version} Lists {manifest.Files.Count} File(s)");
+            Log(LogCategory.Synchronise, $"INIT: Manifest Version {manifest.Version} Lists {manifest.Files.Count} File(s)");
 
             int filesDownloaded  = 0;
             int filesDeleted     = 0;
             int filesSkipped     = 0;
             long bytesDownloaded = 0;
 
-            SyncPlan? plan       = null;
+            SynchronisationPlan? plan       = null;
 
             int upToDateTotal    = 0;
 
-            Progress<SyncEvent> progress = new (syncEvent =>
+            Progress<SynchronisationEvent> progress = new (synchronisationEvent =>
             {
-                switch (syncEvent.Kind)
+                switch (synchronisationEvent.Kind)
                 {
-                    case SyncEventKind.PlanReady:
+                    case SynchronisationEventKind.PlanReady:
                     {
-                        plan = syncEvent.Plan;
+                        plan = synchronisationEvent.Plan;
 
                         if (plan is not null)
                         {
-                            Log(LogCategory.Sync, $"PLAN: {plan}");
+                            Log(LogCategory.Synchronise, $"PLAN: {plan}");
 
-                            // The Up-To-Date Column Includes Local Deletions So All Four Columns Reach 100% Together When The Sync Completes
+                            // The Up-To-Date Column Includes Local Deletions So All Four Columns Reach 100% Together When The Synchronisation Completes
                             upToDateTotal = manifest.Files.Count + plan.FilesToDelete;
 
-                            DownloadedFilesDisplay = FormatSyncColumn("DOWNLOADED",                  0, plan.FilesToDownload);
-                            RemovedFilesDisplay    = FormatSyncColumn("REMOVED"   ,                  0, plan.FilesToDelete  );
-                            SkippedFilesDisplay    = FormatSyncColumn("SKIPPED"   ,                  0, plan.FilesToSkip    );
-                            UpToDateFilesDisplay   = FormatSyncColumn("UP-TO-DATE", plan.FilesUpToDate, upToDateTotal       );
+                            DownloadedFilesDisplay = FormatSynchronisationColumn("DOWNLOADED",                  0, plan.FilesToDownload);
+                            RemovedFilesDisplay    = FormatSynchronisationColumn("REMOVED"   ,                  0, plan.FilesToDelete  );
+                            SkippedFilesDisplay    = FormatSynchronisationColumn("SKIPPED"   ,                  0, plan.FilesToSkip    );
+                            UpToDateFilesDisplay   = FormatSynchronisationColumn("UP-TO-DATE", plan.FilesUpToDate, upToDateTotal       );
 
                             // Drives The Progress Bar's Visibility: A Plan With No Downloads And No Deletions Means There Is Nothing To Show Progress Of
-                            SyncIsScheduled = plan.FilesToDownload > 0 || plan.FilesToDelete > 0;
+                            SynchronisationIsScheduled = plan.FilesToDownload > 0 || plan.FilesToDelete > 0;
                         }
 
                         break;
                     }
 
-                    case SyncEventKind.Downloaded:
+                    case SynchronisationEventKind.Downloaded:
                     {
-                        Log(LogCategory.Sync, $"PULL: {syncEvent.Detail}");
+                        Log(LogCategory.Synchronise, $"PULL: {synchronisationEvent.Detail}");
 
                         filesDownloaded++;
 
-                        bytesDownloaded += syncEvent.Size;
+                        bytesDownloaded += synchronisationEvent.Size;
 
                         if (plan is not null)
                         {
-                            DownloadedFilesDisplay = FormatSyncColumn("DOWNLOADED", filesDownloaded, plan.FilesToDownload);
-                            UpToDateFilesDisplay   = FormatSyncColumn("UP-TO-DATE", plan.FilesUpToDate + filesDownloaded + filesDeleted + filesSkipped, upToDateTotal);
+                            DownloadedFilesDisplay = FormatSynchronisationColumn("DOWNLOADED", filesDownloaded, plan.FilesToDownload);
+                            UpToDateFilesDisplay   = FormatSynchronisationColumn("UP-TO-DATE", plan.FilesUpToDate + filesDownloaded + filesDeleted + filesSkipped, upToDateTotal);
 
                             if (plan.TotalBytesToDownload > 0)
-                                SyncProgressPercent = Math.Min(100, (double) bytesDownloaded / plan.TotalBytesToDownload * 100);
+                                SynchronisationProgressPercent = Math.Min(100, (double) bytesDownloaded / plan.TotalBytesToDownload * 100);
                         }
 
                         break;
                     }
 
-                    case SyncEventKind.Deleted:
+                    case SynchronisationEventKind.Deleted:
                     {
-                        Log(LogCategory.Sync, $"NUKE: {syncEvent.Detail}");
+                        Log(LogCategory.Synchronise, $"NUKE: {synchronisationEvent.Detail}");
 
                         filesDeleted++;
 
                         if (plan is not null)
                         {
-                            RemovedFilesDisplay  = FormatSyncColumn("REMOVED", filesDeleted, plan.FilesToDelete);
-                            UpToDateFilesDisplay = FormatSyncColumn("UP-TO-DATE", plan.FilesUpToDate + filesDownloaded + filesDeleted + filesSkipped, upToDateTotal);
+                            RemovedFilesDisplay  = FormatSynchronisationColumn("REMOVED", filesDeleted, plan.FilesToDelete);
+                            UpToDateFilesDisplay = FormatSynchronisationColumn("UP-TO-DATE", plan.FilesUpToDate + filesDownloaded + filesDeleted + filesSkipped, upToDateTotal);
                         }
 
                         break;
                     }
 
-                    case SyncEventKind.DownloadFailed:
-                    case SyncEventKind.DeletionFailed:
+                    case SynchronisationEventKind.DownloadFailed:
+                    case SynchronisationEventKind.DeletionFailed:
                     {
-                        Log(LogCategory.Sync, $"FAIL: {syncEvent.Detail}");
+                        Log(LogCategory.Synchronise, $"FAIL: {synchronisationEvent.Detail}");
 
                         break;
                     }
 
-                    case SyncEventKind.Skipped:
+                    case SynchronisationEventKind.Skipped:
                     {
-                        Log(LogCategory.Sync, $"SKIP: {syncEvent.Detail}");
+                        Log(LogCategory.Synchronise, $"SKIP: {synchronisationEvent.Detail}");
 
                         filesSkipped++;
 
                         if (plan is not null)
                         {
-                            SkippedFilesDisplay  = FormatSyncColumn("SKIPPED", filesSkipped, plan.FilesToSkip);
-                            UpToDateFilesDisplay = FormatSyncColumn("UP-TO-DATE", plan.FilesUpToDate + filesDownloaded + filesDeleted + filesSkipped, upToDateTotal);
+                            SkippedFilesDisplay  = FormatSynchronisationColumn("SKIPPED", filesSkipped, plan.FilesToSkip);
+                            UpToDateFilesDisplay = FormatSynchronisationColumn("UP-TO-DATE", plan.FilesUpToDate + filesDownloaded + filesDeleted + filesSkipped, upToDateTotal);
                         }
 
                         break;
                     }
 
-                    case SyncEventKind.Completed:
+                    case SynchronisationEventKind.Completed:
                     {
-                        SyncProgressPercent = 100;
+                        SynchronisationProgressPercent = 100;
 
-                        Log(LogCategory.Sync, $"DONE: {syncEvent.Detail}");
+                        Log(LogCategory.Synchronise, $"DONE: {synchronisationEvent.Detail}");
 
                         break;
                     }
                 }
             });
 
-            SyncSummary summary = await ContentBroker.Synchronise
+            SynchronisationSummary summary = await ContentBroker.Synchronise
             (
                 manifest:        manifest,
                 variant:         variant,
@@ -418,10 +418,10 @@ public partial class MainViewModel : ObservableObject
 
             if (summary.FilesFailed > 0)
             {
-                SyncIsFailed = true;
-                SyncStatusMessage = $"Synchronisation Failed: {summary.FilesFailed} File(s) Could Not Be Transferred";
+                SynchronisationIsFailed = true;
+                SynchronisationStatusMessage = $"Synchronisation Failed: {summary.FilesFailed} File(s) Could Not Be Transferred";
 
-                Log(LogCategory.Sync, $"FAIL: {summary.FilesFailed} File(s) Failed To Be Transferred :: Launch Aborted");
+                Log(LogCategory.Synchronise, $"FAIL: {summary.FilesFailed} File(s) Failed To Be Transferred :: Launch Aborted");
 
                 return false;
             }
@@ -435,27 +435,27 @@ public partial class MainViewModel : ObservableObject
                 ? $"{(int) exception.StatusCode} ({exception.StatusCode})"
                 : "Unknown Status Code";
 
-            Log(LogCategory.Sync, $"FAIL: CDN Unreachable :: HTTP {statusCode}");
+            Log(LogCategory.Synchronise, $"FAIL: CDN Unreachable :: HTTP {statusCode}");
 
-            SyncIsFailed = true;
-            SyncStatusMessage = "CDN Unreachable; Synchronisation Aborted";
+            SynchronisationIsFailed = true;
+            SynchronisationStatusMessage = "CDN Unreachable; Synchronisation Aborted";
 
             return false;
         }
 
         catch (Exception exception)
         {
-            Log(LogCategory.Sync, $"FAIL: {exception.GetType().Name} :: {exception.Message}");
+            Log(LogCategory.Synchronise, $"FAIL: {exception.GetType().Name} :: {exception.Message}");
 
-            SyncIsFailed = true;
-            SyncStatusMessage = $"Synchronisation Error: {exception.Message}";
+            SynchronisationIsFailed = true;
+            SynchronisationStatusMessage = $"Synchronisation Error: {exception.Message}";
 
             return false;
         }
 
         finally
         {
-            SyncIsActive = false;
+            SynchronisationIsActive = false;
         }
     }
 
@@ -463,7 +463,7 @@ public partial class MainViewModel : ObservableObject
     ///     Formats a single status-row column as <c>LABEL XXX/YYY (ZZZ%)</c> with three-digit zero-padded counters for steady-width display.
     ///     A zero <paramref name="total"/> is treated as 100% complete (nothing to do is fully done).
     /// </summary>
-    private static string FormatSyncColumn(string label, int current, int total)
+    private static string FormatSynchronisationColumn(string label, int current, int total)
     {
         int percent = total > 0 ? (int) ((double) current / total * 100) : 100;
 
