@@ -2,7 +2,7 @@
 
 public partial class MainViewModel : ObservableObject
 {
-    private Logger Logger { get; } = new (Path.Combine(Environment.CurrentDirectory, "WILLOWMAKER.log"));
+    private Logger Logger { get; } = new (Path.Combine(Environment.CurrentDirectory, DeploymentManifest.LogFileName));
 
     [ObservableProperty]
     public partial string? GitHubLink { get; set; } = "https://github.com/Project-KONGOR-Open-Source";
@@ -84,7 +84,15 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     internal void OnMainWindowOpened()
     {
-        _ = CheckForUpdates();
+        _ = OnMainWindowOpenedAsync();
+    }
+
+    private async Task OnMainWindowOpenedAsync()
+    {
+        if (await CheckLocationGuard() is false)
+            return;
+
+        await CheckForUpdates();
     }
 
     [RelayCommand]
@@ -130,9 +138,52 @@ public partial class MainViewModel : ObservableObject
         Logger.Log(category, message);
     }
 
+    /// <summary>
+    ///     Verifies that the current working directory is acceptable before allowing the launcher to proceed.
+    ///     Returns <see langword="true"/> if the location is safe, otherwise displays a terminal modal dialog (which exits the process on any dismissal) and returns <see langword="false"/>.
+    /// </summary>
+    private async Task<bool> CheckLocationGuard()
+    {
+        LocationGuard.Result result = LocationGuard.Check(Environment.CurrentDirectory);
+
+        Log(LogCategory.Guard, result.Reason);
+
+        if (result.IsSafe)
+            return true;
+
+        // Avalonia Applications Can Run Under Different Lifetimes: Classic-Desktop, Single-View (Mobile And Browser), Or Controlled
+        // Owner-Parented Modal Dialogs Require The Classic-Desktop Lifetime And A Realised MainWindow To Use As The Modal's Owner
+        // In Practice, This Branch Is Unreachable Because OnMainWindowOpened Only Fires After MainWindow Has Been Assigned, But Exiting Is The Safest Fallback If The Dialog Cannot Be Shown
+        if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop || desktop.MainWindow is null)
+        {
+            Environment.Exit(0);
+
+            return false;
+        }
+
+        string message =
+            $"The directory from which {DeploymentManifest.ApplicationName} is currently running appears to be a dangerous location." + " " +
+            $"The distribution synchronisation process can delete files in this directory so, to ensure that no unrelated files are deleted, {DeploymentManifest.ApplicationName} will now exit." + " " +
+            $"Please run {DeploymentManifest.ApplicationName} from an empty directory or a Heroes Of Newerth directory.";
+
+        LocationGuardDialog dialog = new (message);
+
+        await dialog.ShowDialog(desktop.MainWindow);
+
+        return false;
+    }
+
     private async Task CheckForUpdates()
     {
         Log(LogCategory.Version, $"Current Version: {VersionChecker.CurrentVersionDisplay}");
+
+        if (DeploymentManifest.IsDevelopmentBuild)
+        {
+            Log(LogCategory.Version, "Update Check Skipped (Development Build)");
+
+            return;
+        }
+
         Log(LogCategory.Version, "Checking For Updates ...");
 
         VersionCheckResult result;
@@ -424,6 +475,13 @@ public partial class MainViewModel : ObservableObject
     {
         Log(LogCategory.Executable, "Game Launch Initiated");
 
+        if (DeploymentManifest.IsDevelopmentBuild)
+        {
+            Log(LogCategory.Executable, "Game Launch Skipped (Development Build)");
+
+            return;
+        }
+
         if (await SynchroniseContent() is false)
             return;
 
@@ -468,6 +526,13 @@ public partial class MainViewModel : ObservableObject
     {
         Log(LogCategory.Executable, "Map Editor Launch Initiated");
 
+        if (DeploymentManifest.IsDevelopmentBuild)
+        {
+            Log(LogCategory.Executable, "Map Editor Launch Skipped (Development Build)");
+
+            return;
+        }
+
         if (await SynchroniseContent() is false)
             return;
 
@@ -501,11 +566,7 @@ public partial class MainViewModel : ObservableObject
 
     private bool TryResolveGameExecutable([NotNullWhen(true)] out FileInfo? executable)
     {
-        FileInfo[] executableMatchesWindows = new DirectoryInfo(Environment.CurrentDirectory).GetFiles("hon_x64.exe", SearchOption.TopDirectoryOnly);
-        FileInfo[] executableMatchesLinux   = new DirectoryInfo(Environment.CurrentDirectory).GetFiles("hon-x86_64", SearchOption.TopDirectoryOnly);
-        FileInfo[] executableMatchesMacOS   = new DirectoryInfo(Environment.CurrentDirectory).GetFiles("HoN64",      SearchOption.TopDirectoryOnly);
-
-        FileInfo[] executableMatches = Array.Empty<FileInfo>().Union(executableMatchesWindows).Union(executableMatchesLinux).Union(executableMatchesMacOS).ToArray();
+        FileInfo[] executableMatches = new DirectoryInfo(Environment.CurrentDirectory).GetFiles(DeploymentManifest.HeroesOfNewerthExecutable, SearchOption.TopDirectoryOnly);
 
         if (executableMatches.Length is 0)
         {
