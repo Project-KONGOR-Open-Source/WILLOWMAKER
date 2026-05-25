@@ -47,14 +47,14 @@ public static class ContentBroker
     ///     The deletion pass asks the local-side question alone, against <see cref="Manifest.ExcludeFromTarget"/>.
     ///     Downloads run in parallel and are written atomically via a <c>.partial</c> temporary file that is renamed on success.
     /// </summary>
-    public static async Task<SyncSummary> Synchronise
+    public static async Task<SynchronisationSummary> Synchronise
     (
         Manifest manifest,
         string variant,
         string targetDirectory,
         string baseURL = DefaultBaseURL,
         int parallelTransfers = DefaultParallelTransfers,
-        IProgress<SyncEvent>? progress = null,
+        IProgress<SynchronisationEvent>? progress = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -89,7 +89,7 @@ public static class ContentBroker
             {
                 filesToSkip++;
 
-                progress?.Report(new SyncEvent(SyncEventKind.Skipped, relativePath, entry.Size));
+                progress?.Report(new SynchronisationEvent(SynchronisationEventKind.Skipped, relativePath, entry.Size));
 
                 continue;
             }
@@ -99,7 +99,7 @@ public static class ContentBroker
             {
                 filesToSkip++;
 
-                progress?.Report(new SyncEvent(SyncEventKind.Skipped, relativePath, entry.Size));
+                progress?.Report(new SynchronisationEvent(SynchronisationEventKind.Skipped, relativePath, entry.Size));
 
                 continue;
             }
@@ -148,7 +148,7 @@ public static class ContentBroker
             }
         }
 
-        SyncPlan plan = new
+        SynchronisationPlan plan = new
         (
             FilesToDownload:      pendingDownloads.Count,
             FilesToDelete:        pendingDeletions.Count,
@@ -157,7 +157,7 @@ public static class ContentBroker
             TotalBytesToDownload: totalBytesToDownload
         );
 
-        progress?.Report(new SyncEvent(SyncEventKind.PlanReady, plan.ToString(), totalBytesToDownload, plan));
+        progress?.Report(new SynchronisationEvent(SynchronisationEventKind.PlanReady, plan.ToString(), totalBytesToDownload, plan));
 
         using HttpClient client = CreateClient(timeout: Timeout.InfiniteTimeSpan);
         using SemaphoreSlim semaphore = new (parallelTransfers, parallelTransfers);
@@ -166,7 +166,7 @@ public static class ContentBroker
         int filesFailed                    = 0;
         long bytesDownloaded               = 0;
 
-        ConcurrentBag<SyncFailure> failures = new ();
+        ConcurrentBag<SynchronisationFailure> failures = new ();
 
         IEnumerable<Task> downloadTasks = pendingDownloads.Select(async download =>
         {
@@ -174,14 +174,14 @@ public static class ContentBroker
 
             try
             {
-                progress?.Report(new SyncEvent(SyncEventKind.DownloadStarted, download.RelativePath, download.Entry.Size));
+                progress?.Report(new SynchronisationEvent(SynchronisationEventKind.DownloadStarted, download.RelativePath, download.Entry.Size));
 
                 await DownloadOne(client, baseURL, variant, download, manifest.HashAlgorithm, cancellationToken);
 
                 Interlocked.Add(ref bytesDownloaded, download.Entry.Size);
                 Interlocked.Increment(ref filesDownloaded);
 
-                progress?.Report(new SyncEvent(SyncEventKind.Downloaded, download.RelativePath, download.Entry.Size));
+                progress?.Report(new SynchronisationEvent(SynchronisationEventKind.Downloaded, download.RelativePath, download.Entry.Size));
             }
 
             catch (OperationCanceledException)
@@ -192,9 +192,9 @@ public static class ContentBroker
             catch (Exception exception)
             {
                 Interlocked.Increment(ref filesFailed);
-                failures.Add(new SyncFailure(download.RelativePath, exception.Message));
+                failures.Add(new SynchronisationFailure(download.RelativePath, exception.Message));
 
-                progress?.Report(new SyncEvent(SyncEventKind.DownloadFailed, $@"{download.RelativePath}: {exception.Message}", download.Entry.Size));
+                progress?.Report(new SynchronisationEvent(SynchronisationEventKind.DownloadFailed, $@"{download.RelativePath}: {exception.Message}", download.Entry.Size));
             }
 
             finally
@@ -217,22 +217,22 @@ public static class ContentBroker
 
                 filesDeleted++;
 
-                progress?.Report(new SyncEvent(SyncEventKind.Deleted, NormaliseRelativePath(Path.GetRelativePath(targetDirectory, fullPath)), 0));
+                progress?.Report(new SynchronisationEvent(SynchronisationEventKind.Deleted, NormaliseRelativePath(Path.GetRelativePath(targetDirectory, fullPath)), 0));
             }
 
             catch (Exception exception)
             {
                 filesFailed++;
 
-                failures.Add(new SyncFailure(fullPath, exception.Message));
+                failures.Add(new SynchronisationFailure(fullPath, exception.Message));
 
-                progress?.Report(new SyncEvent(SyncEventKind.DeletionFailed, $@"{fullPath}: {exception.Message}", 0));
+                progress?.Report(new SynchronisationEvent(SynchronisationEventKind.DeletionFailed, $@"{fullPath}: {exception.Message}", 0));
             }
         }
 
         RemoveEmptyDirectories(targetDirectory);
 
-        SyncSummary summary = new
+        SynchronisationSummary summary = new
         (
             FilesDownloaded: filesDownloaded,
             FilesDeleted:    filesDeleted,
@@ -242,7 +242,7 @@ public static class ContentBroker
             Failures:        [.. failures]
         );
 
-        progress?.Report(new SyncEvent(SyncEventKind.Completed, summary.ToString(), bytesDownloaded));
+        progress?.Report(new SynchronisationEvent(SynchronisationEventKind.Completed, summary.ToString(), bytesDownloaded));
 
         return summary;
     }
@@ -396,7 +396,7 @@ public static class ContentBroker
 
             catch
             {
-                // Best-Effort Only: A Failure To Remove An Empty Directory Is Not A Sync Failure
+                // Best-Effort Only: A Failure To Remove An Empty Directory Is Not A Synchronisation Failure
             }
         }
     }
@@ -431,7 +431,7 @@ public static class ContentBroker
 
 /// <summary>
 ///     The parsed content manifest published by the GEMINI distribution pipeline.
-///     Lists every file the bucket publishes along with the size and hash needed to verify each one, plus the remote-side and local-side exclusion lists that govern what the sync may transfer and overwrite.
+///     Lists every file the bucket publishes along with the size and hash needed to verify each one, plus the remote-side and local-side exclusion lists that govern what the synchronisation may transfer and overwrite.
 /// </summary>
 public sealed record Manifest
 {
@@ -475,16 +475,16 @@ public sealed record ManifestEntry
 }
 
 /// <summary>
-///     A single observable step in the sync pipeline. <see cref="ContentBroker"/> reports one of these per file transition so the UI can render progress.
-///     <see cref="Plan"/> is populated only on the initial <see cref="SyncEventKind.PlanReady"/> event.
+///     A single observable step in the synchronisation pipeline. <see cref="ContentBroker"/> reports one of these per file transition so the UI can render progress.
+///     <see cref="Plan"/> is populated only on the initial <see cref="SynchronisationEventKind.PlanReady"/> event.
 /// </summary>
-public sealed record SyncEvent(SyncEventKind Kind, string Detail, long Size, SyncPlan? Plan = null);
+public sealed record SynchronisationEvent(SynchronisationEventKind Kind, string Detail, long Size, SynchronisationPlan? Plan = null);
 
 /// <summary>
-///     The work the sync has decided to do, calculated up-front and reported once via the <see cref="SyncEventKind.PlanReady"/> event.
+///     The work the synchronisation has decided to do, calculated up-front and reported once via the <see cref="SynchronisationEventKind.PlanReady"/> event.
 ///     The UI uses this to display "X to download, Y to delete, Z up to date" before downloads begin.
 /// </summary>
-public sealed record SyncPlan(int FilesToDownload, int FilesToDelete, int FilesToSkip, int FilesUpToDate, long TotalBytesToDownload)
+public sealed record SynchronisationPlan(int FilesToDownload, int FilesToDelete, int FilesToSkip, int FilesUpToDate, long TotalBytesToDownload)
 {
     public override string ToString()
         => $"{FilesToDownload} To Download ({TotalBytesToDownload:N0} Bytes), {FilesToDelete} To Delete, {FilesToSkip} To Skip, {FilesUpToDate} Up To Date";
@@ -493,7 +493,7 @@ public sealed record SyncPlan(int FilesToDownload, int FilesToDelete, int FilesT
 /// <summary>
 ///     Classifies the entries reported by <see cref="ContentBroker"/> via the <see cref="IProgress{T}"/> callback.
 /// </summary>
-public enum SyncEventKind
+public enum SynchronisationEventKind
 {
     PlanReady,
     DownloadStarted,
@@ -506,14 +506,14 @@ public enum SyncEventKind
 }
 
 /// <summary>
-///     A single non-fatal failure that occurred during sync. Multiple failures are collected and returned via <see cref="SyncSummary.Failures"/>.
+///     A single non-fatal failure that occurred during synchronisation. Multiple failures are collected and returned via <see cref="SynchronisationSummary.Failures"/>.
 /// </summary>
-public sealed record SyncFailure(string Path, string Reason);
+public sealed record SynchronisationFailure(string Path, string Reason);
 
 /// <summary>
-///     The final outcome of a sync run.
+///     The final outcome of a synchronisation run.
 /// </summary>
-public sealed record SyncSummary(int FilesDownloaded, int FilesDeleted, int FilesUpToDate, int FilesFailed, long BytesDownloaded, IReadOnlyList<SyncFailure> Failures)
+public sealed record SynchronisationSummary(int FilesDownloaded, int FilesDeleted, int FilesUpToDate, int FilesFailed, long BytesDownloaded, IReadOnlyList<SynchronisationFailure> Failures)
 {
     public override string ToString()
         => $"{FilesDownloaded} Downloaded, {FilesDeleted} Deleted, {FilesUpToDate} Up To Date, {FilesFailed} Failed, {BytesDownloaded:N0} Bytes Transferred";

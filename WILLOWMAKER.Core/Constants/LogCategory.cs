@@ -5,11 +5,12 @@ namespace WILLOWMAKER.Core.Constants;
 /// </summary>
 public static class LogCategory
 {
-    public const string Command    = "COMMAND___";
-    public const string Executable = "EXECUTABLE";
-    public const string Initialise = "INITIALISE";
-    public const string Parameters = "PARAMETERS";
-    public const string Sync       = "SYNC______";
-    public const string Update     = "UPDATE____";
-    public const string Version    = "VERSION___";
+    public const string Command     = "COMMAND____";
+    public const string Executable  = "EXECUTABLE_";
+    public const string Guard       = "GUARD______";
+    public const string Initialise  = "INITIALISE_";
+    public const string Parameters  = "PARAMETERS_";
+    public const string Synchronise = "SYNCHRONISE";
+    public const string Update      = "UPDATE_____";
+    public const string Version     = "VERSION____";
 }

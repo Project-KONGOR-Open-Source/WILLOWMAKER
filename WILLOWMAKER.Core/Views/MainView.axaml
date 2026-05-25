@@ -95,16 +95,16 @@
                         <StackPanel Grid.Column="1" Width="400" Margin="0, 280, 0, 0">
                             <Label Width="400" Margin="0, 0, 0, 5" HorizontalAlignment="Center" HorizontalContentAlignment="Center">Master Server Address</Label>
 
-                            <ComboBox SelectedValue="{Binding MasterServerAddress}" Name="MasterServerAddressDropdown" SelectedIndex="0" Width="400" HorizontalAlignment="Center" HorizontalContentAlignment="Center" IsEnabled="{Binding SyncIsIdle}">
+                            <ComboBox SelectedValue="{Binding MasterServerAddress}" Name="MasterServerAddressDropdown" SelectedIndex="0" Width="400" HorizontalAlignment="Center" HorizontalContentAlignment="Center" IsEnabled="{Binding SynchronisationIsIdle}">
                                 <ComboBoxItem HorizontalContentAlignment="Stretch">api.kongor.net</ComboBoxItem>
                                 <ComboBoxItem HorizontalContentAlignment="Stretch">localhost:5555</ComboBoxItem>
                                 <ComboBoxItem HorizontalContentAlignment="Stretch">Custom Address ...</ComboBoxItem>
                             </ComboBox>
 
-                            <TextBox Text="{Binding CustomMasterServerAddress}" Width="400" Margin="0, 10, 0, 0" HorizontalAlignment="Center" TextAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" IsEnabled="{Binding SyncIsIdle}" LostFocus="CustomMasterServerAddress_LostFocus" KeyDown="CustomMasterServerAddress_KeyDown" />
+                            <TextBox Text="{Binding CustomMasterServerAddress}" Width="400" Margin="0, 10, 0, 0" HorizontalAlignment="Center" TextAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" IsEnabled="{Binding SynchronisationIsIdle}" LostFocus="CustomMasterServerAddress_LostFocus" KeyDown="CustomMasterServerAddress_KeyDown" />
 
                             <StackPanel Orientation="Horizontal" Margin="0, 10, 0, 0" HorizontalAlignment="Center">
-                                <Button Command="{Binding LaunchEditorCommand}" Width="175" Height="60" Margin="0, 0, 5, 0" Cursor="Hand" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding SyncIsIdle}" Background="DarkGreen">
+                                <Button Command="{Binding LaunchEditorCommand}" Width="175" Height="60" Margin="0, 0, 5, 0" Cursor="Hand" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding SynchronisationIsIdle}" Background="DarkGreen">
                                     <Button.Styles>
                                         <Style Selector="Button TextBlock">
                                             <Setter Property="RenderTransform" Value="scale(1)" />
@@ -163,18 +163,18 @@
                     </Grid>
 
                     <StackPanel Grid.Row="1" Height="40">
-                        <!-- Sync Success State: Four Columns With Sync File Data -->
-                        <Grid Height="20" Margin="10, 0, 10, 0" ColumnDefinitions="*, *, *, *" IsVisible="{Binding !SyncIsFailed}">
+                        <!-- Synchronisation Success State: Four Columns With Synchronisation File Data -->
+                        <Grid Height="20" Margin="10, 0, 10, 0" ColumnDefinitions="*, *, *, *" IsVisible="{Binding !SynchronisationIsFailed}">
                             <TextBlock Grid.Column="0" Text="{Binding DownloadedFilesDisplay}" HorizontalAlignment="Left"   VerticalAlignment="Center" FontSize="10" Foreground="#CCCCCC" />
                             <TextBlock Grid.Column="1" Text="{Binding RemovedFilesDisplay}"    HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" Foreground="#CCCCCC" />
                             <TextBlock Grid.Column="2" Text="{Binding SkippedFilesDisplay}"    HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" Foreground="#CCCCCC" />
                             <TextBlock Grid.Column="3" Text="{Binding UpToDateFilesDisplay}"   HorizontalAlignment="Right"  VerticalAlignment="Center" FontSize="10" Foreground="#CCCCCC" />
                         </Grid>
 
-                        <!-- Sync Failure State: A Single Centred Failure Message -->
-                        <TextBlock Height="20" Margin="10, 0, 10, 0" Text="{Binding SyncStatusMessage}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" Foreground="#CCCCCC" IsVisible="{Binding SyncIsFailed}" />
+                        <!-- Synchronisation Failure State: A Single Centred Failure Message -->
+                        <TextBlock Height="20" Margin="10, 0, 10, 0" Text="{Binding SynchronisationStatusMessage}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" Foreground="#CCCCCC" IsVisible="{Binding SynchronisationIsFailed}" />
 
-                        <ProgressBar Width="1080" Height="5" Margin="0, 0, 0, 0" Minimum="0" Maximum="100" Value="{Binding SyncProgressPercent}" IsVisible="{Binding SyncIsScheduled}" />
+                        <ProgressBar Width="1080" Height="5" Margin="0, 0, 0, 0" Minimum="0" Maximum="100" Value="{Binding SynchronisationProgressPercent}" IsVisible="{Binding SynchronisationIsScheduled}" />
                     </StackPanel>
                 </Grid>
             </StackPanel>

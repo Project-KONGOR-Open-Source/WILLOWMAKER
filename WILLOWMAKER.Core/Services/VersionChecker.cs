@@ -35,7 +35,7 @@ public static partial class VersionChecker
     {
         using HttpClient client = new ();
 
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("WILLOWMAKER");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd(DeploymentManifest.ApplicationName);
         client.Timeout = TimeSpan.FromSeconds(10);
 
         string json = await GetWithTransientRetry(client, LatestReleaseURL);
@@ -88,11 +88,11 @@ public static partial class VersionChecker
     /// </summary>
     public static async Task<string> DownloadUpdate(string downloadURL)
     {
-        string archivePath = Path.Combine(Path.GetTempPath(), "WILLOWMAKER-update.zip");
+        string archivePath = Path.Combine(Path.GetTempPath(), DeploymentManifest.UpdateArchiveFileName);
 
         using HttpClient client = new ();
 
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("WILLOWMAKER");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd(DeploymentManifest.ApplicationName);
 
         await using FileStream fileStream = File.Create(archivePath);
         await using Stream downloadStream = await client.GetStreamAsync(downloadURL);
@@ -108,7 +108,7 @@ public static partial class VersionChecker
     public static void ApplyUpdateAndRestart(string archivePath)
     {
         string targetDirectory = AppContext.BaseDirectory;
-        string tempDirectory = Path.Combine(Path.GetTempPath(), "WILLOWMAKER-update-extracted");
+        string tempDirectory = Path.Combine(Path.GetTempPath(), DeploymentManifest.UpdateExtractDirectoryName);
 
         if (Directory.Exists(tempDirectory))
             Directory.Delete(tempDirectory, recursive: true);
@@ -120,7 +120,7 @@ public static partial class VersionChecker
         if (topLevelEntries.Length is 1 && Directory.Exists(topLevelEntries[0]))
             tempDirectory = topLevelEntries[0];
 
-        string executablePath = Environment.ProcessPath ?? Path.Combine(targetDirectory, "WILLOWMAKER.exe");
+        string executablePath = Environment.ProcessPath ?? Path.Combine(targetDirectory, DeploymentManifest.ExecutableName);
 
         // Enumerate The Files The New Release Ships So The Update Script Can Force-Delete Each Pre-Existing Counterpart (Including Read-Only Ones) Before Copying The New Files Into Place
         string[] relativePathsToReplace = Directory
