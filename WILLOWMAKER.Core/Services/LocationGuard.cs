@@ -23,12 +23,12 @@ public static class LocationGuard
     public static Result Check(string directory)
     {
         if (DeploymentManifest.IsDevelopmentBuild)
-            return new Result(true, "Skipped (Development Build)");
+            return new Result(false, "Development Environment Detected");
 
         string gameExecutableName = DeploymentManifest.HeroesOfNewerthExecutable;
 
         if (File.Exists(Path.Combine(directory, gameExecutableName)))
-            return new Result(true, $@"Heroes Of Newerth Directory (""{gameExecutableName}"" Present)");
+            return new Result(true, $@"Heroes Of Newerth Directory (""{gameExecutableName}"" Is Present)");
 
         if (ContainsOnlyDistributionFiles(directory))
             return new Result(true, $"Baseline {DeploymentManifest.ApplicationName} Directory");
