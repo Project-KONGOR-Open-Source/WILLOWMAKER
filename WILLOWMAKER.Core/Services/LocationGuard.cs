@@ -15,7 +15,7 @@ public static class LocationGuard
 
     /// <summary>
     ///     Evaluates the supplied directory against the safety criteria, in order:
-    ///     1) Development build (JIT runtime) → DEVELOPMENT ENVIRONMENT. The application is allowed to run, but operations that modify the directory are skipped, so <c>dotnet run</c> never touches the build output.
+    ///     1) Development build → DEVELOPMENT ENVIRONMENT. The application is allowed to run, but operations that modify the directory are skipped.
     ///     2) Heroes Of Newerth executable present at the top level → SAFE. The directory is an existing game install.
     ///     3) The directory contains only the WILLOWMAKER distribution files and nothing else → SAFE. The directory is a fresh deployment ready for first-time synchronisation.
     ///     4) Otherwise → UNSAFE. The directory contains foreign content that the synchronisation process would put at risk.

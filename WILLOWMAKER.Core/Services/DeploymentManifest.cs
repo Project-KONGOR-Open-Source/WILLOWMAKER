@@ -41,8 +41,12 @@ public static class DeploymentManifest
         : throw new PlatformNotSupportedException($@"Unsupported Operating System: {Environment.OSVersion.Platform}");
 
     /// <summary>
-    ///     Indicates whether the current process is a development build (running under JIT, e.g. <c>dotnet run</c>) rather than a Native AOT publish.
-    ///     Operations that depend on the deployed layout (the location guard, the auto-updater, content synchronisation, game launch) should short-circuit when this is <see langword="true"/>.
+    ///     Indicates whether the current build is a development build (any configuration other than Release) rather than a release build (the Release configuration, which is how releases are published).
     /// </summary>
-    public static bool IsDevelopmentBuild => RuntimeFeature.IsDynamicCodeSupported;
+    public static bool IsDevelopmentBuild =>
+    # if DEVELOPMENT
+    true;
+    # else
+    false;
+    # endif
 }

@@ -27,6 +27,22 @@
         <Version>2.1.0</Version>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(Configuration)' != 'Release'">
+        <!--
+            Define the "DEVELOPMENT" symbol for every configuration except "Release", so the code can distinguish a development build from a release build.
+
+            usage:
+
+                # if DEVELOPMENT
+                // do something
+                # else
+                // do something else
+                # endif
+        -->
+
+        <DefineConstants>$(DefineConstants);DEVELOPMENT</DefineConstants>
+    </PropertyGroup>
+
     <ItemGroup>
         <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt"/>
     </ItemGroup>
