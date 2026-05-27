@@ -40,9 +40,15 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SynchronisationIsIdle))]
+    [NotifyPropertyChangedFor(nameof(CanOpenMapEditor))]
     [NotifyPropertyChangedFor(nameof(CanLaunchGame))]
     [NotifyPropertyChangedFor(nameof(PlayButtonText))]
     public partial bool SynchronisationIsActive { get; set; } = false;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanOpenMapEditor))]
+    [NotifyPropertyChangedFor(nameof(CanLaunchGame))]
+    public partial bool LaunchIsInProgress { get; set; } = false;
 
     [ObservableProperty]
     public partial bool SynchronisationIsScheduled { get; set; } = false;
@@ -70,7 +76,9 @@ public partial class MainViewModel : ObservableObject
 
     public bool SynchronisationIsIdle => SynchronisationIsActive is false;
 
-    public bool CanLaunchGame => MasterServerAddressIsValid && SynchronisationIsIdle;
+    public bool CanOpenMapEditor => SynchronisationIsIdle && LaunchIsInProgress is false;
+
+    public bool CanLaunchGame => MasterServerAddressIsValid && SynchronisationIsIdle && LaunchIsInProgress is false;
 
     public string PlayButtonText => SynchronisationIsActive ? "Updating ..." : "Play Heroes Of Newerth";
 
@@ -473,95 +481,117 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task Launch()
     {
-        Log(LogCategory.Executable, "Game Launch Initiated");
+        // The Busy Flag Is Held For The Entire Launch Sequence, Not Just Synchronisation, So Neither Button Re-Enables While The Game Client Is Being Started
+        LaunchIsInProgress = true;
 
-        if (DeploymentManifest.IsDevelopmentBuild)
+        try
         {
-            Log(LogCategory.Executable, "Game Launch Skipped (Development Build)");
+            Log(LogCategory.Executable, "Game Launch Initiated");
 
-            return;
+            if (DeploymentManifest.IsDevelopmentBuild)
+            {
+                Log(LogCategory.Executable, "Game Launch Skipped (Development Build)");
+
+                return;
+            }
+
+            if (await SynchroniseContent() is false)
+                return;
+
+            if (TryResolveGameExecutable(out FileInfo? executable) is false)
+                return;
+
+            string address = BuildMasterServerAddress();
+
+            WriteCustomConfiguration();
+
+            string[] resources =
+            [
+                // relative to executable directory (e.g. "D:\Games\HoN Game Client v4.10.1")
+                "base", // base resources; always needs to be loaded first; loaded automatically, but included for clarity
+                "game", // game resources; always needs to be loaded immediately after base resources
+                "KONGOR/configuration", // custom configuration files to override default configuration; configuration file load order: 1) startup.cfg, 2) login.cfg, 3) init.cfg, 4) autoexec.cfg
+                "KONGOR/updates", // custom resource files to override default game resources; reserved for game updates
+                "KONGOR/extensions", // custom resource files to override default game resources; reserved for mods and extensions
+
+                // relative to configuration directory (e.g. "C:\Users\KONGOR\Documents\Heroes Of Newerth x64")
+                "configuration" // the last path in the mod stack defines where user configuration files are saved to and loaded from; making this value dynamic is equivalent to having configuration profiles
+            ];
+
+            Log(LogCategory.Parameters, $"-mod {string.Join(";", resources)}");
+
+            string[] arguments =
+            [
+                // services
+                $"-masterserver {address}",
+                $"-webserver {address}",
+                $"-messageserver {address}",
+
+                // resources
+                $"-mod {string.Join(";", resources)}"
+            ];
+
+            await LaunchProcessAndExit(executable, arguments);
         }
 
-        if (await SynchroniseContent() is false)
-            return;
-
-        if (TryResolveGameExecutable(out FileInfo? executable) is false)
-            return;
-
-        string address = BuildMasterServerAddress();
-
-        WriteCustomConfiguration();
-
-        string[] resources =
-        [
-            // relative to executable directory (e.g. "D:\Games\HoN Game Client v4.10.1")
-            "base", // base resources; always needs to be loaded first; loaded automatically, but included for clarity
-            "game", // game resources; always needs to be loaded immediately after base resources
-            "KONGOR/configuration", // custom configuration files to override default configuration; configuration file load order: 1) startup.cfg, 2) login.cfg, 3) init.cfg, 4) autoexec.cfg
-            "KONGOR/updates", // custom resource files to override default game resources; reserved for game updates
-            "KONGOR/extensions", // custom resource files to override default game resources; reserved for mods and extensions
-
-            // relative to configuration directory (e.g. "C:\Users\KONGOR\Documents\Heroes Of Newerth x64")
-            "configuration" // the last path in the mod stack defines where user configuration files are saved to and loaded from; making this value dynamic is equivalent to having configuration profiles
-        ];
-
-        Log(LogCategory.Parameters, $"-mod {string.Join(";", resources)}");
-
-        string[] arguments =
-        [
-            // services
-            $"-masterserver {address}",
-            $"-webserver {address}",
-            $"-messageserver {address}",
-
-            // resources
-            $"-mod {string.Join(";", resources)}"
-        ];
-
-        await LaunchProcessAndExit(executable, arguments);
+        finally
+        {
+            LaunchIsInProgress = false;
+        }
     }
 
     [RelayCommand]
     private async Task LaunchEditor()
     {
-        Log(LogCategory.Executable, "Map Editor Launch Initiated");
+        // The Busy Flag Is Held For The Entire Launch Sequence, Not Just Synchronisation, So Neither Button Re-Enables While The Map Editor Is Being Started
+        LaunchIsInProgress = true;
 
-        if (DeploymentManifest.IsDevelopmentBuild)
+        try
         {
-            Log(LogCategory.Executable, "Map Editor Launch Skipped (Development Build)");
+            Log(LogCategory.Executable, "Map Editor Launch Initiated");
 
-            return;
+            if (DeploymentManifest.IsDevelopmentBuild)
+            {
+                Log(LogCategory.Executable, "Map Editor Launch Skipped (Development Build)");
+
+                return;
+            }
+
+            if (await SynchroniseContent() is false)
+                return;
+
+            if (TryResolveGameExecutable(out FileInfo? executable) is false)
+                return;
+
+            string[] resources =
+            [
+                // relative to executable directory (e.g. "D:\Games\HoN Game Client v4.10.1")
+                "base", // base resources; always needs to be loaded first; loaded automatically, but included for clarity
+                "game", // game resources; always needs to be loaded immediately after base resources
+                "editor", // editor resources; loaded immediately after game resources to overlay editor tooling onto the game stack
+                "KONGOR/configuration", // custom configuration files to override default configuration; configuration file load order: 1) startup.cfg, 2) login.cfg, 3) init.cfg, 4) autoexec.cfg
+                "KONGOR/updates", // custom resource files to override default game resources; reserved for game updates
+                "KONGOR/extensions", // custom resource files to override default game resources; reserved for mods and extensions
+
+                // relative to configuration directory (e.g. "C:\Users\KONGOR\Documents\Heroes Of Newerth x64")
+                "configuration" // the last path in the mod stack defines where user configuration files are saved to and loaded from; making this value dynamic is equivalent to having configuration profiles
+            ];
+
+            Log(LogCategory.Parameters, $"-mod {string.Join(";", resources)}");
+
+            string[] arguments =
+            [
+                // resources only; the editor has no use for the service endpoints
+                $"-mod {string.Join(";", resources)}"
+            ];
+
+            await LaunchProcessAndExit(executable, arguments);
         }
 
-        if (await SynchroniseContent() is false)
-            return;
-
-        if (TryResolveGameExecutable(out FileInfo? executable) is false)
-            return;
-
-        string[] resources =
-        [
-            // relative to executable directory (e.g. "D:\Games\HoN Game Client v4.10.1")
-            "base", // base resources; always needs to be loaded first; loaded automatically, but included for clarity
-            "game", // game resources; always needs to be loaded immediately after base resources
-            "editor", // editor resources; loaded immediately after game resources to overlay editor tooling onto the game stack
-            "KONGOR/configuration", // custom configuration files to override default configuration; configuration file load order: 1) startup.cfg, 2) login.cfg, 3) init.cfg, 4) autoexec.cfg
-            "KONGOR/updates", // custom resource files to override default game resources; reserved for game updates
-            "KONGOR/extensions", // custom resource files to override default game resources; reserved for mods and extensions
-
-            // relative to configuration directory (e.g. "C:\Users\KONGOR\Documents\Heroes Of Newerth x64")
-            "configuration" // the last path in the mod stack defines where user configuration files are saved to and loaded from; making this value dynamic is equivalent to having configuration profiles
-        ];
-
-        Log(LogCategory.Parameters, $"-mod {string.Join(";", resources)}");
-
-        string[] arguments =
-        [
-            // resources only; the editor has no use for the service endpoints
-            $"-mod {string.Join(";", resources)}"
-        ];
-
-        await LaunchProcessAndExit(executable, arguments);
+        finally
+        {
+            LaunchIsInProgress = false;
+        }
     }
 
     private bool TryResolveGameExecutable([NotNullWhen(true)] out FileInfo? executable)
