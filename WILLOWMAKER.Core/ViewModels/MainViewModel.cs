@@ -29,7 +29,7 @@ public partial class MainViewModel : ObservableObject
     public partial bool CanShowCustomMasterServerAddressField { get; set; } = false;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanLaunchGame))]
+    [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
     public partial bool MasterServerAddressIsValid { get; set; } = true;
 
     [ObservableProperty]
@@ -40,14 +40,14 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SynchronisationIsIdle))]
-    [NotifyPropertyChangedFor(nameof(CanOpenMapEditor))]
-    [NotifyPropertyChangedFor(nameof(CanLaunchGame))]
+    [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]
+    [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
     [NotifyPropertyChangedFor(nameof(PlayButtonText))]
     public partial bool SynchronisationIsActive { get; set; } = false;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanOpenMapEditor))]
-    [NotifyPropertyChangedFor(nameof(CanLaunchGame))]
+    [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]
+    [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
     public partial bool LaunchIsInProgress { get; set; } = false;
 
     [ObservableProperty]
@@ -76,9 +76,9 @@ public partial class MainViewModel : ObservableObject
 
     public bool SynchronisationIsIdle => SynchronisationIsActive is false;
 
-    public bool CanOpenMapEditor => SynchronisationIsIdle && LaunchIsInProgress is false;
+    public bool CanLaunchMapEditor => SynchronisationIsIdle && LaunchIsInProgress is false;
 
-    public bool CanLaunchGame => MasterServerAddressIsValid && SynchronisationIsIdle && LaunchIsInProgress is false;
+    public bool CanLaunchGameClient => MasterServerAddressIsValid && SynchronisationIsIdle && LaunchIsInProgress is false;
 
     public string PlayButtonText => SynchronisationIsActive ? "Updating ..." : "Play Heroes Of Newerth";
 
@@ -479,7 +479,7 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task Launch()
+    private async Task LaunchGameClient()
     {
         LaunchIsInProgress = true;
 
@@ -540,7 +540,7 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task LaunchEditor()
+    private async Task LaunchMapEditor()
     {
         LaunchIsInProgress = true;
 

@@ -104,7 +104,7 @@
                             <TextBox Text="{Binding CustomMasterServerAddress}" Width="400" Margin="0, 10, 0, 0" HorizontalAlignment="Center" TextAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" IsEnabled="{Binding SynchronisationIsIdle}" LostFocus="CustomMasterServerAddress_LostFocus" KeyDown="CustomMasterServerAddress_KeyDown" />
 
                             <StackPanel Orientation="Horizontal" Margin="0, 10, 0, 0" HorizontalAlignment="Center">
-                                <Button Command="{Binding LaunchEditorCommand}" Width="175" Height="60" Margin="0, 0, 5, 0" Cursor="Hand" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanOpenMapEditor}" Background="DarkGreen">
+                                <Button Command="{Binding LaunchMapEditorCommand}" Width="175" Height="60" Margin="0, 0, 5, 0" Cursor="Hand" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchMapEditor}" Background="DarkGreen">
                                     <Button.Styles>
                                         <Style Selector="Button TextBlock">
                                             <Setter Property="RenderTransform" Value="scale(1)" />
@@ -128,7 +128,7 @@
                                     </TextBlock>
                                 </Button>
 
-                                <Button Command="{Binding LaunchCommand}" Width="215" Height="60" Margin="5, 0, 0, 0" Cursor="Hand" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchGame}" Background="DarkGreen">
+                                <Button Command="{Binding LaunchGameClientCommand}" Width="215" Height="60" Margin="5, 0, 0, 0" Cursor="Hand" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchGameClient}" Background="DarkGreen">
                                     <Button.Styles>
                                         <Style Selector="Button TextBlock">
                                             <Setter Property="RenderTransform" Value="scale(1)" />
