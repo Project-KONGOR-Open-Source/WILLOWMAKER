@@ -491,21 +491,6 @@ public sealed record SynchronisationPlan(int FilesToDownload, int FilesToDelete,
 }
 
 /// <summary>
-///     Classifies the entries reported by <see cref="ContentBroker"/> via the <see cref="IProgress{T}"/> callback.
-/// </summary>
-public enum SynchronisationEventKind
-{
-    PlanReady,
-    DownloadStarted,
-    Downloaded,
-    Skipped,
-    Deleted,
-    DownloadFailed,
-    DeletionFailed,
-    Completed
-}
-
-/// <summary>
 ///     A single non-fatal failure that occurred during synchronisation. Multiple failures are collected and returned via <see cref="SynchronisationSummary.Failures"/>.
 /// </summary>
 public sealed record SynchronisationFailure(string Path, string Reason);

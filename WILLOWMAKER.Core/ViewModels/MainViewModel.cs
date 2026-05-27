@@ -36,7 +36,9 @@ public partial class MainViewModel : ObservableObject
     public partial string VersionDisplay { get; set; } = VersionChecker.CurrentVersionDisplay;
 
     [ObservableProperty]
-    public partial bool ReleasesRepositoryIsUnreachable { get; set; } = false;
+    [NotifyPropertyChangedFor(nameof(ReleasesRepositoryIsUnreachable))]
+    [NotifyPropertyChangedFor(nameof(UpdateIsUnavailable))]
+    public partial UpdateCheckState UpdateCheckState { get; set; } = UpdateCheckState.CheckInProgress;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SynchronisationIsIdle))]
@@ -74,6 +76,10 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string UpToDateFilesDisplay { get; set; } = string.Empty;
+
+    public bool ReleasesRepositoryIsUnreachable => UpdateCheckState is UpdateCheckState.RepositoryUnreachable;
+
+    public bool UpdateIsUnavailable => UpdateCheckState is UpdateCheckState.UpToDate;
 
     public bool SynchronisationIsIdle => SynchronisationIsActive is false;
 
@@ -212,7 +218,7 @@ public partial class MainViewModel : ObservableObject
 
             Log(LogCategory.Version, $"The WILLOWMAKER Releases Repository Is Not Reachable: HTTP {statusCode}");
 
-            ReleasesRepositoryIsUnreachable = true;
+            UpdateCheckState = UpdateCheckState.RepositoryUnreachable;
 
             return;
         }
@@ -221,7 +227,7 @@ public partial class MainViewModel : ObservableObject
         {
             Log(LogCategory.Version, $"The WILLOWMAKER Releases Repository Is Not Reachable: {exception.GetType().Name}");
 
-            ReleasesRepositoryIsUnreachable = true;
+            UpdateCheckState = UpdateCheckState.RepositoryUnreachable;
 
             return;
         }
@@ -230,8 +236,12 @@ public partial class MainViewModel : ObservableObject
         {
             Log(LogCategory.Version, "WILLOWMAKER Is Up To Date");
 
+            UpdateCheckState = UpdateCheckState.UpToDate;
+
             return;
         }
+
+        UpdateCheckState = UpdateCheckState.UpdateAvailable;
 
         string latestVersionDisplay = $"v{result.LatestVersion.Major}.{result.LatestVersion.Minor}.{result.LatestVersion.Build}";
 

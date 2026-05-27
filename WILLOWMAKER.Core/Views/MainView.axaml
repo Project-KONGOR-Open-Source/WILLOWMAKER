@@ -158,6 +158,9 @@
                             <Label Grid.Column="0" Foreground="OrangeRed" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="5, 0"
                                    Content="Releases Repository Not Reachable"
                                    IsVisible="{Binding ReleasesRepositoryIsUnreachable}" />
+                            <Label Grid.Column="0" Foreground="DarkSeaGreen" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="5, 0"
+                                   Content="No Update Available"
+                                   IsVisible="{Binding UpdateIsUnavailable}" />
                             <Label Grid.Column="1" Content="{Binding VersionDisplay}" Padding="5, 0, 0, 0" Margin="0, 0, 15, 0" />
                         </Grid>
                     </Grid>
