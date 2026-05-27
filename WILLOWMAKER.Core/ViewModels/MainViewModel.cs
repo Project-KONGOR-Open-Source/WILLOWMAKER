@@ -194,13 +194,6 @@ public partial class MainViewModel : ObservableObject
     {
         Log(LogCategory.Version, $"Current Version: {VersionChecker.CurrentVersionDisplay}");
 
-        if (DeploymentManifest.IsDevelopmentBuild)
-        {
-            Log(LogCategory.Version, "Update Check Skipped (Development Build)");
-
-            return;
-        }
-
         Log(LogCategory.Version, "Checking For Updates ...");
 
         VersionCheckResult result;
@@ -500,13 +493,6 @@ public partial class MainViewModel : ObservableObject
         {
             Log(LogCategory.Executable, "Game Launch Initiated");
 
-            if (DeploymentManifest.IsDevelopmentBuild)
-            {
-                Log(LogCategory.Executable, "Game Launch Skipped (Development Build)");
-
-                return;
-            }
-
             if (await SynchroniseContent() is false)
                 return;
 
@@ -560,13 +546,6 @@ public partial class MainViewModel : ObservableObject
         try
         {
             Log(LogCategory.Executable, "Map Editor Launch Initiated");
-
-            if (DeploymentManifest.IsDevelopmentBuild)
-            {
-                Log(LogCategory.Executable, "Map Editor Launch Skipped (Development Build)");
-
-                return;
-            }
 
             if (await SynchroniseContent() is false)
                 return;
