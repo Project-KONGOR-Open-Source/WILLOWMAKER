@@ -4,6 +4,8 @@ public partial class MainViewModel : ObservableObject
 {
     private Logger Logger { get; } = new (Path.Combine(Environment.CurrentDirectory, DeploymentManifest.LogFileName));
 
+    private LocationSafetyVerdict LocationSafetyVerdict { get; set; } = LocationSafetyVerdict.Unverified;
+
     [ObservableProperty]
     public partial string? GitHubLink { get; set; } = "https://github.com/Project-KONGOR-Open-Source";
 
@@ -38,7 +40,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ReleasesRepositoryIsUnreachable))]
     [NotifyPropertyChangedFor(nameof(UpdateIsUnavailable))]
-    public partial UpdateCheckState UpdateCheckState { get; set; } = UpdateCheckState.CheckInProgress;
+    public partial UpdateStatus UpdateStatus { get; set; } = UpdateStatus.CheckInProgress;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SynchronisationIsIdle))]
@@ -77,9 +79,9 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     public partial string UpToDateFilesDisplay { get; set; } = string.Empty;
 
-    public bool ReleasesRepositoryIsUnreachable => UpdateCheckState is UpdateCheckState.RepositoryUnreachable;
+    public bool ReleasesRepositoryIsUnreachable => UpdateStatus is UpdateStatus.RepositoryUnreachable;
 
-    public bool UpdateIsUnavailable => UpdateCheckState is UpdateCheckState.UpToDate;
+    public bool UpdateIsUnavailable => UpdateStatus is UpdateStatus.ApplicationUpToDate;
 
     public bool SynchronisationIsIdle => SynchronisationIsActive is false;
 
@@ -156,17 +158,21 @@ public partial class MainViewModel : ObservableObject
     }
 
     /// <summary>
-    ///     Verifies that the current working directory is acceptable before allowing the launcher to proceed.
-    ///     Returns <see langword="true"/> if the location is safe, otherwise displays a terminal modal dialog (which exits the process on any dismissal) and returns <see langword="false"/>.
+    ///     Assesses the location safety status of the current working directory and decides whether the launcher may proceed or not.
+    ///     Returns <see langword="true"/> for a safe location or a development environment, otherwise displays a terminal modal dialog (which exits the process on any dismissal) and returns <see langword="false"/>.
     /// </summary>
     private async Task<bool> CheckLocationGuard()
     {
-        LocationGuard.Result result = LocationGuard.Check(Environment.CurrentDirectory);
+        LocationGuard.Result result = LocationGuard.AssessLocationSafety(Environment.CurrentDirectory);
 
         Log(LogCategory.Guard, result.Reason);
 
-        if (result.IsSafe)
+        LocationSafetyVerdict = result.Verdict;
+
+        if (result.Verdict is not LocationSafetyVerdict.Unsafe)
+        {
             return true;
+        }
 
         // Avalonia Applications Can Run Under Different Lifetimes: Classic-Desktop, Single-View (Mobile And Browser), Or Controlled
         // Owner-Parented Modal Dialogs Require The Classic-Desktop Lifetime And A Realised MainWindow To Use As The Modal's Owner
@@ -211,7 +217,7 @@ public partial class MainViewModel : ObservableObject
 
             Log(LogCategory.Version, $"The WILLOWMAKER Releases Repository Is Not Reachable: HTTP {statusCode}");
 
-            UpdateCheckState = UpdateCheckState.RepositoryUnreachable;
+            UpdateStatus = UpdateStatus.RepositoryUnreachable;
 
             return;
         }
@@ -220,7 +226,7 @@ public partial class MainViewModel : ObservableObject
         {
             Log(LogCategory.Version, $"The WILLOWMAKER Releases Repository Is Not Reachable: {exception.GetType().Name}");
 
-            UpdateCheckState = UpdateCheckState.RepositoryUnreachable;
+            UpdateStatus = UpdateStatus.RepositoryUnreachable;
 
             return;
         }
@@ -229,12 +235,12 @@ public partial class MainViewModel : ObservableObject
         {
             Log(LogCategory.Version, "WILLOWMAKER Is Up To Date");
 
-            UpdateCheckState = UpdateCheckState.UpToDate;
+            UpdateStatus = UpdateStatus.ApplicationUpToDate;
 
             return;
         }
 
-        UpdateCheckState = UpdateCheckState.UpdateAvailable;
+        UpdateStatus = UpdateStatus.UpdateAvailable;
 
         string latestVersionDisplay = $"v{result.LatestVersion.Major}.{result.LatestVersion.Minor}.{result.LatestVersion.Build}";
 
@@ -297,6 +303,13 @@ public partial class MainViewModel : ObservableObject
 
     private async Task<bool> SynchroniseContent()
     {
+        if (LocationSafetyVerdict is not LocationSafetyVerdict.Safe)
+        {
+            Log(LogCategory.Synchronise, "SKIP: Synchronisation Skipped (Unsafe Location)");
+
+            return true;
+        }
+
         SynchronisationIsActive = true;
         SynchronisationIsScheduled = false;
         SynchronisationIsFailed = false;

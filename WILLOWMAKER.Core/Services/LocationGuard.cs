@@ -7,33 +7,33 @@ namespace WILLOWMAKER.Core.Services;
 public static class LocationGuard
 {
     /// <summary>
-    ///     The outcome of a location check.
-    ///     <paramref name="IsSafe"/> indicates whether the directory is acceptable.
+    ///     The outcome of a location safety assessment.
+    ///     <paramref name="Verdict"/> classifies the directory.
     ///     <paramref name="Reason"/> is a short, human-readable justification suitable for logging.
     /// </summary>
-    public sealed record Result(bool IsSafe, string Reason);
+    public sealed record Result(LocationSafetyVerdict Verdict, string Reason);
 
     /// <summary>
     ///     Evaluates the supplied directory against the safety criteria, in order:
-    ///     1) Development build (JIT runtime) → SAFE. The guard does not interfere with <c>dotnet run</c>.
+    ///     1) Development build (JIT runtime) → DEVELOPMENT ENVIRONMENT. The application is allowed to run, but operations that modify the directory are skipped, so <c>dotnet run</c> never touches the build output.
     ///     2) Heroes Of Newerth executable present at the top level → SAFE. The directory is an existing game install.
     ///     3) The directory contains only the WILLOWMAKER distribution files and nothing else → SAFE. The directory is a fresh deployment ready for first-time synchronisation.
     ///     4) Otherwise → UNSAFE. The directory contains foreign content that the synchronisation process would put at risk.
     /// </summary>
-    public static Result Check(string directory)
+    public static Result AssessLocationSafety(string directory)
     {
         if (DeploymentManifest.IsDevelopmentBuild)
-            return new Result(false, "Development Environment Detected");
+            return new Result(LocationSafetyVerdict.DevelopmentEnvironment, "Development Environment Detected");
 
         string gameExecutableName = DeploymentManifest.HeroesOfNewerthExecutable;
 
         if (File.Exists(Path.Combine(directory, gameExecutableName)))
-            return new Result(true, $@"Heroes Of Newerth Directory (""{gameExecutableName}"" Is Present)");
+            return new Result(LocationSafetyVerdict.Safe, $@"Heroes Of Newerth Directory (""{gameExecutableName}"" Is Present)");
 
         if (ContainsOnlyDistributionFiles(directory))
-            return new Result(true, $"Baseline {DeploymentManifest.ApplicationName} Directory");
+            return new Result(LocationSafetyVerdict.Safe, $"Baseline {DeploymentManifest.ApplicationName} Directory");
 
-        return new Result(false, "Foreign Entries Detected");
+        return new Result(LocationSafetyVerdict.Unsafe, "Foreign Entries Detected");
     }
 
     /// <summary>
