@@ -481,7 +481,6 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task Launch()
     {
-        // The Busy Flag Is Held For The Entire Launch Sequence, Not Just Synchronisation, So Neither Button Re-Enables While The Game Client Is Being Started
         LaunchIsInProgress = true;
 
         try
@@ -543,7 +542,6 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task LaunchEditor()
     {
-        // The Busy Flag Is Held For The Entire Launch Sequence, Not Just Synchronisation, So Neither Button Re-Enables While The Map Editor Is Being Started
         LaunchIsInProgress = true;
 
         try
