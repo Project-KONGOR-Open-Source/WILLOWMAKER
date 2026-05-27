@@ -42,7 +42,8 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(SynchronisationIsIdle))]
     [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]
     [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
-    [NotifyPropertyChangedFor(nameof(PlayButtonText))]
+    [NotifyPropertyChangedFor(nameof(LaunchMapEditorButtonText))]
+    [NotifyPropertyChangedFor(nameof(LaunchGameClientButtonText))]
     public partial bool SynchronisationIsActive { get; set; } = false;
 
     [ObservableProperty]
@@ -80,7 +81,9 @@ public partial class MainViewModel : ObservableObject
 
     public bool CanLaunchGameClient => MasterServerAddressIsValid && SynchronisationIsIdle && LaunchIsInProgress is false;
 
-    public string PlayButtonText => SynchronisationIsActive ? "Updating ..." : "Play Heroes Of Newerth";
+    public string LaunchMapEditorButtonText => SynchronisationIsActive ? "Updating ..." : "Open Map Editor";
+
+    public string LaunchGameClientButtonText => SynchronisationIsActive ? "Updating ..." : "Play Heroes Of Newerth";
 
     public MainViewModel()
     {

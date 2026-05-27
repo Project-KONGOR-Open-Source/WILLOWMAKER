@@ -119,7 +119,7 @@
                                         </Style>
                                     </Button.Styles>
 
-                                    <TextBlock Text="Open Map Editor" RenderTransformOrigin="50%, 50%">
+                                    <TextBlock Text="{Binding LaunchMapEditorButtonText}" RenderTransformOrigin="50%, 50%">
                                         <TextBlock.Transitions>
                                             <Transitions>
                                                 <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" Easing="CubicEaseOut" />
@@ -143,7 +143,7 @@
                                         </Style>
                                     </Button.Styles>
 
-                                    <TextBlock Text="{Binding PlayButtonText}" RenderTransformOrigin="50%, 50%">
+                                    <TextBlock Text="{Binding LaunchGameClientButtonText}" RenderTransformOrigin="50%, 50%">
                                         <TextBlock.Transitions>
                                             <Transitions>
                                                 <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" Easing="CubicEaseOut" />
