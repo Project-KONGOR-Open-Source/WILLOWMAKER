@@ -217,9 +217,6 @@ publish/
 *.pubxml
 *.publishproj
 
-# Publish Web Output Whitelist
-!source/WILLOWMAKER/Properties/PublishProfiles/*.pubxml
-
 # Microsoft Azure Web App publish settings. Comment the next line if you want to
 # checkin your Azure Web App publish settings, but sensitive information contained
 # in these scripts will be unencrypted
@@ -430,3 +427,11 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Release Publish Profiles
+!source/WILLOWMAKER/Properties/PublishProfiles/*.pubxml
+
+# Release Artefacts
+/windows-*.zip
+/linux-*.zip
+/macos-*.zip

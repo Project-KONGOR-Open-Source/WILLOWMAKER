@@ -14,10 +14,11 @@ Publish Self-Contained Binaries For Windows/Linux/macOS
 > PowerShell 7 or greater needs to be installed: https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell.
 
 ```powershell
-# In The Context Of The Solution Directory
-pwsh .\Publish-Self-Contained-Binaries.ps1
+# In The Context Of The Repository Root
+pwsh .\scripts\Publish-Native-AOT-Release.ps1
 
-# Publish Directory: .\WILLOWMAKER\bin\Publish
+# Publish Directory: .\source\WILLOWMAKER\bin\Publish\<asset>-native-aot
+# Release Asset:     .\<asset>-v<version>.zip
 ```
 
 <br/>
