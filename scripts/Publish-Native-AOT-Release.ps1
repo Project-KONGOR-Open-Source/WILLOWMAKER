@@ -1,9 +1,16 @@
-#Requires -Version 7.0
-
 # local equivalent of .github/workflows/publish-release.yml
-# requires PowerShell Core minimum version 7.0
 
 $ErrorActionPreference = 'Stop'
+
+# the script uses PowerShell 7-era automatic variables like $IsWindows; check explicitly so Windows PowerShell 5.1 users get an actionable message instead of a confused failure later
+if ($PSVersionTable.PSVersion.Major -lt 7)
+{
+    throw (@(
+        'This script requires PowerShell 7 or later, but version $($PSVersionTable.PSVersion) was detected instead.'
+        ''
+        'Install the latest version of PowerShell from https://learn.microsoft.com/en-gb/powershell/scripting/install/install-powershell.'
+    ) -join [Environment]::NewLine)
+}
 
 $RepoRoot          = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
 $SolutionDirectory = Join-Path $RepoRoot 'source'
@@ -25,16 +32,26 @@ $AssetName        = "$($OperatingSystem.ToLowerInvariant())-$Architecture"
 $ProfileName      = "$OperatingSystem.$Architecture.NativeAOT.pubxml"
 $PublishDirectory = Join-Path $ProjectPath "bin/Publish/$AssetName-native-aot"
 
-if ($IsWindows -and -not (Get-Command vswhere -ErrorAction SilentlyContinue))
+if ($IsWindows)
 {
-    $VSInstallerDirectory = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer'
-
-    if (Test-Path (Join-Path $VSInstallerDirectory 'vswhere.exe'))
+    # the .NET AOT MSBuild targets call vswhere unqualified, so it has to be on PATH for the dotnet publish child process
+    if (-not (Get-Command vswhere -ErrorAction SilentlyContinue))
     {
-        $env:PATH = "$VSInstallerDirectory;$env:PATH"
+        # install the standalone Visual Studio Locator package if vswhere is not already reachable; it is a portable winget install (no administrator permissions required)
+        winget install --id Microsoft.VisualStudio.Locator --exact --silent --accept-source-agreements --accept-package-agreements
+
+        if ($LASTEXITCODE -ne 0) { throw "winget install Microsoft.VisualStudio.Locator exited with code $LASTEXITCODE" }
+
+        # portable winget installs add to user PATH for new shell sessions only, so reload the current session's PATH from the registry to pick up the new entry
+        $env:PATH = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
     }
 
-    else
+    # dotnet publish's native AOT link step needs MSVC's link.exe along with the MSVC runtime and Windows SDK import libraries
+    # require an installation carrying the VC.Tools.x86.x64 component, which is the umbrella component that bundles all three
+    # the -prerelease flag widens the search to include prerelease installs (e.g. Visual Studio Insiders) alongside stable ones rather than restricting the result set
+    $VCToolsInstall = & vswhere -latest -prerelease -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+
+    if ([string]::IsNullOrWhiteSpace($VCToolsInstall))
     {
         throw (@(
             'Native AOT publishing on Windows requires Visual Studio 2026 Build Tools, or any Visual Studio 2026 edition with the "Desktop Development With C++" workload.'
