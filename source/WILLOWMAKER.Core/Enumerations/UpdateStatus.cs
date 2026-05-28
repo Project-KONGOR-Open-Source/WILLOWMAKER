@@ -8,5 +8,7 @@ public enum UpdateStatus
     CheckInProgress,
     ApplicationUpToDate,
     UpdateAvailable,
+    UpdateDownloading,
+    UpdateRestarting,
     RepositoryUnreachable
 }

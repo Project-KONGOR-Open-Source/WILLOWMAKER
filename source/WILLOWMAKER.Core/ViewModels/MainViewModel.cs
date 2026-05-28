@@ -45,12 +45,19 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(ReleasesRepositoryIsUnreachable))]
     [NotifyPropertyChangedFor(nameof(UpdateIsUnavailable))]
     [NotifyPropertyChangedFor(nameof(UpdateIsPending))]
+    [NotifyPropertyChangedFor(nameof(UpdateIsDownloading))]
+    [NotifyPropertyChangedFor(nameof(UpdateIsRestarting))]
+    [NotifyPropertyChangedFor(nameof(UpdateIsInstalling))]
     [NotifyPropertyChangedFor(nameof(UpdateCheckIsInProgress))]
     [NotifyPropertyChangedFor(nameof(UpdateCheckIsIdle))]
     [NotifyPropertyChangedFor(nameof(MasterServerInputIsEnabled))]
     [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]
     [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
     public partial UpdateStatus UpdateStatus { get; set; } = UpdateStatus.CheckInProgress;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UpdateDownloadingMessage))]
+    public partial double UpdateDownloadPercent { get; set; } = 0;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SynchronisationIsIdle))]
@@ -98,17 +105,25 @@ public partial class MainViewModel : ObservableObject
 
     public string UpdateIsPendingMessage => $"{DeploymentManifest.ApplicationName} {LatestAvailableVersionDisplay} Is Available";
 
+    public bool UpdateIsDownloading => UpdateStatus is UpdateStatus.UpdateDownloading;
+
+    public bool UpdateIsRestarting => UpdateStatus is UpdateStatus.UpdateRestarting;
+
+    public bool UpdateIsInstalling => UpdateStatus is UpdateStatus.UpdateDownloading or UpdateStatus.UpdateRestarting;
+
+    public string UpdateDownloadingMessage => $"Downloading {LatestAvailableVersionDisplay} ... {$"{(int) UpdateDownloadPercent}%",-4}";
+
     public bool UpdateCheckIsInProgress => UpdateStatus is UpdateStatus.CheckInProgress;
 
     public bool UpdateCheckIsIdle => UpdateStatus is not UpdateStatus.CheckInProgress;
 
     public bool SynchronisationIsIdle => SynchronisationIsActive is false;
 
-    public bool MasterServerInputIsEnabled => UpdateCheckIsIdle && SynchronisationIsIdle;
+    public bool MasterServerInputIsEnabled => UpdateCheckIsIdle && UpdateIsInstalling is false && SynchronisationIsIdle;
 
-    public bool CanLaunchMapEditor => UpdateCheckIsIdle && SynchronisationIsIdle && LaunchIsInProgress is false;
+    public bool CanLaunchMapEditor => UpdateCheckIsIdle && UpdateIsInstalling is false && SynchronisationIsIdle && LaunchIsInProgress is false;
 
-    public bool CanLaunchGameClient => UpdateCheckIsIdle && MasterServerAddressIsValid && SynchronisationIsIdle && LaunchIsInProgress is false;
+    public bool CanLaunchGameClient => UpdateCheckIsIdle && UpdateIsInstalling is false && MasterServerAddressIsValid && SynchronisationIsIdle && LaunchIsInProgress is false;
 
     public string LaunchMapEditorButtonText => SynchronisationIsActive ? "Updating ..." : "Open Map Editor";
 
@@ -299,9 +314,16 @@ public partial class MainViewModel : ObservableObject
         {
             Log(LogCategory.Update, $"Downloading Update From {result.DownloadURL} ...");
 
-            string archivePath = await VersionChecker.DownloadUpdate(result.DownloadURL);
+            UpdateDownloadPercent = 0;
+            UpdateStatus = UpdateStatus.UpdateDownloading;
 
-            Log(LogCategory.Update, "Applying Update And Restarting ...");
+            Progress<double> downloadProgress = new (percent => UpdateDownloadPercent = percent);
+
+            string archivePath = await VersionChecker.DownloadUpdate(result.DownloadURL, downloadProgress);
+
+            Log(LogCategory.Update, "Restarting Into The Update Script ...");
+
+            UpdateStatus = UpdateStatus.UpdateRestarting;
 
             VersionChecker.ApplyUpdateAndRestart(archivePath);
         }
@@ -309,6 +331,8 @@ public partial class MainViewModel : ObservableObject
         catch (Exception exception)
         {
             Log(LogCategory.Update, $"Update Failed: {exception.Message}");
+
+            UpdateStatus = UpdateStatus.UpdateAvailable;
         }
     }
 
