@@ -6,7 +6,7 @@ $ErrorActionPreference = 'Stop'
 if ($PSVersionTable.PSVersion.Major -lt 7)
 {
     throw (@(
-        'This script requires PowerShell 7 or later, but version $($PSVersionTable.PSVersion) was detected instead.'
+        "This script requires PowerShell 7 or later, but PowerShell $($PSVersionTable.PSVersion) was detected instead."
         ''
         'Install the latest version of PowerShell from https://learn.microsoft.com/en-gb/powershell/scripting/install/install-powershell.'
     ) -join [Environment]::NewLine)
