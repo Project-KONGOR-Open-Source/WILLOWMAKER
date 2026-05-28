@@ -17,7 +17,7 @@ Publish Self-Contained Binaries For Windows/Linux/macOS
 # In The Context Of The Solution Directory
 pwsh .\Publish-Self-Contained-Binaries.ps1
 
-# Publish Directory: ..\WILLOWMAKER\WILLOWMAKER\bin\Publish
+# Publish Directory: .\WILLOWMAKER\bin\Publish
 ```
 
 <br/>
