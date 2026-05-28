@@ -62,16 +62,26 @@ public static partial class VersionChecker
 
         if (updateIsAvailable && root.TryGetProperty("assets", out JsonElement assets))
         {
-            string platformKeyword = OperatingSystem.IsWindows() ? "windows"
-                                   : OperatingSystem.IsMacOS()   ? "macos"
-                                   : OperatingSystem.IsLinux()   ? "linux"
-                                   : throw new ArgumentOutOfRangeException(nameof(platformKeyword), $@"Unsupported Operating System: {Environment.OSVersion.Platform}");
+            string platformIdentifier = OperatingSystem.IsWindows() ? "windows"
+                                      : OperatingSystem.IsMacOS()   ? "macos"
+                                      : OperatingSystem.IsLinux()   ? "linux"
+                                      : throw new PlatformNotSupportedException($@"Unsupported Operating System: {Environment.OSVersion.Platform}");
+
+            string architectureIdentifier = RuntimeInformation.ProcessArchitecture switch
+            {
+                Architecture.X64   => "x64",
+                Architecture.Arm64 => "arm64",
+                _                  => throw new PlatformNotSupportedException($@"Unsupported Process Architecture: {RuntimeInformation.ProcessArchitecture}")
+            };
+
+            // Release Assets Are Named "{platform}-{architecture}-{tag}.zip" So This Identifier Helps Target The Correct Asset By Both Platform And Architecture
+            string assetIdentifier = $"{platformIdentifier}-{architectureIdentifier}";
 
             foreach (JsonElement asset in assets.EnumerateArray())
             {
                 string? assetName = asset.GetProperty("name").GetString();
 
-                if (assetName?.Contains(platformKeyword, StringComparison.OrdinalIgnoreCase) is true && assetName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                if (assetName?.Contains(assetIdentifier, StringComparison.OrdinalIgnoreCase) is true && assetName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
                 {
                     downloadURL = asset.GetProperty("browser_download_url").GetString();
 
@@ -85,8 +95,10 @@ public static partial class VersionChecker
 
     /// <summary>
     ///     Downloads a release asset from the specified URL to a temporary file and returns its path.
+    ///     Reports download progress as a percentage of <c>Content-Length</c>.
+    ///     If the server does not advertise a response content length, the callback is not invoked.
     /// </summary>
-    public static async Task<string> DownloadUpdate(string downloadURL)
+    public static async Task<string> DownloadUpdate(string downloadURL, IProgress<double>? progress = null)
     {
         string archivePath = Path.Combine(Path.GetTempPath(), DeploymentManifest.UpdateArchiveFileName);
 
@@ -94,10 +106,30 @@ public static partial class VersionChecker
 
         client.DefaultRequestHeaders.UserAgent.ParseAdd(DeploymentManifest.ApplicationName);
 
-        await using FileStream fileStream = File.Create(archivePath);
-        await using Stream downloadStream = await client.GetStreamAsync(downloadURL);
+        // ResponseHeadersRead Returns As Soon As The Headers Are In, So Content-Length Is Available Before The Body Streams
+        // Without It, The Whole Response Would Be Buffered Before The Method Returned, Defeating The Purpose Of Progress Reporting
+        using HttpResponseMessage response = await client.GetAsync(downloadURL, HttpCompletionOption.ResponseHeadersRead);
 
-        await downloadStream.CopyToAsync(fileStream);
+        response.EnsureSuccessStatusCode();
+
+        long? totalBytes = response.Content.Headers.ContentLength;
+
+        await using Stream downloadStream = await response.Content.ReadAsStreamAsync();
+        await using FileStream fileStream = File.Create(archivePath);
+
+        byte[] buffer = new byte[81920];
+        long bytesDownloaded = 0;
+        int bytesRead;
+
+        while ((bytesRead = await downloadStream.ReadAsync(buffer)) > 0)
+        {
+            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
+
+            bytesDownloaded += bytesRead;
+
+            if (progress is not null && totalBytes is > 0)
+                progress.Report((double) bytesDownloaded / totalBytes.Value * 100);
+        }
 
         return archivePath;
     }
