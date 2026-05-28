@@ -45,6 +45,7 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(ReleasesRepositoryIsUnreachable))]
     [NotifyPropertyChangedFor(nameof(UpdateIsUnavailable))]
     [NotifyPropertyChangedFor(nameof(UpdateIsPending))]
+    [NotifyPropertyChangedFor(nameof(UpdateCheckIsInProgress))]
     [NotifyPropertyChangedFor(nameof(UpdateCheckIsIdle))]
     [NotifyPropertyChangedFor(nameof(MasterServerInputIsEnabled))]
     [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]
@@ -96,6 +97,8 @@ public partial class MainViewModel : ObservableObject
     public bool UpdateIsPending => UpdateStatus is UpdateStatus.UpdateAvailable;
 
     public string UpdateIsPendingMessage => $"Version {LatestAvailableVersionDisplay} Is Available";
+
+    public bool UpdateCheckIsInProgress => UpdateStatus is UpdateStatus.CheckInProgress;
 
     public bool UpdateCheckIsIdle => UpdateStatus is not UpdateStatus.CheckInProgress;
 
