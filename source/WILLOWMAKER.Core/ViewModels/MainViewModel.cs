@@ -96,7 +96,7 @@ public partial class MainViewModel : ObservableObject
 
     public bool UpdateIsPending => UpdateStatus is UpdateStatus.UpdateAvailable;
 
-    public string UpdateIsPendingMessage => $"Version {LatestAvailableVersionDisplay} Is Available";
+    public string UpdateIsPendingMessage => $"{DeploymentManifest.ApplicationName} {LatestAvailableVersionDisplay} Is Available";
 
     public bool UpdateCheckIsInProgress => UpdateStatus is UpdateStatus.CheckInProgress;
 
