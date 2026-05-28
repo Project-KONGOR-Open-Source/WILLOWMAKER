@@ -63,8 +63,10 @@ public static class LocationGuard
     /// <summary>
     ///     Returns the top-level entries in <paramref name="directory"/> that are neither part of WILLOWMAKER's distribution payload (the executable plus the native libraries that ship with the AOT publish on the current platform) nor on the ignore list (runtime artefacts such as the log file).
     ///     Each entry is reported as a path relative to <paramref name="directory"/>, which for the top-level enumeration is the entry's bare name.
+    ///     Subdirectory entries carry a trailing <c>/**</c> suffix so the calling UI and the launcher log can distinguish them from same-named files.
     ///     The enumeration is configured to surface hidden and system entries as well, so that no foreign content can slip past the guard by virtue of an attribute flag.
     ///     Subdirectories are always treated as foreign, regardless of their name, because the recognised list is defined in terms of distribution files.
+    ///     An empty subdirectory tree (no files at any depth) is omitted from the foreign-entries list because removing it cannot cause data loss.
     /// </summary>
     private static IReadOnlyList<string> EnumerateForeignEntries(string directory)
     {
@@ -76,20 +78,32 @@ public static class LocationGuard
         foreach (string ignoredFileName in DeploymentManifest.IgnoredFileNames)
             recognisedNames.Add(ignoredFileName);
 
-        EnumerationOptions enumerationOptions = new ()
+        EnumerationOptions topLevelEnumerationOptions = new ()
         {
             AttributesToSkip      = FileAttributes.None,
             RecurseSubdirectories = false
         };
 
+        EnumerationOptions recursiveEnumerationOptions = new ()
+        {
+            AttributesToSkip      = FileAttributes.None,
+            RecurseSubdirectories = true
+        };
+
         List<string> foreignEntries = [];
 
-        foreach (FileSystemInfo entry in new DirectoryInfo(directory).EnumerateFileSystemInfos("*", enumerationOptions))
+        foreach (FileSystemInfo entry in new DirectoryInfo(directory).EnumerateFileSystemInfos("*", topLevelEnumerationOptions))
         {
-            if (entry is FileInfo && recognisedNames.Contains(entry.Name))
-                continue;
+            if (entry is FileInfo)
+            {
+                if (recognisedNames.Contains(entry.Name) is false)
+                    foreignEntries.Add(Path.GetRelativePath(directory, entry.FullName));
+            }
 
-            foreignEntries.Add(Path.GetRelativePath(directory, entry.FullName));
+            else if (Directory.EnumerateFiles(entry.FullName, "*", recursiveEnumerationOptions).Any())
+            {
+                foreignEntries.Add($"{Path.GetRelativePath(directory, entry.FullName)}/**");
+            }
         }
 
         return foreignEntries;
