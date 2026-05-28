@@ -157,9 +157,9 @@
                         <Grid Grid.Column="2" Width="350" VerticalAlignment="Top" Margin="0, 15, 0, 0" ColumnDefinitions="*, Auto">
                             <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
                                         IsVisible="{Binding UpdateCheckIsInProgress}">
-                                <Path Classes="spinner" Width="12" Height="12" VerticalAlignment="Center" Margin="0, 0, 6, 0"
-                                      Stroke="DarkSeaGreen" StrokeThickness="2" StrokeLineCap="Round"
-                                      Data="M 6,1 A 5,5 0 1 1 1,6"
+                                <Path Classes="spinner" Width="15" Height="15" VerticalAlignment="Center" Margin="0, 0, 5, 0"
+                                      Stroke="DarkSeaGreen" StrokeThickness="1.5" StrokeLineCap="Round"
+                                      Data="M 7.5,1.5 A 6,6 0 1 1 1.5,7.5"
                                       RenderTransformOrigin="50%, 50%">
                                     <Path.RenderTransform>
                                         <RotateTransform Angle="0" />

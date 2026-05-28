@@ -11,10 +11,10 @@
     <StackPanel Margin="25">
         <TextBlock x:Name="MessageText" TextWrapping="Wrap" Margin="0, 0, 0, 15" />
         <Expander x:Name="DetailsExpander" Header="More Information" IsExpanded="False" Margin="0, 0, 0, 15" HorizontalAlignment="Stretch">
-            <StackPanel Spacing="8">
+            <StackPanel Spacing="10">
                 <TextBlock x:Name="ReasonHeading" Text="Reason" FontWeight="SemiBold" />
                 <TextBlock x:Name="ReasonText" TextWrapping="Wrap" />
-                <TextBlock x:Name="ForeignEntriesHeading" Text="Foreign Entries" FontWeight="SemiBold" Margin="0, 6, 0, 0" />
+                <TextBlock x:Name="ForeignEntriesHeading" Text="Foreign Entries" FontWeight="SemiBold" Margin="0, 5, 0, 0" />
                 <ScrollViewer x:Name="ForeignEntriesScroll" MaxHeight="180" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="ForeignEntriesText" TextWrapping="Wrap" FontFamily="Cascadia Mono, Consolas, Menlo, Monospace" />
                 </ScrollViewer>
