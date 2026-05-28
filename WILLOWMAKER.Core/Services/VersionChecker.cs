@@ -120,7 +120,7 @@ public static partial class VersionChecker
         if (topLevelEntries.Length is 1 && Directory.Exists(topLevelEntries[0]))
             tempDirectory = topLevelEntries[0];
 
-        string executablePath = Environment.ProcessPath ?? Path.Combine(targetDirectory, DeploymentManifest.ExecutableName);
+        string executablePath = Environment.ProcessPath ?? Path.Combine(targetDirectory, DeploymentManifest.ApplicationExecutableFileName);
 
         // Enumerate The Files The New Release Ships So The Update Script Can Force-Delete Each Pre-Existing Counterpart (Including Read-Only Ones) Before Copying The New Files Into Place
         string[] relativePathsToReplace = Directory

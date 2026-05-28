@@ -14,7 +14,7 @@ public static class DeploymentManifest
     /// <summary>
     ///     The name of the WILLOWMAKER executable on the current platform.
     /// </summary>
-    public static string ExecutableName =>
+    public static string ApplicationExecutableFileName =>
           OperatingSystem.IsWindows() ? $"{ApplicationName}.exe"
         : OperatingSystem.IsLinux()   ? ApplicationName
         : OperatingSystem.IsMacOS()   ? ApplicationName
@@ -25,16 +25,22 @@ public static class DeploymentManifest
     ///     Used by the location guard's ship-files whitelist.
     ///     Any file in the working directory not on this list (and not the executable itself) is treated as foreign.
     /// </summary>
-    public static string[] NativeLibraryFileNames =>
+    public static string[] NativeLibrariesFileNames =>
           OperatingSystem.IsWindows() ? [ "av_libglesv2.dll", "libHarfBuzzSharp.dll", "libSkiaSharp.dll" ]
         : OperatingSystem.IsLinux()   ? [ "libHarfBuzzSharp.so", "libSkiaSharp.so" ]
         : OperatingSystem.IsMacOS()   ? [ "libAvaloniaNative.dylib", "libHarfBuzzSharp.dylib", "libSkiaSharp.dylib" ]
         : throw new PlatformNotSupportedException($@"Unsupported Operating System: {Environment.OSVersion.Platform}");
 
     /// <summary>
+    ///     File names that the location guard ignores when assessing a baseline deployment directory.
+    ///     These are not part of the distribution payload and the guard does not require their presence; their presence simply does not classify the directory as unsafe.
+    /// </summary>
+    public static string[] IgnoredFileNames => [ LogFileName ];
+
+    /// <summary>
     ///     The Heroes Of Newerth game client executable name on the current platform.
     /// </summary>
-    public static string HeroesOfNewerthExecutable =>
+    public static string HeroesOfNewerthExecutableFileName =>
           OperatingSystem.IsWindows() ? "hon_x64.exe"
         : OperatingSystem.IsLinux()   ? "hon-x86_64"
         : OperatingSystem.IsMacOS()   ? "HoN64"

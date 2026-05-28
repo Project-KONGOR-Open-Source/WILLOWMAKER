@@ -7,9 +7,21 @@ public partial class LocationGuardDialog : Window
         InitializeComponent();
     }
 
-    public LocationGuardDialog(string message) : this()
+    public LocationGuardDialog(string message, string reason, IReadOnlyList<string> foreignEntries) : this()
     {
         MessageText.Text = message;
+        ReasonText.Text  = reason;
+
+        if (foreignEntries.Count is 0)
+        {
+            ForeignEntriesHeading.IsVisible = false;
+            ForeignEntriesScroll.IsVisible  = false;
+        }
+
+        else
+        {
+            ForeignEntriesText.Text = string.Join(Environment.NewLine, foreignEntries);
+        }
     }
 
     private void OK_Click(object? sender, RoutedEventArgs arguments)

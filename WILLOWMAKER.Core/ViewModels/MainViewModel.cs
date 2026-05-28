@@ -189,7 +189,7 @@ public partial class MainViewModel : ObservableObject
             $"The distribution synchronisation process can delete files in this directory so, to ensure that no unrelated files are deleted, {DeploymentManifest.ApplicationName} will now exit." + " " +
             $"Please run {DeploymentManifest.ApplicationName} from an empty directory or a Heroes Of Newerth directory.";
 
-        LocationGuardDialog dialog = new (message);
+        LocationGuardDialog dialog = new (message, result.Reason, result.ForeignEntries);
 
         await dialog.ShowDialog(desktop.MainWindow);
 
@@ -599,7 +599,7 @@ public partial class MainViewModel : ObservableObject
 
     private bool TryResolveGameExecutable([NotNullWhen(true)] out FileInfo? executable)
     {
-        FileInfo[] executableMatches = new DirectoryInfo(Environment.CurrentDirectory).GetFiles(DeploymentManifest.HeroesOfNewerthExecutable, SearchOption.TopDirectoryOnly);
+        FileInfo[] executableMatches = new DirectoryInfo(Environment.CurrentDirectory).GetFiles(DeploymentManifest.HeroesOfNewerthExecutableFileName, SearchOption.TopDirectoryOnly);
 
         if (executableMatches.Length is 0)
         {
