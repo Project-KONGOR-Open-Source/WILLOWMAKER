@@ -218,7 +218,7 @@ publish/
 *.publishproj
 
 # Publish Web Output Whitelist
-!WILLOWMAKER/Properties/PublishProfiles/*.pubxml
+!source/WILLOWMAKER/Properties/PublishProfiles/*.pubxml
 
 # Microsoft Azure Web App publish settings. Comment the next line if you want to
 # checkin your Azure Web App publish settings, but sensitive information contained
