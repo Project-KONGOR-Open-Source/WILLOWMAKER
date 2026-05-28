@@ -38,12 +38,22 @@ public partial class MainViewModel : ObservableObject
     public partial string VersionDisplay { get; set; } = VersionChecker.CurrentVersionDisplay;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UpdateIsPendingMessage))]
+    public partial string? LatestAvailableVersionDisplay { get; set; }
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ReleasesRepositoryIsUnreachable))]
     [NotifyPropertyChangedFor(nameof(UpdateIsUnavailable))]
+    [NotifyPropertyChangedFor(nameof(UpdateIsPending))]
+    [NotifyPropertyChangedFor(nameof(UpdateCheckIsIdle))]
+    [NotifyPropertyChangedFor(nameof(MasterServerInputIsEnabled))]
+    [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]
+    [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
     public partial UpdateStatus UpdateStatus { get; set; } = UpdateStatus.CheckInProgress;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SynchronisationIsIdle))]
+    [NotifyPropertyChangedFor(nameof(MasterServerInputIsEnabled))]
     [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]
     [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
     [NotifyPropertyChangedFor(nameof(LaunchMapEditorButtonText))]
@@ -83,11 +93,19 @@ public partial class MainViewModel : ObservableObject
 
     public bool UpdateIsUnavailable => UpdateStatus is UpdateStatus.ApplicationUpToDate;
 
+    public bool UpdateIsPending => UpdateStatus is UpdateStatus.UpdateAvailable;
+
+    public string UpdateIsPendingMessage => $"Version {LatestAvailableVersionDisplay} Is Available";
+
+    public bool UpdateCheckIsIdle => UpdateStatus is not UpdateStatus.CheckInProgress;
+
     public bool SynchronisationIsIdle => SynchronisationIsActive is false;
 
-    public bool CanLaunchMapEditor => SynchronisationIsIdle && LaunchIsInProgress is false;
+    public bool MasterServerInputIsEnabled => UpdateCheckIsIdle && SynchronisationIsIdle;
 
-    public bool CanLaunchGameClient => MasterServerAddressIsValid && SynchronisationIsIdle && LaunchIsInProgress is false;
+    public bool CanLaunchMapEditor => UpdateCheckIsIdle && SynchronisationIsIdle && LaunchIsInProgress is false;
+
+    public bool CanLaunchGameClient => UpdateCheckIsIdle && MasterServerAddressIsValid && SynchronisationIsIdle && LaunchIsInProgress is false;
 
     public string LaunchMapEditorButtonText => SynchronisationIsActive ? "Updating ..." : "Open Map Editor";
 
@@ -243,16 +261,16 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
+        LatestAvailableVersionDisplay = $"v{result.LatestVersion.Major}.{result.LatestVersion.Minor}.{result.LatestVersion.Build}";
+
         UpdateStatus = UpdateStatus.UpdateAvailable;
 
-        string latestVersionDisplay = $"v{result.LatestVersion.Major}.{result.LatestVersion.Minor}.{result.LatestVersion.Build}";
-
-        Log(LogCategory.Version, $"Update Available: {latestVersionDisplay}");
+        Log(LogCategory.Version, $"Update Available: {LatestAvailableVersionDisplay}");
 
         if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop || desktop.MainWindow is null)
             return;
 
-        UpdateDialog dialog = new ($"WILLOWMAKER {latestVersionDisplay} Is Available");
+        UpdateDialog dialog = new ($"WILLOWMAKER {LatestAvailableVersionDisplay} Is Available");
 
         bool shouldUpdate = await dialog.ShowDialog<bool>(desktop.MainWindow);
 

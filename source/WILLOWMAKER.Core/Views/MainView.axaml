@@ -95,13 +95,13 @@
                         <StackPanel Grid.Column="1" Width="400" Margin="0, 280, 0, 0">
                             <Label Width="400" Margin="0, 0, 0, 5" HorizontalAlignment="Center" HorizontalContentAlignment="Center">Master Server Address</Label>
 
-                            <ComboBox SelectedValue="{Binding MasterServerAddress}" Name="MasterServerAddressDropdown" SelectedIndex="0" Width="400" HorizontalAlignment="Center" HorizontalContentAlignment="Center" IsEnabled="{Binding SynchronisationIsIdle}">
+                            <ComboBox SelectedValue="{Binding MasterServerAddress}" Name="MasterServerAddressDropdown" SelectedIndex="0" Width="400" HorizontalAlignment="Center" HorizontalContentAlignment="Center" IsEnabled="{Binding MasterServerInputIsEnabled}">
                                 <ComboBoxItem HorizontalContentAlignment="Stretch">api.kongor.net</ComboBoxItem>
                                 <ComboBoxItem HorizontalContentAlignment="Stretch">localhost:5555</ComboBoxItem>
                                 <ComboBoxItem HorizontalContentAlignment="Stretch">Custom Address ...</ComboBoxItem>
                             </ComboBox>
 
-                            <TextBox Text="{Binding CustomMasterServerAddress}" Width="400" Margin="0, 10, 0, 0" HorizontalAlignment="Center" TextAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" IsEnabled="{Binding SynchronisationIsIdle}" LostFocus="CustomMasterServerAddress_LostFocus" KeyDown="CustomMasterServerAddress_KeyDown" />
+                            <TextBox Text="{Binding CustomMasterServerAddress}" Width="400" Margin="0, 10, 0, 0" HorizontalAlignment="Center" TextAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" IsEnabled="{Binding MasterServerInputIsEnabled}" LostFocus="CustomMasterServerAddress_LostFocus" KeyDown="CustomMasterServerAddress_KeyDown" />
 
                             <StackPanel Orientation="Horizontal" Margin="0, 10, 0, 0" HorizontalAlignment="Center">
                                 <Button Command="{Binding LaunchMapEditorCommand}" Width="175" Height="60" Margin="0, 0, 5, 0" Cursor="Hand" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchMapEditor}" Background="DarkGreen">
@@ -161,6 +161,9 @@
                             <Label Grid.Column="0" Foreground="DarkSeaGreen" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="5, 0"
                                    Content="No Update Available"
                                    IsVisible="{Binding UpdateIsUnavailable}" />
+                            <Label Grid.Column="0" Foreground="DarkSeaGreen" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="5, 0"
+                                   Content="{Binding UpdateIsPendingMessage}"
+                                   IsVisible="{Binding UpdateIsPending}" />
                             <Label Grid.Column="1" Content="{Binding VersionDisplay}" Padding="5, 0, 0, 0" Margin="0, 0, 15, 0" />
                         </Grid>
                     </Grid>
