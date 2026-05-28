@@ -5,11 +5,12 @@ $ErrorActionPreference = 'Stop'
 # the script uses PowerShell 7-era automatic variables like $IsWindows; check explicitly so Windows PowerShell 5.1 users get an actionable message instead of a confused failure later
 if ($PSVersionTable.PSVersion.Major -lt 7)
 {
-    throw (@(
+    Write-Host (@(
         "This script requires PowerShell 7 or later, but PowerShell $($PSVersionTable.PSVersion) was detected instead."
-        ''
         'Install the latest version of PowerShell from https://learn.microsoft.com/en-gb/powershell/scripting/install/install-powershell.'
-    ) -join [Environment]::NewLine)
+    ) -join [Environment]::NewLine) -ForegroundColor Red
+
+    exit 1
 }
 
 $RepoRoot          = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
@@ -53,18 +54,18 @@ if ($IsWindows)
 
     if ([string]::IsNullOrWhiteSpace($VCToolsInstall))
     {
-        throw (@(
-            'Native AOT publishing on Windows requires Visual Studio 2026 Build Tools, or any Visual Studio 2026 edition with the "Desktop Development With C++" workload.'
+        Write-Host (@(
+            'Native AOT publishing on Windows requires Visual Studio Build Tools or Visual Studio with the "Desktop Development With C++" workload.'
             ''
-            'Install via winget in a PowerShell session with administrator permissions:'
-            ''
+            'Install the Visual Studio Build Tools from PowerShell (requires administrator permissions):'
             '    winget install --id Microsoft.VisualStudio.BuildTools --override "--quiet --wait --add Microsoft.VisualStudio.Workload.VCTools"'
             ''
-            'Or download manually:'
-            ''
+            'Or download Visual Studio Build Tools or Visual Studio manually:'
             '    Visual Studio 2026 Build Tools: https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2026'
             '    Visual Studio 2026:             https://visualstudio.microsoft.com/downloads/'
-        ) -join [Environment]::NewLine)
+        ) -join [Environment]::NewLine) -ForegroundColor Red
+
+        exit 1
     }
 }
 
