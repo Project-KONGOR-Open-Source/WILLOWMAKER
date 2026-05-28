@@ -174,6 +174,9 @@ public partial class MainViewModel : ObservableObject
             return true;
         }
 
+        foreach (string entry in LocationGuard.ApplyForeignEntriesDisplayCap(result.ForeignEntries))
+            Log(LogCategory.Guard, entry);
+
         // Avalonia Applications Can Run Under Different Lifetimes: Classic-Desktop, Single-View (Mobile And Browser), Or Controlled
         // Owner-Parented Modal Dialogs Require The Classic-Desktop Lifetime And A Realised MainWindow To Use As The Modal's Owner
         // In Practice, This Branch Is Unreachable Because OnMainWindowOpened Only Fires After MainWindow Has Been Assigned, But Exiting Is The Safest Fallback If The Dialog Cannot Be Shown

@@ -7,12 +7,33 @@ namespace WILLOWMAKER.Core.Services;
 public static class LocationGuard
 {
     /// <summary>
+    ///     The maximum number of foreign entries to surface in user-facing displays (the guard dialog and the launcher log).
+    ///     Lists longer than this cap are truncated and the remaining count is summarised with a trailing sentinel produced by <see cref="ApplyForeignEntriesDisplayCap"/>.
+    /// </summary>
+    public const int MaximumCountOfForeignEntriesToDisplay = 25;
+
+    /// <summary>
     ///     The outcome of a location safety assessment.
     ///     <paramref name="Verdict"/> classifies the directory.
     ///     <paramref name="Reason"/> is a short, human-readable justification suitable for logging.
     ///     <paramref name="ForeignEntries"/> lists the top-level entries that caused an <see cref="LocationSafetyVerdict.Unsafe"/> verdict (empty for every other verdict).
     /// </summary>
     public sealed record Result(LocationSafetyVerdict Verdict, string Reason, IReadOnlyList<string> ForeignEntries);
+
+    /// <summary>
+    ///     Truncates <paramref name="foreignEntries"/> to at most <see cref="MaximumCountOfForeignEntriesToDisplay"/> items.
+    ///     When the input exceeds the cap, a trailing summary entry of the form <c>"... and N more"</c> is appended in place of the omitted names.
+    ///     Both the guard dialog and the launcher log run their copies of the list through this helper so they stay consistent.
+    /// </summary>
+    public static IReadOnlyList<string> ApplyForeignEntriesDisplayCap(IReadOnlyList<string> foreignEntries)
+    {
+        if (foreignEntries.Count <= MaximumCountOfForeignEntriesToDisplay)
+            return foreignEntries;
+
+        int remaining = foreignEntries.Count - MaximumCountOfForeignEntriesToDisplay;
+
+        return [.. foreignEntries.Take(MaximumCountOfForeignEntriesToDisplay), $"... and {remaining} more"];
+    }
 
     /// <summary>
     ///     Evaluates the supplied directory against the safety criteria, in order:

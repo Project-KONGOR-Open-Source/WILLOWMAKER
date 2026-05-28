@@ -20,7 +20,7 @@ public partial class LocationGuardDialog : Window
 
         else
         {
-            ForeignEntriesText.Text = string.Join(Environment.NewLine, foreignEntries);
+            ForeignEntriesText.Text = string.Join(Environment.NewLine, LocationGuard.ApplyForeignEntriesDisplayCap(foreignEntries));
         }
     }
 
