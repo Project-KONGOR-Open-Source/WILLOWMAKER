@@ -191,9 +191,14 @@
                             <Label Grid.Column="0" Foreground="DarkSeaGreen" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="5, 0"
                                    Content="{Binding UpdateIsPendingMessage}"
                                    IsVisible="{Binding UpdateIsPending}" />
-                            <Label Grid.Column="0" Foreground="DarkSeaGreen" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="5, 0"
-                                   Content="{Binding UpdateDownloadingMessage}"
-                                   IsVisible="{Binding UpdateIsDownloading}" />
+                            <Grid Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                  IsVisible="{Binding UpdateIsDownloading}"
+                                  ColumnDefinitions="Auto, 40">
+                                <Label Grid.Column="0" Foreground="DarkSeaGreen" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="5, 0, 5, 0"
+                                       Content="{Binding UpdateDownloadMessage}" />
+                                <Label Grid.Column="1" Foreground="DarkSeaGreen" HorizontalAlignment="Left" VerticalAlignment="Center" Padding="0, 0, 5, 0"
+                                       Content="{Binding UpdateDownloadPercentDisplay}" />
+                            </Grid>
                             <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
                                         IsVisible="{Binding UpdateIsRestarting}">
                                 <Path Classes="spinner" Width="15" Height="15" VerticalAlignment="Center" Margin="0, 0, 5, 0"

@@ -1,4 +1,4 @@
-﻿namespace WILLOWMAKER.Core.ViewModels;
+namespace WILLOWMAKER.Core.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
@@ -56,7 +56,7 @@ public partial class MainViewModel : ObservableObject
     public partial UpdateStatus UpdateStatus { get; set; } = UpdateStatus.CheckInProgress;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(UpdateDownloadingMessage))]
+    [NotifyPropertyChangedFor(nameof(UpdateDownloadPercentDisplay))]
     public partial double UpdateDownloadPercent { get; set; } = 0;
 
     [ObservableProperty]
@@ -111,7 +111,9 @@ public partial class MainViewModel : ObservableObject
 
     public bool UpdateIsInstalling => UpdateStatus is UpdateStatus.UpdateDownloading or UpdateStatus.UpdateRestarting;
 
-    public string UpdateDownloadingMessage => $"Downloading {LatestAvailableVersionDisplay} ... {$"{(int) UpdateDownloadPercent}%",-4}";
+    public string UpdateDownloadMessage => $"Downloading {LatestAvailableVersionDisplay}" + ":";
+
+    public string UpdateDownloadPercentDisplay => $"{(int) UpdateDownloadPercent}%";
 
     public bool UpdateCheckIsInProgress => UpdateStatus is UpdateStatus.CheckInProgress;
 
@@ -320,6 +322,12 @@ public partial class MainViewModel : ObservableObject
             Progress<double> downloadProgress = new (percent => UpdateDownloadPercent = percent);
 
             string archivePath = await VersionChecker.DownloadUpdate(result.DownloadURL, downloadProgress);
+
+            // Force The 100% Frame To Paint Before The State Flips Away From Downloading
+            // The Last Progress Report Can Be Coalesced With The State Change, So Without This Hold The User Sees A Stale Sub-100% Value Right Up To The Window Closing
+            UpdateDownloadPercent = 100;
+
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
 
             Log(LogCategory.Update, "Restarting Into The Update Script ...");
 
