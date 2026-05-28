@@ -161,15 +161,18 @@
                                       Stroke="DarkSeaGreen" StrokeThickness="2" StrokeLineCap="Round"
                                       Data="M 6,1 A 5,5 0 1 1 1,6"
                                       RenderTransformOrigin="50%, 50%">
+                                    <Path.RenderTransform>
+                                        <RotateTransform Angle="0" />
+                                    </Path.RenderTransform>
                                     <Path.Styles>
                                         <Style Selector="Path.spinner">
                                             <Style.Animations>
                                                 <Animation Duration="0:0:1" IterationCount="INFINITE">
                                                     <KeyFrame Cue="0%">
-                                                        <Setter Property="RenderTransform" Value="rotate(0deg)" />
+                                                        <Setter Property="RotateTransform.Angle" Value="0.0" />
                                                     </KeyFrame>
                                                     <KeyFrame Cue="100%">
-                                                        <Setter Property="RenderTransform" Value="rotate(360deg)" />
+                                                        <Setter Property="RotateTransform.Angle" Value="360.0" />
                                                     </KeyFrame>
                                                 </Animation>
                                             </Style.Animations>
