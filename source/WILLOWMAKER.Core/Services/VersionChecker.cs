@@ -236,7 +236,7 @@ public static partial class VersionChecker
 
     private static void SpawnWindowsUpdateScript(string archivePath, string sourceDirectory, string targetDirectory, string executablePath, string[] relativePathsToReplace)
     {
-        string scriptPath = Path.Combine(Path.GetTempPath(), "WILLOWMAKER-update.ps1");
+        string scriptPath = Path.Combine(Path.GetTempPath(), "WILLOWMAKER.update.ps1");
 
         // The Relative Paths Are Embedded As A PowerShell Single-Quoted Array Literal So Each One Can Be Force-Deleted Before The New Files Are Copied In
         string pathArrayLiteral = string.Join(", ", relativePathsToReplace.Select(relativePath => $"'{relativePath}'"));
@@ -275,7 +275,7 @@ public static partial class VersionChecker
 
     private static void SpawnMacOSUpdateScript(string archivePath, string sourceDirectory, string targetDirectory, string executablePath, string[] relativePathsToReplace)
     {
-        string scriptPath = Path.Combine(Path.GetTempPath(), "WILLOWMAKER-update.sh");
+        string scriptPath = Path.Combine(Path.GetTempPath(), "WILLOWMAKER.update.sh");
 
         // The Relative Paths Are Embedded As A Bash Single-Quoted Word List So Each One Can Be Force-Deleted Before The New Files Are Copied In
         string pathWordList = string.Join(" ", relativePathsToReplace.Select(relativePath => $"'{relativePath}'"));
@@ -314,7 +314,7 @@ public static partial class VersionChecker
 
     private static void SpawnLinuxUpdateScript(string archivePath, string sourceDirectory, string targetDirectory, string executablePath, string[] relativePathsToReplace)
     {
-        string scriptPath = Path.Combine(Path.GetTempPath(), "WILLOWMAKER-update.sh");
+        string scriptPath = Path.Combine(Path.GetTempPath(), "WILLOWMAKER.update.sh");
 
         // The Relative Paths Are Embedded As A Bash Single-Quoted Word List So Each One Can Be Force-Deleted Before The New Files Are Copied In
         string pathWordList = string.Join(" ", relativePathsToReplace.Select(relativePath => $"'{relativePath}'"));
