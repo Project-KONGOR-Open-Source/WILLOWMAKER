@@ -580,7 +580,7 @@ public partial class MainViewModel : ObservableObject
                 "KONGOR/extensions", // custom resource files to override default game resources; reserved for mods and extensions
 
                 // relative to configuration directory (e.g. "C:\Users\KONGOR\Documents\Heroes Of Newerth x64")
-                "configuration" // the last path in the mod stack defines where user configuration files are saved to and loaded from; making this value dynamic is equivalent to having configuration profiles
+                "client" // the last path in the mod stack defines where user configuration files are saved to and loaded from
             ];
 
             Log(LogCategory.Parameters, $"-mod {string.Join(";", resources)}");
@@ -631,7 +631,7 @@ public partial class MainViewModel : ObservableObject
                 "KONGOR/extensions", // custom resource files to override default game resources; reserved for mods and extensions
 
                 // relative to configuration directory (e.g. "C:\Users\KONGOR\Documents\Heroes Of Newerth x64")
-                "configuration" // the last path in the mod stack defines where user configuration files are saved to and loaded from; making this value dynamic is equivalent to having configuration profiles
+                "editor" // the last path in the mod stack defines where user configuration files are saved to and loaded from
             ];
 
             Log(LogCategory.Parameters, $"-mod {string.Join(";", resources)}");
