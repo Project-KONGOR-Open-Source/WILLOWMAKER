@@ -3,7 +3,7 @@
 public partial class MainView : UserControl
 {
     // The Duration For Which The Play Button Must Be Held To Arm The Hidden "Launch Without Synchronisation" Gesture
-    private const double HoldDurationSeconds = 2.5;
+    private const double HoldDurationSeconds = 1.5;
 
     // The Delay Before The Hold Fill Becomes Visible, So That A Regular Quick Click Does Not Briefly Flash The Fill
     private const double FillStartDelaySeconds = 0.5;
