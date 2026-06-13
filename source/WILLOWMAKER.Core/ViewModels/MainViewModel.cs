@@ -417,14 +417,24 @@ public partial class MainViewModel : ObservableObject
                             // The Up-To-Date Column Includes Local Deletions So All Four Columns Reach 100% Together When The Synchronisation Completes
                             upToDateTotal = manifest.Files.Count + plan.FilesToDelete;
 
-                            DownloadedFilesDisplay = FormatSynchronisationColumn("DOWNLOADED",                  0, plan.FilesToDownload);
-                            RemovedFilesDisplay    = FormatSynchronisationColumn("REMOVED"   ,                  0, plan.FilesToDelete  );
-                            SkippedFilesDisplay    = FormatSynchronisationColumn("SKIPPED"   ,                  0, plan.FilesToSkip    );
-                            UpToDateFilesDisplay   = FormatSynchronisationColumn("UP-TO-DATE", plan.FilesUpToDate, upToDateTotal       );
+                            DownloadedFilesDisplay = FormatSynchronisationColumn("DOWNLOADED", 0                                , plan.FilesToDownload);
+                            RemovedFilesDisplay    = FormatSynchronisationColumn("REMOVED"   , 0                                , plan.FilesToDelete  );
+                            SkippedFilesDisplay    = FormatSynchronisationColumn("SKIPPED"   , 0                                , plan.FilesToSkip    );
+                            UpToDateFilesDisplay   = FormatSynchronisationColumn("UP-TO-DATE", plan.FilesUpToDate + filesSkipped, upToDateTotal       );
 
                             // Drives The Progress Bar's Visibility: A Plan With No Downloads And No Deletions Means There Is Nothing To Show Progress Of
                             SynchronisationIsScheduled = plan.FilesToDownload > 0 || plan.FilesToDelete > 0;
                         }
+
+                        break;
+                    }
+
+                    case SynchronisationEventKind.ProgressUpdated:
+                    {
+                        bytesDownloaded = synchronisationEvent.Size;
+
+                        if (plan is not null && plan.TotalBytesToDownload > 0)
+                            SynchronisationProgressPercent = Math.Min(100, (double) bytesDownloaded / plan.TotalBytesToDownload * 100);
 
                         break;
                     }
@@ -435,15 +445,10 @@ public partial class MainViewModel : ObservableObject
 
                         filesDownloaded++;
 
-                        bytesDownloaded += synchronisationEvent.Size;
-
                         if (plan is not null)
                         {
                             DownloadedFilesDisplay = FormatSynchronisationColumn("DOWNLOADED", filesDownloaded, plan.FilesToDownload);
                             UpToDateFilesDisplay   = FormatSynchronisationColumn("UP-TO-DATE", plan.FilesUpToDate + filesDownloaded + filesDeleted + filesSkipped, upToDateTotal);
-
-                            if (plan.TotalBytesToDownload > 0)
-                                SynchronisationProgressPercent = Math.Min(100, (double) bytesDownloaded / plan.TotalBytesToDownload * 100);
                         }
 
                         break;
@@ -498,13 +503,13 @@ public partial class MainViewModel : ObservableObject
                 }
             });
 
-            SynchronisationSummary summary = await ContentBroker.Synchronise
+            SynchronisationSummary summary = await Task.Run(() => ContentBroker.Synchronise
             (
                 manifest:        manifest,
                 variant:         variant,
                 targetDirectory: Environment.CurrentDirectory,
                 progress:        progress
-            );
+            ));
 
             if (summary.FilesFailed > 0)
             {

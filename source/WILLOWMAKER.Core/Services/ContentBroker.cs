@@ -34,11 +34,14 @@ public static class ContentBroker
 
         using HttpClient client = CreateClient(timeout: TimeSpan.FromSeconds(30));
 
-        await using Stream stream = await client.GetStreamAsync(manifestURL, cancellationToken);
+        Stream stream = await client.GetStreamAsync(manifestURL, cancellationToken).ConfigureAwait(false);
 
-        Manifest? manifest = await JsonSerializer.DeserializeAsync(stream, ManifestJSONContext.Default.Manifest, cancellationToken);
+        await using (stream.ConfigureAwait(false))
+        {
+            Manifest? manifest = await JsonSerializer.DeserializeAsync(stream, ManifestJSONContext.Default.Manifest, cancellationToken).ConfigureAwait(false);
 
-        return manifest ?? throw new InvalidOperationException($@"Manifest At ""{manifestURL}"" Deserialised To NULL");
+            return manifest ?? throw new InvalidOperationException($@"Manifest At ""{manifestURL}"" Deserialised To NULL");
+        }
     }
 
     /// <summary>
@@ -106,7 +109,7 @@ public static class ContentBroker
 
             string localPath = Path.Combine(targetDirectory, relativePath.Replace('/', Path.DirectorySeparatorChar));
 
-            if (await LocalFileMatchesManifestEntry(localPath, entry, cancellationToken))
+            if (await LocalFileMatchesManifestEntry(localPath, entry, cancellationToken).ConfigureAwait(false))
             {
                 filesUpToDate++;
 
@@ -168,15 +171,33 @@ public static class ContentBroker
 
         ConcurrentBag<SynchronisationFailure> failures = new ();
 
+        long totalBytesDownloaded          = 0;
+        long lastReportTicks               = 0;
+
+        Action<int> reportBytesRead = bytesRead =>
+        {
+            long currentTotal = Interlocked.Add(ref totalBytesDownloaded, bytesRead);
+            long now          = Environment.TickCount64;
+            long last         = Volatile.Read(ref lastReportTicks);
+
+            if (now - last > 100)
+            {
+                if (Interlocked.CompareExchange(ref lastReportTicks, now, last) == last)
+                {
+                    progress?.Report(new SynchronisationEvent(SynchronisationEventKind.ProgressUpdated, string.Empty, currentTotal));
+                }
+            }
+        };
+
         IEnumerable<Task> downloadTasks = pendingDownloads.Select(async download =>
         {
-            await semaphore.WaitAsync(cancellationToken);
+            await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
             try
             {
                 progress?.Report(new SynchronisationEvent(SynchronisationEventKind.DownloadStarted, download.RelativePath, download.Entry.Size));
 
-                await DownloadOne(client, baseURL, variant, download, manifest.HashAlgorithm, cancellationToken);
+                await DownloadOne(client, baseURL, variant, download, manifest.HashAlgorithm, reportBytesRead, cancellationToken).ConfigureAwait(false);
 
                 Interlocked.Add(ref bytesDownloaded, download.Entry.Size);
                 Interlocked.Increment(ref filesDownloaded);
@@ -203,7 +224,10 @@ public static class ContentBroker
             }
         });
 
-        await Task.WhenAll(downloadTasks);
+        await Task.WhenAll(downloadTasks).ConfigureAwait(false);
+
+        // Report The Final Absolute Total Downloaded Bytes
+        progress?.Report(new SynchronisationEvent(SynchronisationEventKind.ProgressUpdated, string.Empty, bytesDownloaded));
 
         int filesDeleted = 0;
 
@@ -247,7 +271,7 @@ public static class ContentBroker
         return summary;
     }
 
-    private static async Task DownloadOne(HttpClient client, string baseURL, string variant, PendingDownload download, string hashAlgorithm, CancellationToken cancellationToken)
+    private static async Task DownloadOne(HttpClient client, string baseURL, string variant, PendingDownload download, string hashAlgorithm, Action<int>? progressCallback, CancellationToken cancellationToken)
     {
         string fileURL    = BuildFileURL(baseURL, variant, download.RelativePath);
         string partialPath = download.LocalPath + PartialDownloadSuffix;
@@ -262,23 +286,32 @@ public static class ContentBroker
 
         using (IncrementalHash incrementalHash = CreateIncrementalHash(hashAlgorithm))
         {
-            await using FileStream fileStream     = new (partialPath, FileMode.Create, FileAccess.Write, FileShare.None);
-            await using Stream     downloadStream = await client.GetStreamAsync(fileURL, cancellationToken);
+            FileStream fileStream = new (partialPath, FileMode.Create, FileAccess.Write, FileShare.None);
 
-            byte[] buffer = new byte[81920];
-
-            while (true)
+            await using (fileStream.ConfigureAwait(false))
             {
-                int bytesRead = await downloadStream.ReadAsync(buffer.AsMemory(), cancellationToken);
+                Stream downloadStream = await client.GetStreamAsync(fileURL, cancellationToken).ConfigureAwait(false);
 
-                if (bytesRead is 0)
-                    break;
+                await using (downloadStream.ConfigureAwait(false))
+                {
+                    byte[] buffer = new byte[81920];
 
-                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+                    while (true)
+                    {
+                        int bytesRead = await downloadStream.ReadAsync(buffer.AsMemory(), cancellationToken).ConfigureAwait(false);
 
-                incrementalHash.AppendData(buffer, 0, bytesRead);
+                        if (bytesRead is 0)
+                            break;
 
-                bytesWritten += bytesRead;
+                        await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
+
+                        incrementalHash.AppendData(buffer, 0, bytesRead);
+
+                        bytesWritten += bytesRead;
+
+                        progressCallback?.Invoke(bytesRead);
+                    }
+                }
             }
 
             actualHashHex = Convert.ToHexStringLower(incrementalHash.GetHashAndReset());
@@ -314,15 +347,18 @@ public static class ContentBroker
         if (info.Length != entry.Size)
             return false;
 
-        await using FileStream fileStream = File.OpenRead(localPath);
+        FileStream fileStream = File.OpenRead(localPath);
 
-        using SHA256 sha256 = SHA256.Create();
+        await using (fileStream.ConfigureAwait(false))
+        {
+            using SHA256 sha256 = SHA256.Create();
 
-        byte[] hashBytes = await sha256.ComputeHashAsync(fileStream, cancellationToken);
+            byte[] hashBytes = await sha256.ComputeHashAsync(fileStream, cancellationToken).ConfigureAwait(false);
 
-        string actualHashHex = Convert.ToHexStringLower(hashBytes);
+            string actualHashHex = Convert.ToHexStringLower(hashBytes);
 
-        return string.Equals(actualHashHex, entry.Hash, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(actualHashHex, entry.Hash, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     private static IncrementalHash CreateIncrementalHash(string hashAlgorithm)

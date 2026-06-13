@@ -89,7 +89,7 @@
                 </StackPanel.Background>
 
                 <Grid RowDefinitions="Auto, Auto">
-                    <Grid Grid.Row="0" Height="700" ColumnDefinitions="Auto, Auto, Auto">
+                    <Grid Grid.Row="0" Height="690" ColumnDefinitions="Auto, Auto, Auto">
                         <StackPanel Grid.Column="0" Width="350" />
 
                         <StackPanel Grid.Column="1" Width="400" Margin="0, 280, 0, 0">
@@ -252,19 +252,19 @@
                         </Grid>
                     </Grid>
 
-                    <StackPanel Grid.Row="1" Height="40">
+                    <StackPanel Grid.Row="1" Height="60">
                         <!-- Synchronisation Success State: Four Columns With Synchronisation File Data -->
                         <Grid Height="20" Margin="10, 0, 10, 0" ColumnDefinitions="*, *, *, *" IsVisible="{Binding !SynchronisationIsFailed}">
-                            <TextBlock Grid.Column="0" Text="{Binding DownloadedFilesDisplay}" HorizontalAlignment="Left"   VerticalAlignment="Center" FontSize="10" Foreground="#CCCCCC" />
-                            <TextBlock Grid.Column="1" Text="{Binding RemovedFilesDisplay}"    HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" Foreground="#CCCCCC" />
-                            <TextBlock Grid.Column="2" Text="{Binding SkippedFilesDisplay}"    HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" Foreground="#CCCCCC" />
-                            <TextBlock Grid.Column="3" Text="{Binding UpToDateFilesDisplay}"   HorizontalAlignment="Right"  VerticalAlignment="Center" FontSize="10" Foreground="#CCCCCC" />
+                            <TextBlock Grid.Column="0" Text="{Binding DownloadedFilesDisplay}" HorizontalAlignment="Left"   VerticalAlignment="Center" FontSize="14" Foreground="#CCCCCC" />
+                            <TextBlock Grid.Column="1" Text="{Binding RemovedFilesDisplay}"    HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" Foreground="#CCCCCC" />
+                            <TextBlock Grid.Column="2" Text="{Binding SkippedFilesDisplay}"    HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" Foreground="#CCCCCC" />
+                            <TextBlock Grid.Column="3" Text="{Binding UpToDateFilesDisplay}"   HorizontalAlignment="Right"  VerticalAlignment="Center" FontSize="14" Foreground="#CCCCCC" />
                         </Grid>
 
                         <!-- Synchronisation Failure State: A Single Centred Failure Message -->
-                        <TextBlock Height="20" Margin="10, 0, 10, 0" Text="{Binding SynchronisationStatusMessage}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" Foreground="#CCCCCC" IsVisible="{Binding SynchronisationIsFailed}" />
+                        <TextBlock Height="20" Margin="10, 0, 10, 0" Text="{Binding SynchronisationStatusMessage}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" Foreground="#CCCCCC" IsVisible="{Binding SynchronisationIsFailed}" />
 
-                        <ProgressBar Width="1080" Height="5" Margin="0, 0, 0, 0" Minimum="0" Maximum="100" Value="{Binding SynchronisationProgressPercent}" IsVisible="{Binding SynchronisationIsScheduled}" />
+                        <ProgressBar Width="1080" Height="15" Margin="0, 10, 0, 15" Minimum="0" Maximum="100" Value="{Binding SynchronisationProgressPercent}" IsVisible="{Binding SynchronisationIsScheduled}" Foreground="DarkGreen" />
                     </StackPanel>
                 </Grid>
             </StackPanel>
