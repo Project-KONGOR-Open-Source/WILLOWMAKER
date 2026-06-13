@@ -4,6 +4,7 @@ global using Avalonia.Controls;
 global using Avalonia.Input;
 global using Avalonia.Interactivity;
 global using Avalonia.Markup.Xaml;
+global using Avalonia.Threading;
 global using Avalonia.VisualTree;
 
 global using CommunityToolkit.Mvvm.ComponentModel;

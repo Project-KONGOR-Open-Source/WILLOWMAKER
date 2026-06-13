@@ -117,6 +117,14 @@
                                         <Style Selector="Button:pointerover /template/ ContentPresenter">
                                             <Setter Property="Background" Value="Green" />
                                         </Style>
+                                        <!-- Keep The Pressed Look Consistent With The Hover Look, Otherwise The Default Theme Flashes Its Grey Pressed Brush And Drops The Enlarged Text -->
+                                        <Style Selector="Button:pressed TextBlock">
+                                            <Setter Property="RenderTransform" Value="scale(1.10)" />
+                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                        </Style>
+                                        <Style Selector="Button:pressed /template/ ContentPresenter">
+                                            <Setter Property="Background" Value="Green" />
+                                        </Style>
                                     </Button.Styles>
 
                                     <TextBlock Text="{Binding LaunchMapEditorButtonText}" RenderTransformOrigin="50%, 50%">
@@ -128,7 +136,7 @@
                                     </TextBlock>
                                 </Button>
 
-                                <Button Command="{Binding LaunchGameClientCommand}" Width="215" Height="60" Margin="5, 0, 0, 0" Cursor="Hand" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchGameClient}" Background="DarkGreen">
+                                <Button x:Name="LaunchGameClientButton" Width="215" Height="60" Margin="5, 0, 0, 0" Padding="0" Cursor="Hand" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" IsEnabled="{Binding CanLaunchGameClient}" Background="DarkGreen">
                                     <Button.Styles>
                                         <Style Selector="Button TextBlock">
                                             <Setter Property="RenderTransform" Value="scale(1)" />
@@ -141,15 +149,29 @@
                                         <Style Selector="Button:pointerover /template/ ContentPresenter">
                                             <Setter Property="Background" Value="Green" />
                                         </Style>
+                                        <!-- Keep The Enlarged Text On Press So A Click Does Not Shrink The Label Back To Its Resting Size -->
+                                        <Style Selector="Button:pressed TextBlock">
+                                            <Setter Property="RenderTransform" Value="scale(1.10)" />
+                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                        </Style>
+                                        <!-- While The Press Is Still Pending (The Initial Window, And Therefore The Whole Of A Quick Click) Keep The Resting Appearance; Once The Code-Behind Drops The "HoldPending" Class The Theme's Default Pressed Appearance Returns As The Hold's "Loading" Cue -->
+                                        <Style Selector="Button.HoldPending:pressed /template/ ContentPresenter">
+                                            <Setter Property="Background" Value="Green" />
+                                        </Style>
                                     </Button.Styles>
 
-                                    <TextBlock Text="{Binding LaunchGameClientButtonText}" RenderTransformOrigin="50%, 50%">
-                                        <TextBlock.Transitions>
-                                            <Transitions>
-                                                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" Easing="CubicEaseOut" />
-                                            </Transitions>
-                                        </TextBlock.Transitions>
-                                    </TextBlock>
+                                    <!-- The Fill Rectangle Grows From The Left As The Play Button Is Held, Signalling The Hidden "Launch Without Synchronisation" Gesture; Its Width Is Driven From The Code-Behind -->
+                                    <Grid x:Name="LaunchGameClientHoldFillHost">
+                                        <Rectangle x:Name="LaunchGameClientHoldFill" HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="0" Fill="#40FFFFFF" />
+
+                                        <TextBlock Text="{Binding LaunchGameClientButtonText}" HorizontalAlignment="Center" VerticalAlignment="Center" RenderTransformOrigin="50%, 50%">
+                                            <TextBlock.Transitions>
+                                                <Transitions>
+                                                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" Easing="CubicEaseOut" />
+                                                </Transitions>
+                                            </TextBlock.Transitions>
+                                        </TextBlock>
+                                    </Grid>
                                 </Button>
                             </StackPanel>
                         </StackPanel>

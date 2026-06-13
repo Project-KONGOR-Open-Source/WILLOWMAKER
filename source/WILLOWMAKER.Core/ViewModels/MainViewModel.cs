@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace WILLOWMAKER.Core.ViewModels;
 
 public partial class MainViewModel : ObservableObject
@@ -355,8 +357,15 @@ public partial class MainViewModel : ObservableObject
         Log(LogCategory.Parameters, $"-masterserver {address} -webserver {address} -messageserver {address}");
     }
 
-    private async Task<bool> SynchroniseContent()
+    private async Task<bool> SynchroniseContent(bool skipSynchronisation = false)
     {
+        if (skipSynchronisation)
+        {
+            Log(LogCategory.Synchronise, "SKIP: Synchronisation Skipped (Manual Override)");
+
+            return true;
+        }
+
         if (LocationSafetyVerdict is not LocationSafetyVerdict.Safe)
         {
             Log(LogCategory.Synchronise, "SKIP: Synchronisation Skipped (Unsafe Location)");
@@ -552,7 +561,19 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task LaunchGameClient()
+    private Task LaunchGameClient()
+        => LaunchGameClientCore(skipSynchronisation: false);
+
+    [RelayCommand]
+    private async Task LaunchGameClientWithoutSynchronisation()
+    {
+        if (await ConfirmLaunchWithoutSynchronisation() is false)
+            return;
+
+        await LaunchGameClientCore(skipSynchronisation: true);
+    }
+
+    private async Task LaunchGameClientCore(bool skipSynchronisation)
     {
         LaunchIsInProgress = true;
 
@@ -560,7 +581,7 @@ public partial class MainViewModel : ObservableObject
         {
             Log(LogCategory.Executable, "Game Launch Initiated");
 
-            if (await SynchroniseContent() is false)
+            if (await SynchroniseContent(skipSynchronisation) is false)
                 return;
 
             if (TryResolveGameExecutable(out FileInfo? executable) is false)
@@ -603,6 +624,29 @@ public partial class MainViewModel : ObservableObject
         {
             LaunchIsInProgress = false;
         }
+    }
+
+    private async Task<bool> ConfirmLaunchWithoutSynchronisation()
+    {
+        if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop || desktop.MainWindow is null)
+            return false;
+
+        string message = new StringBuilder()
+            .Append($"{DeploymentManifest.ApplicationName} will launch Heroes Of Newerth without synchronising content from the Content Delivery Network." + " ")
+            .Append("This is only intended for development purposes." + " ")
+            .Append("Running an out-of-date distribution can have negative consequences, such as not being able to connect to match servers.")
+            .AppendLine().AppendLine()
+            .Append("Continue?")
+            .ToString();
+
+        SynchronisationBypassDialog dialog = new (message);
+
+        bool shouldBypass = await dialog.ShowDialog<bool>(desktop.MainWindow);
+
+        if (shouldBypass is false)
+            Log(LogCategory.Synchronise, "SKIP: Launch Without Synchronisation Cancelled By User");
+
+        return shouldBypass;
     }
 
     [RelayCommand]
