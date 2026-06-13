@@ -575,9 +575,9 @@ public partial class MainViewModel : ObservableObject
                 // relative to executable directory (e.g. "D:\Games\HoN Game Client v4.10.1")
                 "base", // base resources; always needs to be loaded first; loaded automatically, but included for clarity
                 "game", // game resources; always needs to be loaded immediately after base resources
-                "KONGOR/configuration", // custom configuration files to override default configuration; configuration file load order: 1) startup.cfg, 2) login.cfg, 3) init.cfg, 4) autoexec.cfg
-                "KONGOR/updates", // custom resource files to override default game resources; reserved for game updates
-                "KONGOR/extensions", // custom resource files to override default game resources; reserved for mods and extensions
+                $"{FileSystem.RuntimeDirectoryName}/configuration", // custom configuration files to override default configuration; configuration file load order: 1) startup.cfg, 2) login.cfg, 3) init.cfg, 4) autoexec.cfg
+                $"{FileSystem.RuntimeDirectoryName}/updates", // custom resource files to override default game resources; reserved for game updates
+                $"{FileSystem.RuntimeDirectoryName}/extensions", // custom resource files to override default game resources; reserved for mods and extensions
 
                 // relative to configuration directory (e.g. "C:\Users\KONGOR\Documents\Heroes Of Newerth x64")
                 "client" // the last path in the mod stack defines where user configuration files are saved to and loaded from
@@ -626,9 +626,9 @@ public partial class MainViewModel : ObservableObject
                 "base", // base resources; always needs to be loaded first; loaded automatically, but included for clarity
                 "game", // game resources; always needs to be loaded immediately after base resources
                 "editor", // editor resources; loaded immediately after game resources to overlay editor tooling onto the game stack
-                "KONGOR/configuration", // custom configuration files to override default configuration; configuration file load order: 1) startup.cfg, 2) login.cfg, 3) init.cfg, 4) autoexec.cfg
-                "KONGOR/updates", // custom resource files to override default game resources; reserved for game updates
-                "KONGOR/extensions", // custom resource files to override default game resources; reserved for mods and extensions
+                $"{FileSystem.RuntimeDirectoryName}/configuration", // custom configuration files to override default configuration; configuration file load order: 1) startup.cfg, 2) login.cfg, 3) init.cfg, 4) autoexec.cfg
+                $"{FileSystem.RuntimeDirectoryName}/updates", // custom resource files to override default game resources; reserved for game updates
+                $"{FileSystem.RuntimeDirectoryName}/extensions", // custom resource files to override default game resources; reserved for mods and extensions
 
                 // relative to configuration directory (e.g. "C:\Users\KONGOR\Documents\Heroes Of Newerth x64")
                 "editor" // the last path in the mod stack defines where user configuration files are saved to and loaded from
@@ -692,7 +692,7 @@ public partial class MainViewModel : ObservableObject
 
     private void WriteCustomConfiguration()
     {
-        string customConfigurationFilePath = Path.Combine(Environment.CurrentDirectory, "KONGOR", "configuration", "autoexec.cfg");
+        string customConfigurationFilePath = Path.Combine(Environment.CurrentDirectory, FileSystem.RuntimeDirectoryName, "configuration", "autoexec.cfg");
 
         string customConfigurationFileContent =
         """

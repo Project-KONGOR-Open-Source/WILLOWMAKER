@@ -7,7 +7,6 @@ public static class DeploymentManifest
 {
     public const string ApplicationName            = "WILLOWMAKER";
     public const string LogFileName                = "WILLOWMAKER.log";
-    public const string RuntimeDirectoryName       = "KONGOR";
     public const string UpdateArchiveFileName      = "WILLOWMAKER.update.zip";
     public const string UpdateExtractDirectoryName = "WILLOWMAKER.update";
 
