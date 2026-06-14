@@ -2,6 +2,39 @@ namespace WILLOWMAKER.Core.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SynchronisationIsIdle))]
+    [NotifyPropertyChangedFor(nameof(MasterServerInputIsEnabled))]
+    [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]
+    [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
+    public partial bool SynchronisationIsActive { get; set; } = false;
+
+    [ObservableProperty]
+    public partial bool SynchronisationIsScheduled { get; set; } = false;
+
+    [ObservableProperty]
+    public partial double SynchronisationProgressPercent { get; set; } = 0;
+
+    [ObservableProperty]
+    public partial string SynchronisationStatusMessage { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial bool SynchronisationIsFailed { get; set; } = false;
+
+    [ObservableProperty]
+    public partial string DownloadedFilesDisplay { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string RemovedFilesDisplay { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string SkippedFilesDisplay { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string UpToDateFilesDisplay { get; set; } = string.Empty;
+
+    public bool SynchronisationIsIdle => SynchronisationIsActive is false;
+
     private async Task<bool> SynchroniseContent(bool skipSynchronisation = false)
     {
         if (skipSynchronisation)

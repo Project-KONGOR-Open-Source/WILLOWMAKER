@@ -2,6 +2,50 @@ namespace WILLOWMAKER.Core.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UpdateIsPendingMessage))]
+    public partial string? LatestAvailableVersionDisplay { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ReleasesRepositoryIsUnreachable))]
+    [NotifyPropertyChangedFor(nameof(UpdateIsUnavailable))]
+    [NotifyPropertyChangedFor(nameof(UpdateIsPending))]
+    [NotifyPropertyChangedFor(nameof(UpdateIsDownloading))]
+    [NotifyPropertyChangedFor(nameof(UpdateIsRestarting))]
+    [NotifyPropertyChangedFor(nameof(UpdateIsInstalling))]
+    [NotifyPropertyChangedFor(nameof(UpdateCheckIsInProgress))]
+    [NotifyPropertyChangedFor(nameof(UpdateCheckIsIdle))]
+    [NotifyPropertyChangedFor(nameof(MasterServerInputIsEnabled))]
+    [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]
+    [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
+    public partial UpdateStatus UpdateStatus { get; set; } = UpdateStatus.CheckInProgress;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UpdateDownloadPercentDisplay))]
+    public partial double UpdateDownloadPercent { get; set; } = 0;
+
+    public bool ReleasesRepositoryIsUnreachable => UpdateStatus is UpdateStatus.RepositoryUnreachable;
+
+    public bool UpdateIsUnavailable => UpdateStatus is UpdateStatus.ApplicationUpToDate;
+
+    public bool UpdateIsPending => UpdateStatus is UpdateStatus.UpdateAvailable;
+
+    public string UpdateIsPendingMessage => $"{DeploymentManifest.ApplicationName} {LatestAvailableVersionDisplay} Is Available";
+
+    public bool UpdateIsDownloading => UpdateStatus is UpdateStatus.UpdateDownloading;
+
+    public bool UpdateIsRestarting => UpdateStatus is UpdateStatus.UpdateRestarting;
+
+    public bool UpdateIsInstalling => UpdateStatus is UpdateStatus.UpdateDownloading or UpdateStatus.UpdateRestarting;
+
+    public string UpdateDownloadMessage => $"Downloading {LatestAvailableVersionDisplay}" + ":";
+
+    public string UpdateDownloadPercentDisplay => $"{(int) UpdateDownloadPercent}%";
+
+    public bool UpdateCheckIsInProgress => UpdateStatus is UpdateStatus.CheckInProgress;
+
+    public bool UpdateCheckIsIdle => UpdateStatus is not UpdateStatus.CheckInProgress;
+
     private async Task CheckForUpdates()
     {
         Log(LogCategory.Version, $"Current Version: {VersionChecker.CurrentVersionDisplay}");

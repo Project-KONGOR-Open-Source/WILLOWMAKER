@@ -2,6 +2,61 @@ namespace WILLOWMAKER.Core.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    [ObservableProperty]
+    public partial ComboBoxItem? MasterServerAddress { get; set; } = new () { Content = "api.kongor.net" }; // Needs To Match The Default Value In The XAML
+
+    [ObservableProperty]
+    public partial string? CustomMasterServerAddress { get; set; }
+
+    [ObservableProperty]
+    public partial bool CanShowCustomMasterServerAddressField { get; set; } = false;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
+    public partial bool MasterServerAddressIsValid { get; set; } = true;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]
+    [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
+    public partial bool LaunchIsInProgress { get; set; } = false;
+
+    public bool MasterServerInputIsEnabled => UpdateCheckIsIdle && UpdateIsInstalling is false && SynchronisationIsIdle;
+
+    public bool CanLaunchMapEditor => UpdateCheckIsIdle && UpdateIsInstalling is false && SynchronisationIsIdle && LaunchIsInProgress is false;
+
+    public bool CanLaunchGameClient => UpdateCheckIsIdle && UpdateIsInstalling is false && MasterServerAddressIsValid && SynchronisationIsIdle && LaunchIsInProgress is false;
+
+    public string LaunchMapEditorButtonText => "Open Map Editor";
+
+    public string LaunchGameClientButtonText => "Play Heroes Of Newerth";
+
+    partial void OnMasterServerAddressChanged(ComboBoxItem? oldValue, ComboBoxItem? newValue)
+    {
+        if (newValue is not null)
+        {
+            CanShowCustomMasterServerAddressField = newValue.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false;
+
+            MasterServerAddressIsValid = (MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false) is false
+                ? true
+                : (MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false) is true && string.IsNullOrWhiteSpace(CustomMasterServerAddress) is false
+                    ? true : false;
+
+            if (CanShowCustomMasterServerAddressField is false)
+            {
+                CustomMasterServerAddress = null;
+                MasterServerAddressIsValid = true;
+
+                LogLaunchParameters();
+            }
+        }
+    }
+
+    partial void OnCustomMasterServerAddressChanged(string? oldValue, string? newValue)
+    {
+        MasterServerAddressIsValid = (MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false) is true && string.IsNullOrWhiteSpace(CustomMasterServerAddress) is false
+            ? true : false;
+    }
+
     private void LogLaunchParameters()
     {
         string address = MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false
