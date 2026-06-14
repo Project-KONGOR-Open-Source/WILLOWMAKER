@@ -1,4 +1,4 @@
-﻿global using Avalonia;
+global using Avalonia;
 global using Avalonia.Controls.ApplicationLifetimes;
 global using Avalonia.Controls;
 global using Avalonia.Input;
@@ -19,6 +19,7 @@ global using System.IO.Compression;
 global using System.Net;
 global using System.Runtime.InteropServices;
 global using System.Security.Cryptography;
+global using System.Text;
 global using System.Text.Json;
 global using System.Text.Json.Serialization;
 global using System.Text.RegularExpressions;
