@@ -1,0 +1,46 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:WILLOWMAKER.Core.Views"
+        x:Class="WILLOWMAKER.Core.Views.FileLockDialog"
+        Title="Processes Blocking Synchronisation"
+        Width="500" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        TransparencyLevelHint="Transparent"
+        Background="#F2131418">
+
+    <StackPanel Margin="25">
+        <TextBlock Text="Processes Blocking Synchronisation" FontSize="16" FontWeight="SemiBold" Foreground="OrangeRed" Margin="0, 0, 0, 10" />
+        <TextBlock Text="The files synchronisation cannot proceed because some files are currently locked by the following processes. Please close them to retry." TextWrapping="Wrap" Margin="0, 0, 0, 15" />
+
+        <ScrollViewer MaxHeight="300" Margin="0, 0, 0, 15">
+            <ItemsControl x:Name="LockGroupsItemsControl">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="views:LockGroupDisplay">
+                        <Expander Header="{Binding ProcessName}" IsExpanded="False" HorizontalAlignment="Stretch" Margin="0, 0, 0, 10">
+                            <ItemsControl ItemsSource="{Binding FilePaths}" Margin="10, 5, 10, 5">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0, 2, 0, 2" FontFamily="Cascadia Mono, Consolas, Menlo, Monospace" FontSize="12" Foreground="#CCCCCC" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Expander>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button Content="OK" Click="OK_Click" Background="Green" Cursor="Hand" Width="90" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                <Button.Styles>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="Green" />
+                        <Setter Property="FontWeight" Value="Medium" />
+                    </Style>
+                </Button.Styles>
+            </Button>
+        </StackPanel>
+    </StackPanel>
+
+</Window>

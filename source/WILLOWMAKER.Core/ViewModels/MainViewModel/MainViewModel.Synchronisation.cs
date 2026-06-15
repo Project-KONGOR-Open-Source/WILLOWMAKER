@@ -196,6 +196,9 @@ public partial class MainViewModel : ObservableObject
 
                 Log(LogCategory.Synchronise, $"FAIL: {summary.FilesFailed} File(s) Failed To Be Transferred :: Launch Aborted");
 
+                // Query Locking Processes For Failed Files
+                await CheckForLockingProcesses(summary.Failures);
+
                 return false;
             }
 
@@ -241,5 +244,99 @@ public partial class MainViewModel : ObservableObject
         int percent = total > 0 ? (int) ((double) current / total * 100) : 100;
 
         return $"{label} {current:D3}/{total:D3} ({percent}%)";
+    }
+
+    private async Task CheckForLockingProcesses(IReadOnlyList<SynchronisationFailure> failures)
+    {
+        const string unidentifiedProcessGroup = "Unidentified Process";
+
+        // Lock Scanning Touches The Restart Manager And The Filesystem, So It Runs Off The UI Thread To Keep The Window Responsive
+        Dictionary<string, List<string>> lockGroups = await Task.Run(() =>
+        {
+            Dictionary<string, List<string>> groups = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
+            void AssignToGroup(string groupName, string filePath)
+            {
+                if (groups.TryGetValue(groupName, out List<string>? paths) is false)
+                {
+                    paths = new List<string>();
+
+                    groups.Add(groupName, paths);
+                }
+
+                if (paths.Contains(filePath) is false)
+                    paths.Add(filePath);
+            }
+
+            foreach (SynchronisationFailure failure in failures)
+            {
+                // Resolve The Full Path For Lock Scanning
+                string absolutePath = Path.IsPathRooted(failure.Path)
+                    ? failure.Path
+                    : Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, failure.Path));
+
+                if (File.Exists(absolutePath) is false)
+                    continue;
+
+                // Relativise The Path For UI Display
+                string displayPath = Path.GetRelativePath(Environment.CurrentDirectory, absolutePath);
+
+                List<FileLockingProcess> lockingProcesses = FileLockDetector.GetLockingProcesses(absolutePath);
+
+                if (lockingProcesses.Count is 0)
+                {
+                    // No Locking Process Was Identified, So The File Is Only Surfaced When It Is Genuinely Still Locked; This Filters Out Failures Caused By Other Reasons (Such As A Hash Mismatch Or An Unreachable CDN) While Still Reporting A Lock Whose Owner Could Not Be Determined
+                    if (FileIsLocked(absolutePath))
+                        AssignToGroup(unidentifiedProcessGroup, displayPath);
+
+                    continue;
+                }
+
+                foreach (FileLockingProcess lockingProcess in lockingProcesses)
+                {
+                    AssignToGroup($"{lockingProcess.ApplicationName} (PID: {lockingProcess.ProcessID})", displayPath);
+                }
+            }
+
+            return groups;
+        });
+
+        if (lockGroups.Count > 0)
+        {
+            List<LockGroupDisplay> groups = lockGroups.Select(pair => new LockGroupDisplay
+            {
+                ProcessName = pair.Key,
+                FilePaths = pair.Value
+            }).ToList();
+
+            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop && desktop.MainWindow is not null)
+            {
+                FileLockDialog dialog = new FileLockDialog(groups);
+
+                await dialog.ShowDialog(desktop.MainWindow);
+            }
+        }
+    }
+
+    private static bool FileIsLocked(string path)
+    {
+        try
+        {
+            // Opening With No Sharing Fails When Any Other Handle To The File Is Already Open, Which Is The Defining Symptom Of A Lock Held By Another Process; Read Access Is Requested So The Read-Only Attribute Does Not Interfere
+            // This Only Acquires A Handle And Never Reads The Contents, So The File's Size Has No Bearing On The Application's Performance; The Probe Is A Single Open/Close Regardless Of Whether The File Is A Few Bytes Or Many Gigabytes
+            using FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None);
+
+            return false;
+        }
+
+        catch (IOException)
+        {
+            return true;
+        }
+
+        catch
+        {
+            return false; // Swallowed Deliberately: An Inability To Open The File For Reasons Other Than Sharing (Such As Insufficient Permissions) Must Not Be Misreported As A Lock
+        }
     }
 }
