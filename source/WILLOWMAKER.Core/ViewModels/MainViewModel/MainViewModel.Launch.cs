@@ -287,6 +287,22 @@ public partial class MainViewModel : ObservableObject
 
     private async Task LaunchProcessAndExit(FileInfo executable, string[] arguments)
     {
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+        {
+            try
+            {
+                UnixFileMode currentMode = File.GetUnixFileMode(executable.FullName);
+
+                // POSIX Systems Require The Execute Permission Bit To Be Explicitly Set For Downloaded Binaries To Run
+                File.SetUnixFileMode(executable.FullName, currentMode | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
+            }
+
+            catch (Exception exception)
+            {
+                Log(LogCategory.Executable, $@"Failed To Set POSIX Execution Permissions: {exception.Message}");
+            }
+        }
+
         Log(LogCategory.Command, $@"""{executable.FullName}"" {string.Join(" ", arguments)}");
 
         Process? process = Process.Start(new ProcessStartInfo
