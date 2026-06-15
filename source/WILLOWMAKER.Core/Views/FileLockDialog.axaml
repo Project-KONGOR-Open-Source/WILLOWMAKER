@@ -9,6 +9,24 @@
         TransparencyLevelHint="Transparent"
         Background="#F2131418">
 
+    <Window.Resources>
+        <!-- Soften The Default Fluent Expander Chrome With Subtle Translucent White Brushes So It Blends With The Translucent Dark Window Rather Than Reading As A Solid Black Block -->
+        <SolidColorBrush x:Key="ExpanderHeaderBackground" Color="#14FFFFFF" />
+        <SolidColorBrush x:Key="ExpanderHeaderBackgroundPointerOver" Color="#22FFFFFF" />
+        <SolidColorBrush x:Key="ExpanderHeaderBackgroundPressed" Color="#2EFFFFFF" />
+        <SolidColorBrush x:Key="ExpanderHeaderForeground" Color="#EEEEEE" />
+        <SolidColorBrush x:Key="ExpanderHeaderForegroundPointerOver" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="ExpanderHeaderForegroundPressed" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="ExpanderHeaderBorderBrush" Color="#22FFFFFF" />
+        <SolidColorBrush x:Key="ExpanderHeaderBorderBrushPointerOver" Color="#33FFFFFF" />
+        <SolidColorBrush x:Key="ExpanderHeaderBorderBrushPressed" Color="#33FFFFFF" />
+        <SolidColorBrush x:Key="ExpanderContentBackground" Color="Transparent" />
+        <SolidColorBrush x:Key="ExpanderContentBorderBrush" Color="#22FFFFFF" />
+        <SolidColorBrush x:Key="ExpanderChevronForeground" Color="#CCCCCC" />
+        <SolidColorBrush x:Key="ExpanderChevronForegroundPointerOver" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="ExpanderChevronForegroundPressed" Color="#FFFFFF" />
+    </Window.Resources>
+
     <StackPanel Margin="25">
         <TextBlock Text="Processes Blocking Synchronisation" FontSize="16" FontWeight="SemiBold" Foreground="OrangeRed" Margin="0, 0, 0, 10" />
         <TextBlock Text="The files synchronisation cannot proceed because some files are currently locked by the following processes. Please close them to retry." TextWrapping="Wrap" Margin="0, 0, 0, 15" />
