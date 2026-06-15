@@ -251,21 +251,26 @@ public partial class MainViewModel : ObservableObject
         const string unidentifiedProcessGroup = "Unidentified Process";
 
         // Lock Scanning Touches The Restart Manager And The Filesystem, So It Runs Off The UI Thread To Keep The Window Responsive
-        Dictionary<string, List<string>> lockGroups = await Task.Run(() =>
+        Dictionary<string, LockGroup> lockGroups = await Task.Run(() =>
         {
-            Dictionary<string, List<string>> groups = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, LockGroup> groups = new Dictionary<string, LockGroup>(StringComparer.OrdinalIgnoreCase);
 
-            void AssignToGroup(string groupName, string filePath)
+            LockGroup GroupFor(string applicationName)
             {
-                if (groups.TryGetValue(groupName, out List<string>? paths) is false)
+                if (groups.TryGetValue(applicationName, out LockGroup? group) is false)
                 {
-                    paths = new List<string>();
+                    group = new LockGroup();
 
-                    groups.Add(groupName, paths);
+                    groups.Add(applicationName, group);
                 }
 
-                if (paths.Contains(filePath) is false)
-                    paths.Add(filePath);
+                return group;
+            }
+
+            void AssignToGroup(LockGroup group, string filePath)
+            {
+                if (group.FilePaths.Contains(filePath) is false)
+                    group.FilePaths.Add(filePath);
             }
 
             foreach (SynchronisationFailure failure in failures)
@@ -287,14 +292,19 @@ public partial class MainViewModel : ObservableObject
                 {
                     // No Locking Process Was Identified, So The File Is Only Surfaced When It Is Genuinely Still Locked; This Filters Out Failures Caused By Other Reasons (Such As A Hash Mismatch Or An Unreachable CDN) While Still Reporting A Lock Whose Owner Could Not Be Determined
                     if (FileIsLocked(absolutePath))
-                        AssignToGroup(unidentifiedProcessGroup, displayPath);
+                        AssignToGroup(GroupFor(unidentifiedProcessGroup), displayPath);
 
                     continue;
                 }
 
                 foreach (FileLockingProcess lockingProcess in lockingProcesses)
                 {
-                    AssignToGroup($"{lockingProcess.ApplicationName} (PID: {lockingProcess.ProcessID})", displayPath);
+                    // Every Instance Of The Same Executable Is Collapsed Into One Group Keyed By Its Application Name; Its Distinct Process IDs Are Counted So The User Knows How Many Instances Need To Be Closed
+                    LockGroup group = GroupFor(lockingProcess.ApplicationName);
+
+                    group.ProcessIDs.Add(lockingProcess.ProcessID);
+
+                    AssignToGroup(group, displayPath);
                 }
             }
 
@@ -305,8 +315,11 @@ public partial class MainViewModel : ObservableObject
         {
             List<LockGroupDisplay> groups = lockGroups.Select(pair => new LockGroupDisplay
             {
-                ProcessName = pair.Key,
-                FilePaths = pair.Value
+                // A Process Count Is Appended Only When More Than One Instance Of The Application Is Holding The File, So The User Closes Every One Of Them
+                ProcessName = pair.Value.ProcessIDs.Count > 1
+                    ? $"{pair.Key} ({pair.Value.ProcessIDs.Count} Processes)"
+                    : pair.Key,
+                FilePaths = pair.Value.FilePaths
             }).ToList();
 
             if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop && desktop.MainWindow is not null)
@@ -338,5 +351,15 @@ public partial class MainViewModel : ObservableObject
         {
             return false; // Swallowed Deliberately: An Inability To Open The File For Reasons Other Than Sharing (Such As Insufficient Permissions) Must Not Be Misreported As A Lock
         }
+    }
+
+    /// <summary>
+    ///     Accumulates the distinct locking process IDs and the locked file paths for a single application while the locking processes are being scanned.
+    /// </summary>
+    private sealed class LockGroup
+    {
+        public HashSet<int> ProcessIDs { get; } = new HashSet<int>();
+
+        public List<string> FilePaths { get; } = new List<string>();
     }
 }
