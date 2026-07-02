@@ -64,10 +64,10 @@ jobs:
     steps:
 
     - name: "Check Out Branch"
-      uses: "actions/checkout@v4"
+      uses: "actions/checkout@v7"
 
     - name: "Install .NET 10"
-      uses: "actions/setup-dotnet@v4"
+      uses: "actions/setup-dotnet@v5"
       with:
         dotnet-version: "10.x"
 
@@ -96,7 +96,7 @@ jobs:
     # instead, each zip is uploaded as a workflow artefact, then the dedicated `release` job downloads all six and publishes them together
     # `if-no-files-found: error` means a silent publish failure that produced no zip will fail the job loudly rather than quietly ship a release missing a platform
     - name: "Upload Asset Artefact"
-      uses: "actions/upload-artifact@v4"
+      uses: "actions/upload-artifact@v7"
       with:
         name: ${{ matrix.asset }}
         path: ${{ matrix.asset }}-${{ github.ref_name }}.zip
@@ -114,7 +114,7 @@ jobs:
 
     # `merge-multiple: true` flattens all six per-platform artefact folders into a single `artefacts/` directory containing just the zips
     - name: "Download All Assets"
-      uses: "actions/download-artifact@v4"
+      uses: "actions/download-artifact@v8"
       with:
         path: "artefacts"
         merge-multiple: true
@@ -123,7 +123,7 @@ jobs:
     # `prerelease: ${{ contains(github.ref_name, '-') }}` flags tags that contain a hyphen (e.g. v1.2.3-rc1) as pre-release automatically, so they don't steal the "Latest" badge from the real release
     # `fail_on_unmatched_files: true` is belt-and-braces: if the artefact download somehow delivered no zips, fail loudly instead of publishing an empty release
     - name: "Publish Release"
-      uses: "softprops/action-gh-release@v2"
+      uses: "softprops/action-gh-release@v3"
       with:
         files: "artefacts/*.zip"
         draft: false
