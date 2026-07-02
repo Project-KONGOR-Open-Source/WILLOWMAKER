@@ -1,4 +1,4 @@
-name: "Publish Release"
+name: "Publish Releases"
 
 # triggers on version-tag pushes only
 # the second pattern (`-*`) catches pre-release tags like v1.2.3-rc1 so release candidates can be cut through the same workflow
