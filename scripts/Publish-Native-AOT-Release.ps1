@@ -1,4 +1,4 @@
-# local equivalent of .github/workflows/publish-release.yml
+# local equivalent of .github/workflows/publish-releases.yml
 
 $ErrorActionPreference = 'Stop'
 
