@@ -1,10 +1,10 @@
 namespace WILLOWMAKER.Core.Services;
 
 /// <summary>
-///     Synchronises the local installation directory with a content bucket described by a remote manifest.
+///     Synchronises a local installation directory with a content bucket described by a remote manifest.
 ///     The local tree becomes an exact mirror of the manifest's file list.
 ///     Files matching <see cref="Manifest.ExcludeFromSource"/> are remote-side paths that must not be downloaded (e.g. the manifest itself).
-///     Files matching <see cref="Manifest.ExcludeFromTarget"/> are local-side paths that must not be changed in any way (e.g. the launcher's own files); they are neither overwritten by downloads nor removed by deletions.
+///     Files matching <see cref="Manifest.ExcludeFromTarget"/> are local-side paths that must not be changed in any way (e.g. the launcher's own files). They are neither overwritten by downloads nor removed by deletions.
 /// </summary>
 public static class ContentBroker
 {
@@ -12,18 +12,6 @@ public static class ContentBroker
     private const string ManifestFileName         = "manifest.json";
     private const string PartialDownloadSuffix    = ".partial";
     private const int    DefaultParallelTransfers = 8;
-
-    /// <summary>
-    ///     Returns the bucket variant that matches the current client operating system.
-    ///     The GEMINI pipeline publishes <c>wac</c>, <c>lac</c>, and <c>mac</c> variants for the Windows, Linux, and macOS client distributions.
-    /// </summary>
-    public static string ResolveDefaultClientVariant()
-    {
-        return OperatingSystem.IsWindows() ? "wac"
-             : OperatingSystem.IsLinux()   ? "lac"
-             : OperatingSystem.IsMacOS()   ? "mac"
-             : throw new PlatformNotSupportedException($@"Unsupported Operating System: {Environment.OSVersion.Platform}");
-    }
 
     /// <summary>
     ///     Downloads and parses the manifest for the given <paramref name="variant"/> from the CDN.
@@ -48,6 +36,7 @@ public static class ContentBroker
     ///     Mirrors the manifest's file list into <paramref name="targetDirectory"/>: downloads missing or mismatched files, and removes local files that are not in the manifest.
     ///     For each manifest entry the download pass asks two questions in order: first, may the file be fetched from the bucket (a remote-side check against <see cref="Manifest.ExcludeFromSource"/>); second, would writing it change a local path that must not be changed (a local-side check against <see cref="Manifest.ExcludeFromTarget"/>).
     ///     The deletion pass asks the local-side question alone, against <see cref="Manifest.ExcludeFromTarget"/>.
+    ///     Leftover partial files from an interrupted run are removed up-front, before any downloads begin.
     ///     Downloads run in parallel and are written atomically via a <c>.partial</c> temporary file that is renamed on success.
     /// </summary>
     public static async Task<SynchronisationSummary> Synchronise
@@ -122,9 +111,14 @@ public static class ContentBroker
 
         // Second Pass: Decide Which Local Files Are No Longer In The Manifest And Should Be Deleted
 
-        HashSet<string> expectedRelativePaths = new (manifest.Files.Keys.Select(NormaliseRelativePath), StringComparer.OrdinalIgnoreCase);
+        HashSet<string> expectedRelativePaths = new (manifest.Files.Keys.Select(NormaliseRelativePath), PathComparer);
 
         List<string> pendingDeletions = new ();
+
+        int filesDeleted = 0;
+        int filesFailed  = 0;
+
+        ConcurrentBag<SynchronisationFailure> failures = new ();
 
         if (Directory.Exists(targetDirectory))
         {
@@ -134,9 +128,26 @@ public static class ContentBroker
 
                 string relativePath = NormaliseRelativePath(Path.GetRelativePath(targetDirectory, fullPath));
 
+                // A Leftover Partial From An Interrupted Run Is Removed Immediately, Before Any Downloads Begin: A Re-Download Of The Same File Renames Its Fresh Partial Into Place, So A Deferred Deletion Of The Old Partial Would Find The Path Already Gone And Report A Spurious Failure
                 if (relativePath.EndsWith(PartialDownloadSuffix, StringComparison.OrdinalIgnoreCase))
                 {
-                    pendingDeletions.Add(fullPath);
+                    try
+                    {
+                        ForceDelete(fullPath);
+
+                        filesDeleted++;
+
+                        progress?.Report(new SynchronisationEvent(SynchronisationEventKind.Deleted, relativePath, 0));
+                    }
+
+                    catch (Exception exception)
+                    {
+                        filesFailed++;
+
+                        failures.Add(new SynchronisationFailure(fullPath, exception.Message));
+
+                        progress?.Report(new SynchronisationEvent(SynchronisationEventKind.DeletionFailed, $@"{fullPath}: {exception.Message}", 0));
+                    }
 
                     continue;
                 }
@@ -154,7 +165,7 @@ public static class ContentBroker
         SynchronisationPlan plan = new
         (
             FilesToDownload:      pendingDownloads.Count,
-            FilesToDelete:        pendingDeletions.Count,
+            FilesToDelete:        filesDeleted + pendingDeletions.Count,
             FilesToSkip:          filesToSkip,
             FilesUpToDate:        filesUpToDate,
             TotalBytesToDownload: totalBytesToDownload
@@ -166,10 +177,7 @@ public static class ContentBroker
         using SemaphoreSlim semaphore = new (parallelTransfers, parallelTransfers);
 
         int filesDownloaded                = 0;
-        int filesFailed                    = 0;
         long bytesDownloaded               = 0;
-
-        ConcurrentBag<SynchronisationFailure> failures = new ();
 
         long totalBytesDownloaded          = 0;
         long lastReportTicks               = 0;
@@ -228,8 +236,6 @@ public static class ContentBroker
 
         // Report The Final Absolute Total Downloaded Bytes
         progress?.Report(new SynchronisationEvent(SynchronisationEventKind.ProgressUpdated, string.Empty, bytesDownloaded));
-
-        int filesDeleted = 0;
 
         foreach (string fullPath in pendingDeletions)
         {
@@ -402,6 +408,13 @@ public static class ContentBroker
 
     private static string NormaliseRelativePath(string relativePath)
         => relativePath.Replace('\\', '/');
+
+    // The Deletion Pass Must Mirror The Filesystem's Own Case Sensitivity: A Fixed Case-Insensitive Comparer Would Wrongly Keep A Stale File That Differs From A Manifest Entry Only In Case On A Case-Sensitive Filesystem
+    private static StringComparer PathComparer =>
+          OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase
+        : OperatingSystem.IsMacOS()   ? StringComparer.OrdinalIgnoreCase
+        : OperatingSystem.IsLinux()   ? StringComparer.Ordinal
+        : throw new PlatformNotSupportedException($@"Unsupported Operating System: {Environment.OSVersion.Platform}");
 
     private static bool MatchesAny(string relativePath, Matcher matcher)
         => matcher.Match(relativePath).HasMatches;

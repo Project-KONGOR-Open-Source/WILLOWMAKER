@@ -63,7 +63,7 @@ public partial class MainViewModel : ObservableObject
 
         try
         {
-            string variant = ContentBroker.ResolveDefaultClientVariant();
+            string variant = ResolveDefaultClientVariant();
 
             Log(LogCategory.Synchronise, $@"INIT: Fetching Manifest For Variant ""{variant}"" From CDN");
 
@@ -76,7 +76,7 @@ public partial class MainViewModel : ObservableObject
             int filesSkipped     = 0;
             long bytesDownloaded = 0;
 
-            SynchronisationPlan? plan       = null;
+            SynchronisationPlan? plan = null;
 
             int upToDateTotal    = 0;
 
@@ -95,10 +95,11 @@ public partial class MainViewModel : ObservableObject
                             // The Up-To-Date Column Includes Local Deletions So All Four Columns Reach 100% Together When The Synchronisation Completes
                             upToDateTotal = manifest.Files.Count + plan.FilesToDelete;
 
-                            DownloadedFilesDisplay = FormatSynchronisationColumn("DOWNLOADED", 0                                , plan.FilesToDownload);
-                            RemovedFilesDisplay    = FormatSynchronisationColumn("REMOVED"   , 0                                , plan.FilesToDelete  );
-                            SkippedFilesDisplay    = FormatSynchronisationColumn("SKIPPED"   , 0                                , plan.FilesToSkip    );
-                            UpToDateFilesDisplay   = FormatSynchronisationColumn("UP-TO-DATE", plan.FilesUpToDate + filesSkipped, upToDateTotal       );
+                            // Skipped Files Are Reported During The First Pass And Leftover Partial Files Are Deleted During The Local Scan, Both Before The Plan Is Reported, So The Skipped And Removed Columns Start From The Counts Already Accumulated By Those Early Events
+                            DownloadedFilesDisplay = FormatSynchronisationColumn("DOWNLOADED", 0                                               , plan.FilesToDownload);
+                            RemovedFilesDisplay    = FormatSynchronisationColumn("REMOVED"   , filesDeleted                                    , plan.FilesToDelete  );
+                            SkippedFilesDisplay    = FormatSynchronisationColumn("SKIPPED"   , filesSkipped                                    , plan.FilesToSkip    );
+                            UpToDateFilesDisplay   = FormatSynchronisationColumn("UP-TO-DATE", plan.FilesUpToDate + filesDeleted + filesSkipped, upToDateTotal       );
 
                             // Drives The Progress Bar's Visibility: A Plan With No Downloads And No Deletions Means There Is Nothing To Show Progress Of
                             SynchronisationIsScheduled = plan.FilesToDownload > 0 || plan.FilesToDelete > 0;
@@ -233,6 +234,18 @@ public partial class MainViewModel : ObservableObject
         {
             SynchronisationIsActive = false;
         }
+    }
+
+    /// <summary>
+    ///     Returns the bucket variant that matches the current client operating system.
+    ///     The GEMINI pipeline publishes <c>wac</c>, <c>lac</c>, and <c>mac</c> variants for the Windows, Linux, and macOS client distributions.
+    /// </summary>
+    private static string ResolveDefaultClientVariant()
+    {
+        return OperatingSystem.IsWindows() ? "wac"
+             : OperatingSystem.IsLinux()   ? "lac"
+             : OperatingSystem.IsMacOS()   ? "mac"
+             : throw new PlatformNotSupportedException($@"Unsupported Operating System: {Environment.OSVersion.Platform}");
     }
 
     /// <summary>
