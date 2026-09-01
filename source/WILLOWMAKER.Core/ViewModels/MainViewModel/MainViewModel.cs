@@ -15,9 +15,6 @@ public partial class MainViewModel : ObservableObject
     public partial string? DiscordLink { get; set; } = "https://discord.com/invite/N6pKzGDqUH";
 
     [ObservableProperty]
-    public partial string? ElementLink { get; set; } = "https://app.element.io/#/room/#newerth:matrix.org";
-
-    [ObservableProperty]
     public partial string VersionDisplay { get; set; } = VersionChecker.CurrentVersionDisplay;
 
     public MainViewModel()
