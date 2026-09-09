@@ -345,12 +345,12 @@ public static class ContentBroker
 
     private static async Task<bool> LocalFileMatchesManifestEntry(string localPath, ManifestEntry entry, CancellationToken cancellationToken)
     {
-        FileInfo info = new (localPath);
+        FileInfo information = new (localPath);
 
-        if (info.Exists is false)
+        if (information.Exists is false)
             return false;
 
-        if (info.Length != entry.Size)
+        if (information.Length != entry.Size)
             return false;
 
         FileStream fileStream = File.OpenRead(localPath);
