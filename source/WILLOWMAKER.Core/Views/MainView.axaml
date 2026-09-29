@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="clr-namespace:WILLOWMAKER.Core.Models"
              xmlns:vm="clr-namespace:WILLOWMAKER.Core.ViewModels"
              mc:Ignorable="d" d:DesignWidth="1150" Width="1150" d:DesignHeight="600" Height="600"
              x:Class="WILLOWMAKER.Core.Views.MainView"
@@ -79,7 +80,7 @@
                     <Grid Grid.Row="0" Height="540" ColumnDefinitions="Auto, Auto, Auto">
                         <StackPanel Grid.Column="0" Width="300" />
 
-                        <StackPanel Grid.Column="1" Width="400" Margin="0, 205, 0, 0">
+                        <StackPanel Grid.Column="1" Width="400" Margin="0, 160, 0, 0">
                             <Label Width="400" Margin="0, 0, 0, 5" HorizontalAlignment="Center" HorizontalContentAlignment="Center">Master Server Address</Label>
 
                             <ComboBox SelectedValue="{Binding MasterServerAddress}" Name="MasterServerAddressDropdown" SelectedIndex="0" Width="400" HorizontalAlignment="Center" HorizontalContentAlignment="Center" IsEnabled="{Binding MasterServerInputIsEnabled}">
@@ -89,6 +90,47 @@
                             </ComboBox>
 
                             <TextBox Text="{Binding CustomMasterServerAddress}" Width="400" Margin="0, 10, 0, 0" HorizontalAlignment="Center" TextAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" IsEnabled="{Binding MasterServerInputIsEnabled}" LostFocus="CustomMasterServerAddress_LostFocus" KeyDown="CustomMasterServerAddress_KeyDown" />
+
+                            <Label Width="400" Margin="0, 10, 0, 5" HorizontalAlignment="Center" HorizontalContentAlignment="Center">Content Delivery Network</Label>
+
+                            <ComboBox Name="CDNOptionsDropdown" ItemsSource="{Binding AvailableCDNOptions}" SelectedItem="{Binding SelectedCDNAddressItem}" IsEnabled="{Binding CDNInputIsEnabled}" Width="400" HorizontalAlignment="Center" HorizontalContentAlignment="Stretch">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="models:CDNSelectItem">
+                                        <DockPanel LastChildFill="True">
+                                            <Border DockPanel.Dock="Right" Width="16" Height="16" CornerRadius="8" Background="#555555" Margin="5, 0, 0, 0" VerticalAlignment="Center" IsVisible="{Binding HasTooltip}" ToolTip.Tip="{Binding TooltipText}">
+                                                <TextBlock Text="!" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
+                                            </Border>
+                                            <TextBlock Text="{Binding DisplayText}" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <TextBox Text="{Binding CustomCDNAddress}" Width="400" Margin="0, 10, 0, 0" HorizontalAlignment="Center" TextAlignment="Center" IsVisible="{Binding CanShowCustomCDNAddressField}" IsEnabled="{Binding CDNInputIsEnabled}" LostFocus="CustomCDNAddress_LostFocus" KeyDown="CustomCDNAddress_KeyDown" />
+
+                            <TextBlock Classes.probing="{Binding CDNProbeInProgress}"
+                                       Classes.online="{Binding CDNProbeSucceeded}"
+                                       Classes.failed="{Binding CDNProbeFailed}"
+                                       Text="{Binding CDNProbeStatusMessage}"
+                                       Width="400" Margin="0, 5, 0, 0"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       FontSize="11">
+                                <TextBlock.Styles>
+                                    <Style Selector="TextBlock.probing">
+                                        <Setter Property="Foreground" Value="#AAAAAA" />
+                                        <Setter Property="FontStyle" Value="Italic" />
+                                    </Style>
+                                    <Style Selector="TextBlock.online">
+                                        <Setter Property="Foreground" Value="DarkSeaGreen" />
+                                        <Setter Property="FontStyle" Value="Normal" />
+                                    </Style>
+                                    <Style Selector="TextBlock.failed">
+                                        <Setter Property="Foreground" Value="OrangeRed" />
+                                        <Setter Property="FontStyle" Value="Normal" />
+                                    </Style>
+                                </TextBlock.Styles>
+                            </TextBlock>
 
                             <StackPanel Orientation="Horizontal" Margin="0, 10, 0, 0" HorizontalAlignment="Center">
                                 <Button Command="{Binding LaunchMapEditorCommand}" Width="175" Height="60" Margin="0, 0, 5, 0" Cursor="Hand" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchMapEditor}" Background="DarkGreen">

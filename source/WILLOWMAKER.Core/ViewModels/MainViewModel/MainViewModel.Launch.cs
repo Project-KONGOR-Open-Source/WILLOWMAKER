@@ -31,14 +31,19 @@ public partial class MainViewModel : ObservableObject
     public partial bool CDNAddressIsValid { get; set; } = true;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CDNProbeFailed))]
     public partial bool CDNProbeInProgress { get; set; } = false;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
+    [NotifyPropertyChangedFor(nameof(CDNProbeFailed))]
     public partial bool CDNProbeSucceeded { get; set; } = false;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CDNProbeFailed))]
     public partial string CDNProbeStatusMessage { get; set; } = string.Empty;
+
+    public bool CDNProbeFailed => CDNProbeInProgress is false && CDNProbeSucceeded is false && string.IsNullOrEmpty(CDNProbeStatusMessage) is false;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]

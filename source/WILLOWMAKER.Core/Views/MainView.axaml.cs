@@ -1,4 +1,4 @@
-﻿namespace WILLOWMAKER.Core.Views;
+namespace WILLOWMAKER.Core.Views;
 
 public partial class MainView : UserControl
 {
@@ -125,6 +125,41 @@ public partial class MainView : UserControl
     {
         if (arguments.Key == Key.Enter && sender is InputElement inputElement)
         {
+            Visual? parent = inputElement.GetVisualParent();
+
+            while (parent is not null)
+            {
+                if (parent is InputElement focusableParent && focusableParent.Focusable)
+                {
+                    focusableParent.Focus();
+
+                    break;
+                }
+
+                parent = parent.GetVisualParent();
+            }
+
+            arguments.Handled = true;
+        }
+    }
+
+    private void CustomCDNAddress_LostFocus(object? sender, RoutedEventArgs arguments)
+    {
+        if (DataContext is MainViewModel viewModel)
+        {
+            viewModel.TriggerImmediateCDNProbeCommand.Execute(null);
+        }
+    }
+
+    private void CustomCDNAddress_KeyDown(object? sender, KeyEventArgs arguments)
+    {
+        if (arguments.Key == Key.Enter && sender is InputElement inputElement)
+        {
+            if (DataContext is MainViewModel viewModel)
+            {
+                viewModel.TriggerImmediateCDNProbeCommand.Execute(null);
+            }
+
             Visual? parent = inputElement.GetVisualParent();
 
             while (parent is not null)
