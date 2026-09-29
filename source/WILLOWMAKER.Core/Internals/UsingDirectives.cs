@@ -13,10 +13,12 @@ global using CommunityToolkit.Mvvm.Input;
 global using Microsoft.Extensions.FileSystemGlobbing;
 
 global using System.Collections.Concurrent;
+global using System.Collections.ObjectModel;
 global using System.Diagnostics;
 global using System.Diagnostics.CodeAnalysis;
 global using System.IO.Compression;
 global using System.Net;
+global using System.Net.Http;
 global using System.Runtime.InteropServices;
 global using System.Runtime.InteropServices.ComTypes;
 global using System.Security.Cryptography;

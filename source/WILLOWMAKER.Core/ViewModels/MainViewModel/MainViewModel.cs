@@ -20,6 +20,7 @@ public partial class MainViewModel : ObservableObject
     public MainViewModel()
     {
         Log(LogCategory.Parameters, "-masterserver api.kongor.net -webserver api.kongor.net -messageserver api.kongor.net");
+        InitialiseCDNOptions();
     }
 
     /// <summary>

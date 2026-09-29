@@ -5,6 +5,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SynchronisationIsIdle))]
     [NotifyPropertyChangedFor(nameof(MasterServerInputIsEnabled))]
+    [NotifyPropertyChangedFor(nameof(CDNInputIsEnabled))]
     [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]
     [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
     public partial bool SynchronisationIsActive { get; set; } = false;
@@ -64,10 +65,11 @@ public partial class MainViewModel : ObservableObject
         try
         {
             string variant = ResolveDefaultClientVariant();
+            string cdnURL  = ResolveActiveCDNURL();
 
             Log(LogCategory.Synchronise, $@"INIT: Fetching Manifest For Variant ""{variant}"" From CDN");
 
-            Manifest manifest = await ContentBroker.FetchManifest(variant);
+            Manifest manifest = await ContentBroker.FetchManifest(variant, baseURL: cdnURL);
 
             Log(LogCategory.Synchronise, $"INIT: Manifest Version {manifest.Version} Lists {manifest.Files.Count} File(s)");
 
@@ -187,6 +189,7 @@ public partial class MainViewModel : ObservableObject
                 manifest:        manifest,
                 variant:         variant,
                 targetDirectory: Environment.CurrentDirectory,
+                baseURL:         cdnURL,
                 progress:        progress
             ));
 
