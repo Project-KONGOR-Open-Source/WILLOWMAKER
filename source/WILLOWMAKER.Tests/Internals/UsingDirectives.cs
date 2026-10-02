@@ -6,6 +6,7 @@ global using System.Net;
 global using System.Net.Sockets;
 
 global using WILLOWMAKER.Core.Enumerations;
+global using WILLOWMAKER.Core.Services;
 global using WILLOWMAKER.Core.Utilities;
 global using WILLOWMAKER.Core.ViewModels;
 global using WILLOWMAKER.Tests.Infrastructure;

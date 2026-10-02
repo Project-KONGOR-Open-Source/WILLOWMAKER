@@ -263,15 +263,15 @@ public partial class MainViewModel : ObservableObject
         SetCDNProbeState(inProgress: true, succeeded: false, statusMessage: "Probing CDN Connectivity ...", cancellationToken);
 
         bool succeeded = false;
+        string probeURL = rawAddress;
         string result;
 
         try
         {
             string normalised = AddressValidation.NormaliseCDNURL(rawAddress);
             string variant    = ResolveDefaultClientVariant();
-            string probeURL   = $"{normalised}{variant}/manifest.json";
 
-            Log(LogCategory.Synchronise, $@"INIT: Probing CDN At ""{probeURL}""");
+            probeURL = $"{normalised}{variant}/manifest.json";
 
             using HttpClient client = new ();
             client.DefaultRequestHeaders.UserAgent.ParseAdd($"WILLOWMAKER/{VersionChecker.CurrentVersionDisplay}");
@@ -296,9 +296,10 @@ public partial class MainViewModel : ObservableObject
                 : exception.Message;
         }
 
-        // The Final State Is Applied Before The Result Is Logged, So That A Failure To Write To The Log Cannot Leave The Probe In Progress
+        // The Final State Is Applied Before Anything Is Logged, So That A Failure To Write To The Log Can Neither Leave The Probe In Progress Nor Change Its Result
         SetCDNProbeState(inProgress: false, succeeded: succeeded, statusMessage: succeeded ? $"CDN Is Online: {result}" : $"CDN Is Unreachable: {result}", cancellationToken);
 
+        Log(LogCategory.Synchronise, $@"INIT: Probing CDN At ""{probeURL}""");
         Log(LogCategory.Synchronise, succeeded ? $"INIT: CDN Probe Succeeded: {result}" : $"WARN: CDN Probe Failed: {result}");
     }
 

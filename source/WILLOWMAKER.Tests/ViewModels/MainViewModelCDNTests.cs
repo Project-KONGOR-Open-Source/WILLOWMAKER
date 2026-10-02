@@ -267,6 +267,36 @@ public sealed class MainViewModelCDNTests
         }
     }
 
+    [Test]
+    public async Task A_Failure_To_Write_The_Log_Does_Not_Affect_The_Probe_Result()
+    {
+        await using TestHTTPServer server = new (HttpStatusCode.OK);
+
+        (bool probeInProgress, bool probeSucceeded, string statusMessage) = await HeadlessSession.Dispatch(async () =>
+        {
+            MainViewModel viewModel = CreateIdleViewModel();
+
+            viewModel.MasterServerAddress = new ComboBoxItem { Content = CustomMasterServer };
+
+            // Holding The Log File Open Exclusively Makes Every Write To It Fail While The Probe Runs
+            using (FileStream logFile = new (Path.Combine(Environment.CurrentDirectory, DeploymentManifest.LogFileName), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
+            {
+                viewModel.CustomCDNAddress = server.BaseURL;
+
+                await WaitForProbeResult(viewModel);
+            }
+
+            return (viewModel.CDNProbeInProgress, viewModel.CDNProbeSucceeded, viewModel.CDNProbeStatusMessage);
+        });
+
+        using (Assert.Multiple())
+        {
+            await Assert.That(probeInProgress).IsFalse();
+            await Assert.That(probeSucceeded).IsTrue();
+            await Assert.That(statusMessage).IsEqualTo("CDN Is Online: HTTP 200 (OK)");
+        }
+    }
+
     private static MainViewModel CreateIdleViewModel()
         => new () { UpdateStatus = UpdateStatus.ApplicationUpToDate };
 
