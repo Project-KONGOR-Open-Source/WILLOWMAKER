@@ -27,6 +27,7 @@ public partial class MainViewModel : ObservableObject
     public partial bool CanShowCustomCDNAddressField { get; set; } = false;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]
     [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
     public partial bool CDNAddressIsValid { get; set; } = true;
 
@@ -55,7 +56,8 @@ public partial class MainViewModel : ObservableObject
 
     public bool CDNInputIsEnabled => MasterServerInputIsEnabled;
 
-    public bool CanLaunchMapEditor => UpdateCheckIsIdle && UpdateIsInstalling is false && SynchronisationIsIdle && LaunchIsInProgress is false;
+    // The Map Editor Runs Without A Master Server, But It Still Synchronises Its Resources From The Selected CDN
+    public bool CanLaunchMapEditor => UpdateCheckIsIdle && UpdateIsInstalling is false && CDNAddressIsValid && SynchronisationIsIdle && LaunchIsInProgress is false;
 
     public bool CanLaunchGameClient => UpdateCheckIsIdle && UpdateIsInstalling is false && MasterServerAddressIsValid && CDNAddressIsValid && SynchronisationIsIdle && LaunchIsInProgress is false;
 
