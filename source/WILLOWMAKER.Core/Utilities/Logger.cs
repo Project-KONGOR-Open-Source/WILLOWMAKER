@@ -6,7 +6,9 @@ namespace WILLOWMAKER.Core.Utilities;
 public sealed class Logger
 {
     private string FilePath { get; }
-    private Lock FileLock { get; } = new ();
+
+    // Shared By Every Logger In The Process, Since Concurrent Appends To The Same Log File From Separate Loggers Would Otherwise Fail With A Sharing Violation
+    private static Lock FileLock { get; } = new ();
 
     public Logger(string filePath)
     {
@@ -16,7 +18,8 @@ public sealed class Logger
 
         string sessionSeparator = hasExistingContent ? Environment.NewLine : string.Empty;
 
-        File.AppendAllText(FilePath, sessionSeparator + $"▝▚▞▚▞▚▞▚▖ WILLOWMAKER Session Started At {DateTime.Now:O} ლ(ಠ益ಠლ) BUT AT WHAT COST !? ▗▞▚▞▚▞▚▞▘" + Environment.NewLine);
+        lock (FileLock)
+            File.AppendAllText(FilePath, sessionSeparator + $"▝▚▞▚▞▚▞▚▖ WILLOWMAKER Session Started At {DateTime.Now:O} ლ(ಠ益ಠლ) BUT AT WHAT COST !? ▗▞▚▞▚▞▚▞▘" + Environment.NewLine);
     }
 
     /// <summary>
