@@ -31,9 +31,10 @@ public static class AddressValidation
         if (string.IsNullOrWhiteSpace(rawAddress))
             return false;
 
+        // A Query ("?"), A Fragment ("#"), Or User Information ("@") Would Displace The Paths Appended To The Address, So That Requests Would No Longer Reach The Intended Files
         foreach (char character in rawAddress)
         {
-            if (char.IsWhiteSpace(character) || char.IsControl(character) || character is '"' or ';')
+            if (char.IsWhiteSpace(character) || char.IsControl(character) || character is '"' or ';' or '?' or '#' or '@')
                 return false;
         }
 
