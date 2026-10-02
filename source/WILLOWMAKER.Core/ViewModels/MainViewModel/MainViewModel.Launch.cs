@@ -22,8 +22,7 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
     public partial bool MasterServerAddressIsValid { get; set; } = true;
 
-    [ObservableProperty]
-    public partial string MasterServerStatusMessage { get; set; } = string.Empty;
+    public ConnectivityProbe MasterServerProbe { get; }
 
     public ObservableCollection<AddressSelectItem> AvailableCDNOptions { get; } = [];
 
@@ -40,19 +39,7 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
     public partial bool CDNAddressIsValid { get; set; } = true;
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CDNProbeFailed))]
-    public partial bool CDNProbeInProgress { get; set; } = false;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CDNProbeFailed))]
-    public partial bool CDNProbeSucceeded { get; set; } = false;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CDNProbeFailed))]
-    public partial string CDNProbeStatusMessage { get; set; } = string.Empty;
-
-    public bool CDNProbeFailed => CDNProbeInProgress is false && CDNProbeSucceeded is false && string.IsNullOrEmpty(CDNProbeStatusMessage) is false;
+    public ConnectivityProbe CDNProbe { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]
@@ -73,7 +60,7 @@ public partial class MainViewModel : ObservableObject
 
     public string LaunchGameClientButtonText => "Play Heroes Of Newerth";
 
-    private CancellationTokenSource? probeCancellationTokenSource;
+    private static TimeSpan ProbeDebounceDelay { get; } = TimeSpan.FromMilliseconds(350);
 
     partial void OnSelectedMasterServerAddressItemChanged(AddressSelectItem? oldValue, AddressSelectItem? newValue)
     {
@@ -86,7 +73,7 @@ public partial class MainViewModel : ObservableObject
             CustomMasterServerAddress = string.Empty;
             CustomCDNAddress = string.Empty;
 
-            ValidateCustomMasterServerAddress();
+            ValidateAndProbeCustomMasterServerAddress();
         }
 
         else
@@ -94,7 +81,8 @@ public partial class MainViewModel : ObservableObject
             CanShowCustomMasterServerAddressField = false;
             CustomMasterServerAddress = null;
             MasterServerAddressIsValid = true;
-            MasterServerStatusMessage = string.Empty;
+
+            ScheduleMasterServerProbe(newValue.TargetURL, ProbeDebounceDelay);
 
             LogLaunchParameters();
         }
@@ -107,13 +95,18 @@ public partial class MainViewModel : ObservableObject
         if (CanShowCustomMasterServerAddressField is false)
             return;
 
-        ValidateCustomMasterServerAddress();
+        ValidateAndProbeCustomMasterServerAddress();
     }
 
-    private void ValidateCustomMasterServerAddress()
+    private void ValidateAndProbeCustomMasterServerAddress()
     {
         MasterServerAddressIsValid = AddressValidation.IsValidAddress(CustomMasterServerAddress);
-        MasterServerStatusMessage = MasterServerAddressIsValid || string.IsNullOrWhiteSpace(CustomMasterServerAddress) ? string.Empty : "Invalid Master Server Address";
+
+        if (MasterServerAddressIsValid)
+            ScheduleMasterServerProbe(CustomMasterServerAddress, ProbeDebounceDelay);
+
+        else
+            MasterServerProbe.ReportInvalidAddress(CustomMasterServerAddress);
     }
 
     partial void OnSelectedCDNAddressItemChanged(AddressSelectItem? oldValue, AddressSelectItem? newValue)
@@ -134,7 +127,7 @@ public partial class MainViewModel : ObservableObject
             CustomCDNAddress = null;
             CDNAddressIsValid = true;
 
-            ScheduleDebouncedCDNProbe(newValue.TargetURL);
+            ScheduleCDNProbe(newValue.TargetURL, ProbeDebounceDelay);
         }
     }
 
@@ -151,14 +144,10 @@ public partial class MainViewModel : ObservableObject
         CDNAddressIsValid = AddressValidation.IsValidAddress(CustomCDNAddress);
 
         if (CDNAddressIsValid)
-            ScheduleDebouncedCDNProbe(CustomCDNAddress);
+            ScheduleCDNProbe(CustomCDNAddress, ProbeDebounceDelay);
 
         else
-        {
-            CancelProbe();
-            CDNProbeSucceeded = false;
-            CDNProbeStatusMessage = string.IsNullOrWhiteSpace(CustomCDNAddress) ? string.Empty : "Invalid CDN Address";
-        }
+            CDNProbe.ReportInvalidAddress(CustomCDNAddress);
     }
 
     private void PopulateCDNOptions(AddressSelectItem masterServer)
@@ -202,120 +191,44 @@ public partial class MainViewModel : ObservableObject
         SelectedCDNAddressItem = options[0];
     }
 
-    private void CancelProbe()
+    private void ScheduleMasterServerProbe(string? address, TimeSpan delay)
     {
-        probeCancellationTokenSource?.Cancel();
-        probeCancellationTokenSource?.Dispose();
-        probeCancellationTokenSource = null;
+        if (string.IsNullOrWhiteSpace(address))
+            MasterServerProbe.Reset();
 
-        CDNProbeInProgress = false;
+        else
+            MasterServerProbe.Start(BuildMasterServerProbeURL(address), delay);
     }
 
-    private void ScheduleDebouncedCDNProbe(string? targetAddress)
+    private void ScheduleCDNProbe(string? address, TimeSpan delay)
     {
-        CancelProbe();
+        if (string.IsNullOrWhiteSpace(address))
+            CDNProbe.Reset();
 
-        // The Previous Result Is Cleared Straight Away, So That It Is Never Shown For The New Address While The Debounce Delay Elapses
-        CDNProbeSucceeded     = false;
-        CDNProbeStatusMessage = string.Empty;
+        else
+            CDNProbe.Start($"{AddressValidation.NormaliseCDNURL(address)}{ResolveDefaultClientVariant()}/manifest.json", delay);
+    }
 
-        if (string.IsNullOrWhiteSpace(targetAddress))
-            return;
-
-        StartCDNProbe(targetAddress, delay: TimeSpan.FromMilliseconds(350));
+    [RelayCommand]
+    private void TriggerImmediateMasterServerProbe()
+    {
+        if (AddressValidation.IsValidAddress(ActiveMasterServerAddress))
+            ScheduleMasterServerProbe(ActiveMasterServerAddress, TimeSpan.Zero);
     }
 
     [RelayCommand]
     private void TriggerImmediateCDNProbe()
     {
-        string? targetAddress = ActiveCDNAddress;
-
-        if (string.IsNullOrWhiteSpace(targetAddress) || AddressValidation.IsValidAddress(targetAddress) is false)
-            return;
-
-        CancelProbe();
-
-        StartCDNProbe(targetAddress, delay: TimeSpan.Zero);
+        if (AddressValidation.IsValidAddress(ActiveCDNAddress))
+            ScheduleCDNProbe(ActiveCDNAddress, TimeSpan.Zero);
     }
 
-    private void StartCDNProbe(string targetAddress, TimeSpan delay)
+    // The Game Client Talks To The Master Server Over Plain HTTP, So An Address Without A Scheme Is Probed Over HTTP Too, At The Master Server's Health Endpoint
+    private static string BuildMasterServerProbeURL(string address)
     {
-        probeCancellationTokenSource = new CancellationTokenSource();
+        string baseURL = address.Contains("://", StringComparison.Ordinal) ? address : $"http://{address}";
 
-        CancellationToken cancellationToken = probeCancellationTokenSource.Token;
-
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
-
-                await ProbeCDN(targetAddress, cancellationToken).ConfigureAwait(false);
-            }
-
-            catch (OperationCanceledException)
-            {
-            }
-        }, cancellationToken);
-    }
-
-    private async Task ProbeCDN(string rawAddress, CancellationToken cancellationToken)
-    {
-        SetCDNProbeState(inProgress: true, succeeded: false, statusMessage: "Probing CDN Connectivity ...", cancellationToken);
-
-        bool succeeded = false;
-        string probeURL = rawAddress;
-        string result;
-
-        try
-        {
-            string normalised = AddressValidation.NormaliseCDNURL(rawAddress);
-            string variant    = ResolveDefaultClientVariant();
-
-            probeURL = $"{normalised}{variant}/manifest.json";
-
-            using HttpClient client = new ();
-            client.DefaultRequestHeaders.UserAgent.ParseAdd($"WILLOWMAKER/{VersionChecker.CurrentVersionDisplay}");
-            client.Timeout = TimeSpan.FromSeconds(5);
-
-            using HttpRequestMessage request = new (HttpMethod.Head, probeURL);
-            using HttpResponseMessage response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
-
-            succeeded = response.IsSuccessStatusCode;
-            result    = $"HTTP {(int) response.StatusCode} ({response.StatusCode})";
-        }
-
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return;
-        }
-
-        catch (Exception exception)
-        {
-            result = exception is HttpRequestException httpRequestException && httpRequestException.StatusCode is not null
-                ? $"HTTP {(int) httpRequestException.StatusCode} ({httpRequestException.StatusCode})"
-                : exception.Message;
-        }
-
-        // The Final State Is Applied Before Anything Is Logged, So That A Failure To Write To The Log Can Neither Leave The Probe In Progress Nor Change Its Result
-        SetCDNProbeState(inProgress: false, succeeded: succeeded, statusMessage: succeeded ? $"CDN Is Online: {result}" : $"CDN Is Unreachable: {result}", cancellationToken);
-
-        Log(LogCategory.Synchronise, $@"INIT: Probing CDN At ""{probeURL}""");
-        Log(LogCategory.Synchronise, succeeded ? $"INIT: CDN Probe Succeeded: {result}" : $"WARN: CDN Probe Failed: {result}");
-    }
-
-    private void SetCDNProbeState(bool inProgress, bool succeeded, string statusMessage, CancellationToken cancellationToken)
-    {
-        RunOnUIThread(() =>
-        {
-            // A Probe Which Was Superseded While Its Result Was Being Dispatched Must Not Overwrite The State Of The Probe Which Replaced It
-            if (cancellationToken.IsCancellationRequested)
-                return;
-
-            CDNProbeInProgress    = inProgress;
-            CDNProbeSucceeded     = succeeded;
-            CDNProbeStatusMessage = statusMessage;
-        });
+        return $"{baseURL.TrimEnd('/')}/health";
     }
 
     private string? ActiveMasterServerAddress => SelectedMasterServerAddressItem?.IsCustom is true ? CustomMasterServerAddress : SelectedMasterServerAddressItem?.TargetURL;
@@ -324,14 +237,6 @@ public partial class MainViewModel : ObservableObject
 
     public string ResolveActiveCDNURL()
         => AddressValidation.NormaliseCDNURL(ActiveCDNAddress);
-
-    private static void RunOnUIThread(Action action)
-    {
-        if (Dispatcher.UIThread.CheckAccess())
-            action();
-        else
-            Dispatcher.UIThread.Post(action);
-    }
 
     private void LogLaunchParameters()
     {

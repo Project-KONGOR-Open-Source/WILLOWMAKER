@@ -118,6 +118,7 @@ public partial class MainView : UserControl
         if (DataContext is MainViewModel viewModel)
         {
             viewModel.LogCustomMasterServerAddressCommand.Execute(null);
+            viewModel.TriggerImmediateMasterServerProbeCommand.Execute(null);
         }
     }
 
@@ -125,18 +126,12 @@ public partial class MainView : UserControl
     {
         if (arguments.Key == Key.Enter && sender is InputElement inputElement)
         {
-            Visual? parent = inputElement.GetVisualParent();
+            MoveFocusToFocusableParent(inputElement);
 
-            while (parent is not null)
+            // Moving The Focus Away Raises "LostFocus", Which Already Probes The Master Server, So The Probe Is Only Triggered Here When The Focus Could Not Be Moved
+            if (inputElement.IsFocused && DataContext is MainViewModel viewModel)
             {
-                if (parent is InputElement focusableParent && focusableParent.Focusable)
-                {
-                    focusableParent.Focus();
-
-                    break;
-                }
-
-                parent = parent.GetVisualParent();
+                viewModel.TriggerImmediateMasterServerProbeCommand.Execute(null);
             }
 
             arguments.Handled = true;
@@ -155,19 +150,7 @@ public partial class MainView : UserControl
     {
         if (arguments.Key == Key.Enter && sender is InputElement inputElement)
         {
-            Visual? parent = inputElement.GetVisualParent();
-
-            while (parent is not null)
-            {
-                if (parent is InputElement focusableParent && focusableParent.Focusable)
-                {
-                    focusableParent.Focus();
-
-                    break;
-                }
-
-                parent = parent.GetVisualParent();
-            }
+            MoveFocusToFocusableParent(inputElement);
 
             // Moving The Focus Away Raises "LostFocus", Which Already Probes The CDN, So The Probe Is Only Triggered Here When The Focus Could Not Be Moved
             if (inputElement.IsFocused && DataContext is MainViewModel viewModel)
@@ -176,6 +159,23 @@ public partial class MainView : UserControl
             }
 
             arguments.Handled = true;
+        }
+    }
+
+    private static void MoveFocusToFocusableParent(InputElement inputElement)
+    {
+        Visual? parent = inputElement.GetVisualParent();
+
+        while (parent is not null)
+        {
+            if (parent is InputElement focusableParent && focusableParent.Focusable)
+            {
+                focusableParent.Focus();
+
+                return;
+            }
+
+            parent = parent.GetVisualParent();
         }
     }
 

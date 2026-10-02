@@ -19,7 +19,10 @@ public partial class MainViewModel : ObservableObject
 
     public MainViewModel()
     {
-        // Selecting The Default Master Server Also Logs Its Launch Parameters And Populates The CDN Options Offered For It
+        MasterServerProbe = new ConnectivityProbe("Master Server", message => Log(LogCategory.Parameters, message));
+        CDNProbe          = new ConnectivityProbe("CDN", message => Log(LogCategory.Synchronise, message));
+
+        // Selecting The Default Master Server Also Probes It, Logs Its Launch Parameters, And Populates The CDN Options Offered For It
         SelectedMasterServerAddressItem = AvailableMasterServerOptions[0];
     }
 

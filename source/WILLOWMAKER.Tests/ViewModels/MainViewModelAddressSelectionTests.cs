@@ -40,7 +40,7 @@ public sealed class MainViewModelAddressSelectionTests
             viewModel.CustomMasterServerAddress = "master .kongor.net";
             viewModel.CustomCDNAddress = "localhost:5555/cdn";
 
-            return (viewModel.MasterServerAddressIsValid, viewModel.MasterServerStatusMessage, viewModel.CanLaunchGameClient);
+            return (viewModel.MasterServerAddressIsValid, viewModel.MasterServerProbe.StatusMessage, viewModel.CanLaunchGameClient);
         });
 
         using (Assert.Multiple())
@@ -64,7 +64,7 @@ public sealed class MainViewModelAddressSelectionTests
 
             SelectMasterServer(viewModel, "api.kongor.net");
 
-            return (viewModel.MasterServerAddressIsValid, viewModel.MasterServerStatusMessage, viewModel.CustomMasterServerAddress, viewModel.CanShowCustomMasterServerAddressField);
+            return (viewModel.MasterServerAddressIsValid, viewModel.MasterServerProbe.StatusMessage, viewModel.CustomMasterServerAddress, viewModel.CanShowCustomMasterServerAddressField);
         });
 
         using (Assert.Multiple())
@@ -124,7 +124,7 @@ public sealed class MainViewModelAddressSelectionTests
             viewModel.CustomCDNAddress = "cdn.example.com";
             SelectCustomMasterServer(viewModel);
 
-            return (viewModel.AvailableCDNOptions.Select(option => option.DisplayText).ToArray(), viewModel.CanShowCustomMasterServerAddressField, viewModel.CanShowCustomCDNAddressField, viewModel.CustomMasterServerAddress, viewModel.CustomCDNAddress, viewModel.MasterServerStatusMessage, viewModel.CDNAddressIsValid);
+            return (viewModel.AvailableCDNOptions.Select(option => option.DisplayText).ToArray(), viewModel.CanShowCustomMasterServerAddressField, viewModel.CanShowCustomCDNAddressField, viewModel.CustomMasterServerAddress, viewModel.CustomCDNAddress, viewModel.MasterServerProbe.StatusMessage, viewModel.CDNAddressIsValid);
         });
 
         using (Assert.Multiple())
@@ -150,7 +150,7 @@ public sealed class MainViewModelAddressSelectionTests
             viewModel.CustomMasterServerAddress = "localhost:5555";
             viewModel.CustomCDNAddress = "cdn .kongor.net";
 
-            return (viewModel.CDNAddressIsValid, viewModel.CanLaunchGameClient, viewModel.CanLaunchMapEditor, viewModel.CDNProbeStatusMessage);
+            return (viewModel.CDNAddressIsValid, viewModel.CanLaunchGameClient, viewModel.CanLaunchMapEditor, viewModel.CDNProbe.StatusMessage);
         });
 
         using (Assert.Multiple())
@@ -173,7 +173,7 @@ public sealed class MainViewModelAddressSelectionTests
             viewModel.CustomMasterServerAddress = "localhost:5555";
             viewModel.CustomCDNAddress = "localhost:5555/cdn";
 
-            return (viewModel.CanLaunchGameClient, viewModel.CanLaunchMapEditor, viewModel.CDNProbeSucceeded);
+            return (viewModel.CanLaunchGameClient, viewModel.CanLaunchMapEditor, viewModel.CDNProbe.Succeeded);
         });
 
         using (Assert.Multiple())
@@ -238,6 +238,100 @@ public sealed class MainViewModelAddressSelectionTests
     }
 
     [Test]
+    public async Task Probing_A_Reachable_Master_Server_Reports_It_As_Online()
+    {
+        await using TestHTTPServer server = new (HttpStatusCode.OK);
+
+        (bool probeSucceeded, string statusMessage) = await HeadlessSession.Dispatch(async () =>
+        {
+            MainViewModel viewModel = CreateIdleViewModel();
+
+            SelectCustomMasterServer(viewModel);
+
+            // The Address Is Entered Without A Scheme, The Way It Is Passed To The Game Client
+            viewModel.CustomMasterServerAddress = new Uri(server.BaseURL).Authority;
+
+            await WaitForProbeResult(viewModel.MasterServerProbe);
+
+            return (viewModel.MasterServerProbe.Succeeded, viewModel.MasterServerProbe.StatusMessage);
+        });
+
+        using (Assert.Multiple())
+        {
+            await Assert.That(probeSucceeded).IsTrue();
+            await Assert.That(statusMessage).IsEqualTo("Master Server Is Online: HTTP 200 (OK)");
+            await Assert.That(server.LastRequestMethod).IsEqualTo("HEAD");
+            await Assert.That(server.LastRequestPath).IsEqualTo("/health");
+        }
+    }
+
+    [Test]
+    public async Task Probing_A_Master_Server_Which_Responds_With_An_Error_Reports_It_As_Unreachable()
+    {
+        await using TestHTTPServer server = new (HttpStatusCode.ServiceUnavailable);
+
+        (bool probeSucceeded, bool probeFailed, string statusMessage) = await HeadlessSession.Dispatch(async () =>
+        {
+            MainViewModel viewModel = CreateIdleViewModel();
+
+            SelectCustomMasterServer(viewModel);
+
+            viewModel.CustomMasterServerAddress = server.BaseURL;
+
+            await WaitForProbeResult(viewModel.MasterServerProbe);
+
+            return (viewModel.MasterServerProbe.Succeeded, viewModel.MasterServerProbe.Failed, viewModel.MasterServerProbe.StatusMessage);
+        });
+
+        using (Assert.Multiple())
+        {
+            await Assert.That(probeSucceeded).IsFalse();
+            await Assert.That(probeFailed).IsTrue();
+            await Assert.That(statusMessage).IsEqualTo("Master Server Is Unreachable: HTTP 503 (ServiceUnavailable)");
+        }
+    }
+
+    [Test]
+    public async Task Probing_A_Master_Server_Which_Refuses_The_Connection_Reports_A_Short_Reason()
+    {
+        string statusMessage = await HeadlessSession.Dispatch(async () =>
+        {
+            MainViewModel viewModel = CreateIdleViewModel();
+
+            SelectCustomMasterServer(viewModel);
+
+            viewModel.CustomMasterServerAddress = $"127.0.0.1:{TestHTTPServer.GetAvailablePort()}";
+
+            await WaitForProbeResult(viewModel.MasterServerProbe);
+
+            return viewModel.MasterServerProbe.StatusMessage;
+        });
+
+        await Assert.That(statusMessage).IsEqualTo("Master Server Is Unreachable: Connection Failed");
+    }
+
+    [Test]
+    public async Task Probing_A_Master_Server_Which_Does_Not_Respond_In_Time_Reports_A_Short_Reason()
+    {
+        await using TestHTTPServer server = new (HttpStatusCode.OK, responseDelay: TimeSpan.FromSeconds(10));
+
+        string statusMessage = await HeadlessSession.Dispatch(async () =>
+        {
+            MainViewModel viewModel = CreateIdleViewModel();
+
+            SelectCustomMasterServer(viewModel);
+
+            viewModel.CustomMasterServerAddress = server.BaseURL;
+
+            await WaitForProbeResult(viewModel.MasterServerProbe);
+
+            return viewModel.MasterServerProbe.StatusMessage;
+        });
+
+        await Assert.That(statusMessage).IsEqualTo("Master Server Is Unreachable: Timed Out");
+    }
+
+    [Test]
     public async Task Probing_A_Reachable_CDN_Reports_It_As_Online()
     {
         await using TestHTTPServer server = new (HttpStatusCode.OK);
@@ -246,9 +340,9 @@ public sealed class MainViewModelAddressSelectionTests
         {
             MainViewModel viewModel = CreateViewModelWithCustomCDN(server.BaseURL);
 
-            await WaitForProbeResult(viewModel);
+            await WaitForProbeResult(viewModel.CDNProbe);
 
-            return (viewModel.CDNProbeSucceeded, viewModel.CDNProbeStatusMessage);
+            return (viewModel.CDNProbe.Succeeded, viewModel.CDNProbe.StatusMessage);
         });
 
         using (Assert.Multiple())
@@ -269,9 +363,9 @@ public sealed class MainViewModelAddressSelectionTests
         {
             MainViewModel viewModel = CreateViewModelWithCustomCDN(server.BaseURL);
 
-            await WaitForProbeResult(viewModel);
+            await WaitForProbeResult(viewModel.CDNProbe);
 
-            return (viewModel.CDNProbeSucceeded, viewModel.CDNProbeFailed, viewModel.CDNProbeStatusMessage);
+            return (viewModel.CDNProbe.Succeeded, viewModel.CDNProbe.Failed, viewModel.CDNProbe.StatusMessage);
         });
 
         using (Assert.Multiple())
@@ -291,13 +385,13 @@ public sealed class MainViewModelAddressSelectionTests
         {
             MainViewModel viewModel = CreateViewModelWithCustomCDN(server.BaseURL);
 
-            await WaitForProbeResult(viewModel);
+            await WaitForProbeResult(viewModel.CDNProbe);
 
-            bool probeSucceededBeforeChange = viewModel.CDNProbeSucceeded;
+            bool probeSucceededBeforeChange = viewModel.CDNProbe.Succeeded;
 
             viewModel.CustomCDNAddress = "http://127.0.0.1:1/";
 
-            return (probeSucceededBeforeChange, viewModel.CDNProbeSucceeded, viewModel.CDNProbeStatusMessage);
+            return (probeSucceededBeforeChange, viewModel.CDNProbe.Succeeded, viewModel.CDNProbe.StatusMessage);
         });
 
         using (Assert.Multiple())
@@ -318,16 +412,16 @@ public sealed class MainViewModelAddressSelectionTests
         {
             MainViewModel viewModel = CreateViewModelWithCustomCDN(slowServer.BaseURL);
 
-            await WaitUntil(() => viewModel.CDNProbeInProgress);
+            await WaitUntil(() => viewModel.CDNProbe.InProgress);
 
             viewModel.CustomCDNAddress = fastServer.BaseURL;
 
-            await WaitForProbeResult(viewModel);
+            await WaitForProbeResult(viewModel.CDNProbe);
 
             // Outlast The Slow Server's Response, Which Would Report The CDN As Online If The Superseded Probe Were Still Applied
             await Task.Delay(TimeSpan.FromSeconds(3));
 
-            return (viewModel.CDNProbeSucceeded, viewModel.CDNProbeStatusMessage);
+            return (viewModel.CDNProbe.Succeeded, viewModel.CDNProbe.StatusMessage);
         });
 
         using (Assert.Multiple())
@@ -353,10 +447,10 @@ public sealed class MainViewModelAddressSelectionTests
             {
                 viewModel.CustomCDNAddress = server.BaseURL;
 
-                await WaitForProbeResult(viewModel);
+                await WaitForProbeResult(viewModel.CDNProbe);
             }
 
-            return (viewModel.CDNProbeInProgress, viewModel.CDNProbeSucceeded, viewModel.CDNProbeStatusMessage);
+            return (viewModel.CDNProbe.InProgress, viewModel.CDNProbe.Succeeded, viewModel.CDNProbe.StatusMessage);
         });
 
         using (Assert.Multiple())
@@ -386,8 +480,8 @@ public sealed class MainViewModelAddressSelectionTests
     private static void SelectCustomMasterServer(MainViewModel viewModel)
         => viewModel.SelectedMasterServerAddressItem = viewModel.AvailableMasterServerOptions.Single(option => option.IsCustom);
 
-    private static Task WaitForProbeResult(MainViewModel viewModel)
-        => WaitUntil(() => viewModel.CDNProbeInProgress is false && string.IsNullOrEmpty(viewModel.CDNProbeStatusMessage) is false);
+    private static Task WaitForProbeResult(ConnectivityProbe probe)
+        => WaitUntil(() => probe.InProgress is false && string.IsNullOrEmpty(probe.StatusMessage) is false);
 
     private static async Task WaitUntil(Func<bool> condition)
     {

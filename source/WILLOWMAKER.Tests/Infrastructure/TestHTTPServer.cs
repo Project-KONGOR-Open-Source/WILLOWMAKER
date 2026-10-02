@@ -66,7 +66,10 @@ public sealed class TestHTTPServer : IAsyncDisposable
         }
     }
 
-    private static int GetAvailablePort()
+    /// <summary>
+    ///     Returns a loopback port which nothing is listening on at the time of the call.
+    /// </summary>
+    public static int GetAvailablePort()
     {
         using TcpListener listener = new (IPAddress.Loopback, 0);
 

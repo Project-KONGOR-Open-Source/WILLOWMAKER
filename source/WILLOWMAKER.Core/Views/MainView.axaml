@@ -98,6 +98,20 @@
                                 <Style Selector="ComboBoxItem">
                                     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                                 </Style>
+
+                                <!-- The Connectivity Status Beneath Each Address Input -->
+                                <Style Selector="TextBlock.probing">
+                                    <Setter Property="Foreground" Value="#AAAAAA" />
+                                    <Setter Property="FontStyle" Value="Italic" />
+                                </Style>
+                                <Style Selector="TextBlock.online">
+                                    <Setter Property="Foreground" Value="DarkSeaGreen" />
+                                    <Setter Property="FontStyle" Value="Normal" />
+                                </Style>
+                                <Style Selector="TextBlock.failed">
+                                    <Setter Property="Foreground" Value="OrangeRed" />
+                                    <Setter Property="FontStyle" Value="Normal" />
+                                </Style>
                             </StackPanel.Styles>
 
                             <Label Width="400" Margin="0, 0, 0, 5" HorizontalAlignment="Center" HorizontalContentAlignment="Center">Master Server Address</Label>
@@ -106,7 +120,14 @@
 
                             <TextBox Text="{Binding CustomMasterServerAddress}" Width="400" Margin="0, 10, 0, 0" HorizontalAlignment="Center" TextAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" IsEnabled="{Binding MasterServerInputIsEnabled}" LostFocus="CustomMasterServerAddress_LostFocus" KeyDown="CustomMasterServerAddress_KeyDown" />
 
-                            <TextBlock Text="{Binding MasterServerStatusMessage}" IsVisible="{Binding MasterServerStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Foreground="OrangeRed" Width="400" Margin="0, 5, 0, 0" HorizontalAlignment="Center" TextAlignment="Center" FontSize="11" />
+                            <TextBlock Classes.probing="{Binding MasterServerProbe.InProgress}"
+                                       Classes.online="{Binding MasterServerProbe.Succeeded}"
+                                       Classes.failed="{Binding MasterServerProbe.Failed}"
+                                       Text="{Binding MasterServerProbe.StatusMessage}"
+                                       Width="400" Margin="0, 5, 0, 0"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       FontSize="11" />
 
                             <Label Width="400" Margin="0, 10, 0, 5" HorizontalAlignment="Center" HorizontalContentAlignment="Center">Content Delivery Network</Label>
 
@@ -114,29 +135,14 @@
 
                             <TextBox Text="{Binding CustomCDNAddress}" Width="400" Margin="0, 10, 0, 0" HorizontalAlignment="Center" TextAlignment="Center" IsVisible="{Binding CanShowCustomCDNAddressField}" IsEnabled="{Binding CDNInputIsEnabled}" LostFocus="CustomCDNAddress_LostFocus" KeyDown="CustomCDNAddress_KeyDown" />
 
-                            <TextBlock Classes.probing="{Binding CDNProbeInProgress}"
-                                       Classes.online="{Binding CDNProbeSucceeded}"
-                                       Classes.failed="{Binding CDNProbeFailed}"
-                                       Text="{Binding CDNProbeStatusMessage}"
+                            <TextBlock Classes.probing="{Binding CDNProbe.InProgress}"
+                                       Classes.online="{Binding CDNProbe.Succeeded}"
+                                       Classes.failed="{Binding CDNProbe.Failed}"
+                                       Text="{Binding CDNProbe.StatusMessage}"
                                        Width="400" Margin="0, 5, 0, 0"
                                        HorizontalAlignment="Center"
                                        TextAlignment="Center"
-                                       FontSize="11">
-                                <TextBlock.Styles>
-                                    <Style Selector="TextBlock.probing">
-                                        <Setter Property="Foreground" Value="#AAAAAA" />
-                                        <Setter Property="FontStyle" Value="Italic" />
-                                    </Style>
-                                    <Style Selector="TextBlock.online">
-                                        <Setter Property="Foreground" Value="DarkSeaGreen" />
-                                        <Setter Property="FontStyle" Value="Normal" />
-                                    </Style>
-                                    <Style Selector="TextBlock.failed">
-                                        <Setter Property="Foreground" Value="OrangeRed" />
-                                        <Setter Property="FontStyle" Value="Normal" />
-                                    </Style>
-                                </TextBlock.Styles>
-                            </TextBlock>
+                                       FontSize="11" />
 
                             <StackPanel Orientation="Horizontal" Margin="0, 10, 0, 0" HorizontalAlignment="Center">
                                 <Button Command="{Binding LaunchMapEditorCommand}" Width="175" Height="60" Margin="0, 0, 5, 0" Cursor="Hand" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchMapEditor}" Background="DarkGreen">
