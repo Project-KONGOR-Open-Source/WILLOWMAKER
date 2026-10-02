@@ -155,11 +155,6 @@ public partial class MainView : UserControl
     {
         if (arguments.Key == Key.Enter && sender is InputElement inputElement)
         {
-            if (DataContext is MainViewModel viewModel)
-            {
-                viewModel.TriggerImmediateCDNProbeCommand.Execute(null);
-            }
-
             Visual? parent = inputElement.GetVisualParent();
 
             while (parent is not null)
@@ -172,6 +167,12 @@ public partial class MainView : UserControl
                 }
 
                 parent = parent.GetVisualParent();
+            }
+
+            // Moving The Focus Away Raises "LostFocus", Which Already Probes The CDN, So The Probe Is Only Triggered Here When The Focus Could Not Be Moved
+            if (inputElement.IsFocused && DataContext is MainViewModel viewModel)
+            {
+                viewModel.TriggerImmediateCDNProbeCommand.Execute(null);
             }
 
             arguments.Handled = true;
