@@ -27,7 +27,6 @@ public partial class MainViewModel : ObservableObject
     public partial bool CanShowCustomCDNAddressField { get; set; } = false;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]
     [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
     public partial bool CDNAddressIsValid { get; set; } = true;
 
@@ -56,8 +55,7 @@ public partial class MainViewModel : ObservableObject
 
     public bool CDNInputIsEnabled => MasterServerInputIsEnabled;
 
-    // The Map Editor Runs Without A Master Server, But It Still Synchronises Its Resources From The Selected CDN
-    public bool CanLaunchMapEditor => UpdateCheckIsIdle && UpdateIsInstalling is false && CDNAddressIsValid && SynchronisationIsIdle && LaunchIsInProgress is false;
+    public bool CanLaunchMapEditor => UpdateCheckIsIdle && UpdateIsInstalling is false && SynchronisationIsIdle && LaunchIsInProgress is false;
 
     public bool CanLaunchGameClient => UpdateCheckIsIdle && UpdateIsInstalling is false && MasterServerAddressIsValid && CDNAddressIsValid && SynchronisationIsIdle && LaunchIsInProgress is false;
 
@@ -435,8 +433,9 @@ public partial class MainViewModel : ObservableObject
         {
             Log(LogCategory.Executable, "Map Editor Launch Initiated");
 
+            // The Map Editor Works Offline, So A Synchronisation Which Cannot Be Performed Only Means That It May Not Have The Latest Resources
             if (await SynchroniseContent() is false)
-                return;
+                Log(LogCategory.Synchronise, "WARN: Launching The Map Editor Without Synchronised Resources");
 
             if (TryResolveGameExecutable(out FileInfo? executable) is false)
                 return;

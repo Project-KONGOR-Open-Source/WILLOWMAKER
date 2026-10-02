@@ -74,7 +74,7 @@ public sealed class MainViewModelCDNTests
     }
 
     [Test]
-    public async Task An_Invalid_Custom_CDN_Address_Disables_Both_Launch_Buttons()
+    public async Task An_Invalid_Custom_CDN_Address_Disables_The_Game_Client_Launch_But_Not_The_Map_Editor_Launch()
     {
         (bool cdnAddressIsValid, bool canLaunchGameClient, bool canLaunchMapEditor, string statusMessage) = await HeadlessSession.Dispatch(() =>
         {
@@ -91,7 +91,7 @@ public sealed class MainViewModelCDNTests
         {
             await Assert.That(cdnAddressIsValid).IsFalse();
             await Assert.That(canLaunchGameClient).IsFalse();
-            await Assert.That(canLaunchMapEditor).IsFalse();
+            await Assert.That(canLaunchMapEditor).IsTrue();
             await Assert.That(statusMessage).IsEqualTo("Invalid CDN Address");
         }
     }

@@ -52,6 +52,14 @@ public partial class MainViewModel : ObservableObject
             return true;
         }
 
+        // Only The Map Editor Can Be Launched With An Invalid CDN Address, And It Proceeds Without Synchronising
+        if (CDNAddressIsValid is false)
+        {
+            Log(LogCategory.Synchronise, "SKIP: Synchronisation Skipped (Invalid CDN Address)");
+
+            return false;
+        }
+
         SynchronisationIsActive = true;
         SynchronisationIsScheduled = false;
         SynchronisationIsFailed = false;
