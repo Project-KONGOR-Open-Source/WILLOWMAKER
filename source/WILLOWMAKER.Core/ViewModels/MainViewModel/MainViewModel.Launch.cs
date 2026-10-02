@@ -35,7 +35,6 @@ public partial class MainViewModel : ObservableObject
     public partial bool CDNProbeInProgress { get; set; } = false;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
     [NotifyPropertyChangedFor(nameof(CDNProbeFailed))]
     public partial bool CDNProbeSucceeded { get; set; } = false;
 
@@ -58,14 +57,13 @@ public partial class MainViewModel : ObservableObject
 
     public bool CanLaunchMapEditor => UpdateCheckIsIdle && UpdateIsInstalling is false && SynchronisationIsIdle && LaunchIsInProgress is false;
 
-    public bool CanLaunchGameClient => UpdateCheckIsIdle && UpdateIsInstalling is false && MasterServerAddressIsValid && CDNAddressIsValid && CDNProbeSucceeded && SynchronisationIsIdle && LaunchIsInProgress is false;
+    public bool CanLaunchGameClient => UpdateCheckIsIdle && UpdateIsInstalling is false && MasterServerAddressIsValid && CDNAddressIsValid && SynchronisationIsIdle && LaunchIsInProgress is false;
 
     public string LaunchMapEditorButtonText => "Open Map Editor";
 
     public string LaunchGameClientButtonText => "Play Heroes Of Newerth";
 
     private CancellationTokenSource? probeCancellationTokenSource;
-    private readonly Lock probeLock = new ();
 
     partial void OnMasterServerAddressChanged(ComboBoxItem? oldValue, ComboBoxItem? newValue)
     {
@@ -79,6 +77,7 @@ public partial class MainViewModel : ObservableObject
             if (isCustom)
             {
                 CustomMasterServerAddress = string.Empty;
+                CustomCDNAddress = string.Empty;
                 MasterServerAddressIsValid = AddressValidation.IsValidAddress(CustomMasterServerAddress);
             }
 
@@ -120,7 +119,7 @@ public partial class MainViewModel : ObservableObject
             {
                 CancelProbe();
                 CDNProbeSucceeded = false;
-                CDNProbeStatusMessage = string.IsNullOrWhiteSpace(CustomCDNAddress) ? string.Empty : "Invalid CDN Address.";
+                CDNProbeStatusMessage = string.IsNullOrWhiteSpace(CustomCDNAddress) ? string.Empty : "Invalid CDN Address";
             }
         }
 
@@ -148,7 +147,7 @@ public partial class MainViewModel : ObservableObject
         {
             CancelProbe();
             CDNProbeSucceeded = false;
-            CDNProbeStatusMessage = string.IsNullOrWhiteSpace(CustomCDNAddress) ? string.Empty : "Invalid CDN Address.";
+            CDNProbeStatusMessage = string.IsNullOrWhiteSpace(CustomCDNAddress) ? string.Empty : "Invalid CDN Address";
         }
     }
 
@@ -157,144 +156,68 @@ public partial class MainViewModel : ObservableObject
         PopulateCDNOptions("api.kongor.net");
     }
 
-    private void PopulateCDNOptions(string? masterServer)
+    private void PopulateCDNOptions(string masterServer)
     {
-        AvailableCDNOptions.Clear();
-
-        if (masterServer is not null && masterServer.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase))
+        CDNSelectItem localItem = new ()
         {
-            CDNSelectItem customItem = new ()
-            {
-                DisplayText = "Custom CDN ...",
-                TargetURL   = "CUSTOM",
-                TooltipText = null
-            };
+            DisplayText = "localhost:5555/cdn",
+            TargetURL   = "localhost:5555/cdn"
+        };
 
-            AvailableCDNOptions.Add(customItem);
-            SelectedCDNAddressItem = customItem;
-            CanShowCustomCDNAddressField = true;
-            CustomCDNAddress = string.Empty;
-
-            return;
-        }
-
-        if (masterServer is not null && (masterServer.Equals("localhost:5555", StringComparison.OrdinalIgnoreCase) || masterServer.Contains("localhost", StringComparison.OrdinalIgnoreCase)))
-        {
-            CDNSelectItem localItem = new ()
-            {
-                DisplayText = "localhost:5555/cdn",
-                TargetURL   = "localhost:5555/cdn",
-                TooltipText = null
-            };
-
-            CDNSelectItem meshItem = new ()
-            {
-                DisplayText = "cdn.kongor.net",
-                TargetURL   = "cdn.kongor.net",
-                TooltipText = "Hosted on a global mesh network."
-            };
-
-            CDNSelectItem servicesItem = new ()
-            {
-                DisplayText = "api.kongor.net/cdn",
-                TargetURL   = "api.kongor.net/cdn",
-                TooltipText = "Hosted by the Project KONGOR services host and is intended as a Redundant Fault Tolerant High Availability Fallback."
-            };
-
-            CDNSelectItem customItem = new ()
-            {
-                DisplayText = "Custom CDN ...",
-                TargetURL   = "CUSTOM",
-                TooltipText = null
-            };
-
-            AvailableCDNOptions.Add(localItem);
-            AvailableCDNOptions.Add(meshItem);
-            AvailableCDNOptions.Add(servicesItem);
-            AvailableCDNOptions.Add(customItem);
-
-            SelectedCDNAddressItem = localItem;
-
-            return;
-        }
-
-        CDNSelectItem defaultMeshItem = new ()
+        CDNSelectItem meshItem = new ()
         {
             DisplayText = "cdn.kongor.net",
             TargetURL   = "cdn.kongor.net",
             TooltipText = "Hosted on a global mesh network."
         };
 
-        CDNSelectItem defaultServicesItem = new ()
+        CDNSelectItem servicesItem = new ()
         {
             DisplayText = "api.kongor.net/cdn",
             TargetURL   = "api.kongor.net/cdn",
             TooltipText = "Hosted by the Project KONGOR services host and is intended as a Redundant Fault Tolerant High Availability Fallback."
         };
 
-        CDNSelectItem defaultCustomItem = new ()
+        CDNSelectItem customItem = new ()
         {
             DisplayText = "Custom CDN ...",
-            TargetURL   = "CUSTOM",
-            TooltipText = null
+            TargetURL   = "CUSTOM"
         };
 
-        AvailableCDNOptions.Add(defaultMeshItem);
-        AvailableCDNOptions.Add(defaultServicesItem);
-        AvailableCDNOptions.Add(defaultCustomItem);
+        // A Custom Master Server Is Expected To Come With A Custom CDN, So That Is The Only Option Offered For It
+        CDNSelectItem[] options = masterServer.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ? [customItem]
+            : masterServer.Contains("localhost", StringComparison.OrdinalIgnoreCase) ? [localItem, meshItem, servicesItem, customItem]
+            : [meshItem, servicesItem, customItem];
 
-        SelectedCDNAddressItem = defaultMeshItem;
+        AvailableCDNOptions.Clear();
+
+        foreach (CDNSelectItem option in options)
+            AvailableCDNOptions.Add(option);
+
+        SelectedCDNAddressItem = options[0];
     }
 
     private void CancelProbe()
     {
-        lock (probeLock)
-        {
-            probeCancellationTokenSource?.Cancel();
-            probeCancellationTokenSource?.Dispose();
-            probeCancellationTokenSource = null;
-        }
+        probeCancellationTokenSource?.Cancel();
+        probeCancellationTokenSource?.Dispose();
+        probeCancellationTokenSource = null;
 
-        RunOnUIThread(() => CDNProbeInProgress = false);
+        CDNProbeInProgress = false;
     }
 
     private void ScheduleDebouncedCDNProbe(string? targetAddress)
     {
+        CancelProbe();
+
+        // The Previous Result Is Cleared Straight Away, So That It Is Never Shown For The New Address While The Debounce Delay Elapses
+        CDNProbeSucceeded     = false;
+        CDNProbeStatusMessage = string.Empty;
+
         if (string.IsNullOrWhiteSpace(targetAddress))
-        {
-            CancelProbe();
-
-            RunOnUIThread(() =>
-            {
-                CDNProbeSucceeded     = false;
-                CDNProbeStatusMessage = string.Empty;
-            });
-
             return;
-        }
 
-        lock (probeLock)
-        {
-            probeCancellationTokenSource?.Cancel();
-            probeCancellationTokenSource?.Dispose();
-            probeCancellationTokenSource = new CancellationTokenSource();
-        }
-
-        CancellationToken token = probeCancellationTokenSource.Token;
-
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await Task.Delay(350, token).ConfigureAwait(false);
-
-                await ProbeCDN(targetAddress, token).ConfigureAwait(false);
-            }
-
-            catch (OperationCanceledException)
-            {
-            }
-        }, token);
+        StartCDNProbe(targetAddress, delay: TimeSpan.FromMilliseconds(350));
     }
 
     [RelayCommand]
@@ -307,26 +230,35 @@ public partial class MainViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(targetAddress) || AddressValidation.IsValidAddress(targetAddress) is false)
             return;
 
-        lock (probeLock)
+        CancelProbe();
+
+        StartCDNProbe(targetAddress, delay: TimeSpan.Zero);
+    }
+
+    private void StartCDNProbe(string targetAddress, TimeSpan delay)
+    {
+        probeCancellationTokenSource = new CancellationTokenSource();
+
+        CancellationToken cancellationToken = probeCancellationTokenSource.Token;
+
+        _ = Task.Run(async () =>
         {
-            probeCancellationTokenSource?.Cancel();
-            probeCancellationTokenSource?.Dispose();
-            probeCancellationTokenSource = new CancellationTokenSource();
-        }
+            try
+            {
+                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
 
-        CancellationToken token = probeCancellationTokenSource.Token;
+                await ProbeCDN(targetAddress, cancellationToken).ConfigureAwait(false);
+            }
 
-        _ = Task.Run(() => ProbeCDN(targetAddress, token), token);
+            catch (OperationCanceledException)
+            {
+            }
+        }, cancellationToken);
     }
 
     private async Task ProbeCDN(string rawAddress, CancellationToken cancellationToken)
     {
-        RunOnUIThread(() =>
-        {
-            CDNProbeInProgress    = true;
-            CDNProbeSucceeded     = false;
-            CDNProbeStatusMessage = "Probing CDN Connectivity...";
-        });
+        SetCDNProbeState(inProgress: true, succeeded: false, statusMessage: "Probing CDN Connectivity ...", cancellationToken);
 
         string normalised = AddressValidation.NormaliseCDNURL(rawAddress);
         string variant    = ResolveDefaultClientVariant();
@@ -343,29 +275,20 @@ public partial class MainViewModel : ObservableObject
             using HttpRequestMessage request = new (HttpMethod.Head, probeURL);
             using HttpResponseMessage response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
+            string status = $"HTTP {(int) response.StatusCode} ({response.StatusCode})";
+
             if (response.IsSuccessStatusCode)
             {
-                Log(LogCategory.Synchronise, "INIT: CDN Probe Succeeded (HTTP 200 OK)");
+                Log(LogCategory.Synchronise, $"INIT: CDN Probe Succeeded: {status}");
 
-                RunOnUIThread(() =>
-                {
-                    CDNProbeInProgress    = false;
-                    CDNProbeSucceeded     = true;
-                    CDNProbeStatusMessage = "CDN Is Online (HTTP 200 OK).";
-                });
+                SetCDNProbeState(inProgress: false, succeeded: true, statusMessage: $"CDN Is Online: {status}", cancellationToken);
 
                 return;
             }
 
-            string reason = $"HTTP {(int) response.StatusCode} ({response.StatusCode})";
-            Log(LogCategory.Synchronise, $"WARN: CDN Probe Failed: {reason}");
+            Log(LogCategory.Synchronise, $"WARN: CDN Probe Failed: {status}");
 
-            RunOnUIThread(() =>
-            {
-                CDNProbeInProgress    = false;
-                CDNProbeSucceeded     = false;
-                CDNProbeStatusMessage = $"CDN Is Unreachable: {reason}.";
-            });
+            SetCDNProbeState(inProgress: false, succeeded: false, statusMessage: $"CDN Is Unreachable: {status}", cancellationToken);
         }
 
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -380,13 +303,22 @@ public partial class MainViewModel : ObservableObject
 
             Log(LogCategory.Synchronise, $"WARN: CDN Probe Failed: {reason}");
 
-            RunOnUIThread(() =>
-            {
-                CDNProbeInProgress    = false;
-                CDNProbeSucceeded     = false;
-                CDNProbeStatusMessage = $"CDN Is Unreachable: {reason}.";
-            });
+            SetCDNProbeState(inProgress: false, succeeded: false, statusMessage: $"CDN Is Unreachable: {reason}", cancellationToken);
         }
+    }
+
+    private void SetCDNProbeState(bool inProgress, bool succeeded, string statusMessage, CancellationToken cancellationToken)
+    {
+        RunOnUIThread(() =>
+        {
+            // A Probe Which Was Superseded While Its Result Was Being Dispatched Must Not Overwrite The State Of The Probe Which Replaced It
+            if (cancellationToken.IsCancellationRequested)
+                return;
+
+            CDNProbeInProgress    = inProgress;
+            CDNProbeSucceeded     = succeeded;
+            CDNProbeStatusMessage = statusMessage;
+        });
     }
 
     public string ResolveActiveCDNURL()
