@@ -88,7 +88,7 @@ public sealed class MainViewModelAddressSelectionTests
 
         using (Assert.Multiple())
         {
-            await Assert.That(options.SequenceEqual(["cdn.kongor.net", "api.kongor.net/cdn", "Custom CDN ..."])).IsTrue();
+            await Assert.That(options.SequenceEqual(["cdn.kongor.net", "api.kongor.net/cdn", "Custom Address ..."])).IsTrue();
             await Assert.That(selectedOption).IsEqualTo("cdn.kongor.net");
         }
     }
@@ -107,7 +107,7 @@ public sealed class MainViewModelAddressSelectionTests
 
         using (Assert.Multiple())
         {
-            await Assert.That(options.SequenceEqual(["localhost:5555/cdn", "cdn.kongor.net", "api.kongor.net/cdn", "Custom CDN ..."])).IsTrue();
+            await Assert.That(options.SequenceEqual(["localhost:5555/cdn", "cdn.kongor.net", "api.kongor.net/cdn", "Custom Address ..."])).IsTrue();
             await Assert.That(selectedOption).IsEqualTo("localhost:5555/cdn");
         }
     }
@@ -129,7 +129,7 @@ public sealed class MainViewModelAddressSelectionTests
 
         using (Assert.Multiple())
         {
-            await Assert.That(options.SequenceEqual(["Custom CDN ..."])).IsTrue();
+            await Assert.That(options.SequenceEqual(["Custom Address ..."])).IsTrue();
             await Assert.That(customMasterServerAddressFieldIsShown).IsTrue();
             await Assert.That(customCDNAddressFieldIsShown).IsTrue();
             await Assert.That(customMasterServerAddress).IsEqualTo(string.Empty);

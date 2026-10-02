@@ -185,7 +185,7 @@ public partial class MainViewModel : ObservableObject
 
         AddressSelectItem customItem = new ()
         {
-            DisplayText = "Custom CDN ...",
+            DisplayText = "Custom Address ...",
             TargetURL   = null
         };
 
