@@ -67,7 +67,7 @@ public partial class MainViewModel : ObservableObject
             string variant = ResolveDefaultClientVariant();
             string cdnURL  = ResolveActiveCDNURL();
 
-            Log(LogCategory.Synchronise, $@"INIT: Fetching Manifest For Variant ""{variant}"" From CDN");
+            Log(LogCategory.Synchronise, $@"INIT: Fetching Manifest For Variant ""{variant}"" From CDN ""{cdnURL}""");
 
             Manifest manifest = await ContentBroker.FetchManifest(variant, baseURL: cdnURL);
 
