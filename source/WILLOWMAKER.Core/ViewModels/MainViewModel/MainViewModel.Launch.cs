@@ -180,7 +180,7 @@ public partial class MainViewModel : ObservableObject
         {
             DisplayText = "api.kongor.net/cdn",
             TargetURL   = "api.kongor.net/cdn",
-            TooltipText = "Hosted by the Project KONGOR services host and is intended as a Redundant Fault Tolerant High Availability Fallback."
+            TooltipText = "Hosted by the Project KONGOR services host and is intended as a redundant fault-tolerant highly-available fallback."
         };
 
         AddressSelectItem customItem = new ()
