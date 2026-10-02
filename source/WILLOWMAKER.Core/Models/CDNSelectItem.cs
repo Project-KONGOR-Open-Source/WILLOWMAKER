@@ -11,9 +11,14 @@ public sealed class CDNSelectItem
     public required string DisplayText { get; init; }
 
     /// <summary>
-    ///     The target address or URL string represented by this option.
+    ///     The target address or URL string represented by this option, or <see langword="null"/> for the custom option, whose address is entered separately.
     /// </summary>
-    public required string TargetURL { get; init; }
+    public required string? TargetURL { get; init; }
+
+    /// <summary>
+    ///     Whether this option is the custom option, whose address is entered separately.
+    /// </summary>
+    public bool IsCustom => TargetURL is null;
 
     /// <summary>
     ///     Whether this option has descriptive tooltip text to display.

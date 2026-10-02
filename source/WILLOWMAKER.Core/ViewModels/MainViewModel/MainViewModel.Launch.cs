@@ -109,20 +109,11 @@ public partial class MainViewModel : ObservableObject
         if (newValue is null)
             return;
 
-        if (newValue.TargetURL == "CUSTOM")
+        if (newValue.IsCustom)
         {
             CanShowCustomCDNAddressField = true;
-            CDNAddressIsValid = AddressValidation.IsValidAddress(CustomCDNAddress);
 
-            if (CDNAddressIsValid)
-                ScheduleDebouncedCDNProbe(CustomCDNAddress);
-
-            else
-            {
-                CancelProbe();
-                CDNProbeSucceeded = false;
-                CDNProbeStatusMessage = string.IsNullOrWhiteSpace(CustomCDNAddress) ? string.Empty : "Invalid CDN Address";
-            }
+            ValidateAndProbeCustomCDNAddress();
         }
 
         else
@@ -140,6 +131,11 @@ public partial class MainViewModel : ObservableObject
         if (CanShowCustomCDNAddressField is false)
             return;
 
+        ValidateAndProbeCustomCDNAddress();
+    }
+
+    private void ValidateAndProbeCustomCDNAddress()
+    {
         CDNAddressIsValid = AddressValidation.IsValidAddress(CustomCDNAddress);
 
         if (CDNAddressIsValid)
@@ -183,7 +179,7 @@ public partial class MainViewModel : ObservableObject
         CDNSelectItem customItem = new ()
         {
             DisplayText = "Custom CDN ...",
-            TargetURL   = "CUSTOM"
+            TargetURL   = null
         };
 
         // A Custom Master Server Is Expected To Come With A Custom CDN, So That Is The Only Option Offered For It
@@ -225,9 +221,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void TriggerImmediateCDNProbe()
     {
-        string? targetAddress = SelectedCDNAddressItem?.TargetURL == "CUSTOM"
-            ? CustomCDNAddress
-            : SelectedCDNAddressItem?.TargetURL;
+        string? targetAddress = ActiveCDNAddress;
 
         if (string.IsNullOrWhiteSpace(targetAddress) || AddressValidation.IsValidAddress(targetAddress) is false)
             return;
@@ -317,16 +311,10 @@ public partial class MainViewModel : ObservableObject
         });
     }
 
+    private string? ActiveCDNAddress => SelectedCDNAddressItem?.IsCustom is true ? CustomCDNAddress : SelectedCDNAddressItem?.TargetURL;
+
     public string ResolveActiveCDNURL()
-    {
-        string? rawAddress = SelectedCDNAddressItem?.TargetURL == "CUSTOM"
-            ? CustomCDNAddress
-            : SelectedCDNAddressItem?.TargetURL;
-
-        string normalised = AddressValidation.NormaliseCDNURL(rawAddress);
-
-        return string.IsNullOrWhiteSpace(normalised) ? "https://cdn.kongor.net/" : normalised;
-    }
+        => AddressValidation.NormaliseCDNURL(ActiveCDNAddress);
 
     private static void RunOnUIThread(Action action)
     {

@@ -19,12 +19,12 @@ public sealed class MainViewModelCDNTests
         {
             MainViewModel viewModel = CreateIdleViewModel();
 
-            return (viewModel.AvailableCDNOptions.Select(option => option.TargetURL).ToArray(), viewModel.SelectedCDNAddressItem?.TargetURL);
+            return (viewModel.AvailableCDNOptions.Select(option => option.DisplayText).ToArray(), viewModel.SelectedCDNAddressItem?.TargetURL);
         });
 
         using (Assert.Multiple())
         {
-            await Assert.That(options.SequenceEqual(["cdn.kongor.net", "api.kongor.net/cdn", "CUSTOM"])).IsTrue();
+            await Assert.That(options.SequenceEqual(["cdn.kongor.net", "api.kongor.net/cdn", "Custom CDN ..."])).IsTrue();
             await Assert.That(selectedOption).IsEqualTo("cdn.kongor.net");
         }
     }
@@ -38,12 +38,12 @@ public sealed class MainViewModelCDNTests
 
             viewModel.MasterServerAddress = new ComboBoxItem { Content = "localhost:5555" };
 
-            return (viewModel.AvailableCDNOptions.Select(option => option.TargetURL).ToArray(), viewModel.SelectedCDNAddressItem?.TargetURL);
+            return (viewModel.AvailableCDNOptions.Select(option => option.DisplayText).ToArray(), viewModel.SelectedCDNAddressItem?.TargetURL);
         });
 
         using (Assert.Multiple())
         {
-            await Assert.That(options.SequenceEqual(["localhost:5555/cdn", "cdn.kongor.net", "api.kongor.net/cdn", "CUSTOM"])).IsTrue();
+            await Assert.That(options.SequenceEqual(["localhost:5555/cdn", "cdn.kongor.net", "api.kongor.net/cdn", "Custom CDN ..."])).IsTrue();
             await Assert.That(selectedOption).IsEqualTo("localhost:5555/cdn");
         }
     }
@@ -56,16 +56,16 @@ public sealed class MainViewModelCDNTests
             MainViewModel viewModel = CreateIdleViewModel();
 
             viewModel.MasterServerAddress = new ComboBoxItem { Content = "localhost:5555" };
-            viewModel.SelectedCDNAddressItem = viewModel.AvailableCDNOptions.Single(option => option.TargetURL is "CUSTOM");
+            viewModel.SelectedCDNAddressItem = viewModel.AvailableCDNOptions.Single(option => option.IsCustom);
             viewModel.CustomCDNAddress = "cdn.example.com";
             viewModel.MasterServerAddress = new ComboBoxItem { Content = CustomMasterServer };
 
-            return (viewModel.AvailableCDNOptions.Select(option => option.TargetURL).ToArray(), viewModel.CanShowCustomCDNAddressField, viewModel.CustomMasterServerAddress, viewModel.CustomCDNAddress, viewModel.CDNAddressIsValid);
+            return (viewModel.AvailableCDNOptions.Select(option => option.DisplayText).ToArray(), viewModel.CanShowCustomCDNAddressField, viewModel.CustomMasterServerAddress, viewModel.CustomCDNAddress, viewModel.CDNAddressIsValid);
         });
 
         using (Assert.Multiple())
         {
-            await Assert.That(options.SequenceEqual(["CUSTOM"])).IsTrue();
+            await Assert.That(options.SequenceEqual(["Custom CDN ..."])).IsTrue();
             await Assert.That(customCDNAddressFieldIsShown).IsTrue();
             await Assert.That(customMasterServerAddress).IsEqualTo(string.Empty);
             await Assert.That(customCDNAddress).IsEqualTo(string.Empty);
@@ -141,7 +141,7 @@ public sealed class MainViewModelCDNTests
     [Test]
     public async Task Resolving_The_Active_CDN_URL_Normalises_The_Selected_CDN_Address()
     {
-        (string officialCDNURL, string localCDNURL, string customCDNURL) = await HeadlessSession.Dispatch(() =>
+        (string officialCDNURL, string localCDNURL, string emptyCustomCDNURL, string customCDNURL) = await HeadlessSession.Dispatch(() =>
         {
             MainViewModel viewModel = CreateIdleViewModel();
 
@@ -152,17 +152,21 @@ public sealed class MainViewModelCDNTests
             string localCDNURL = viewModel.ResolveActiveCDNURL();
 
             viewModel.MasterServerAddress = new ComboBoxItem { Content = CustomMasterServer };
+
+            string emptyCustomCDNURL = viewModel.ResolveActiveCDNURL();
+
             viewModel.CustomCDNAddress = "cdn.example.com/files";
 
             string customCDNURL = viewModel.ResolveActiveCDNURL();
 
-            return (officialCDNURL, localCDNURL, customCDNURL);
+            return (officialCDNURL, localCDNURL, emptyCustomCDNURL, customCDNURL);
         });
 
         using (Assert.Multiple())
         {
             await Assert.That(officialCDNURL).IsEqualTo("https://cdn.kongor.net/");
             await Assert.That(localCDNURL).IsEqualTo("http://localhost:5555/cdn/");
+            await Assert.That(emptyCustomCDNURL).IsEqualTo(string.Empty);
             await Assert.That(customCDNURL).IsEqualTo("https://cdn.example.com/files/");
         }
     }
