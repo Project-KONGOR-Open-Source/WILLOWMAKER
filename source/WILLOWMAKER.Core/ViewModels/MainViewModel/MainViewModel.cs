@@ -19,8 +19,8 @@ public partial class MainViewModel : ObservableObject
 
     public MainViewModel()
     {
-        Log(LogCategory.Parameters, "-masterserver api.kongor.net -webserver api.kongor.net -messageserver api.kongor.net");
-        InitialiseCDNOptions();
+        // Selecting The Default Master Server Also Logs Its Launch Parameters And Populates The CDN Options Offered For It
+        SelectedMasterServerAddressItem = AvailableMasterServerOptions[0];
     }
 
     /// <summary>

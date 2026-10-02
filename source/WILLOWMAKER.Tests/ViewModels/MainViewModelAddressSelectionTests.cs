@@ -1,16 +1,80 @@
 namespace WILLOWMAKER.Tests.ViewModels;
 
 /// <summary>
-///     Verifies the CDN selection of <see cref="MainViewModel"/>: the CDN options offered for each master server, address validation, launch gating, and connectivity probing.
+///     Verifies the master server and CDN selection of <see cref="MainViewModel"/>: the options offered, address validation, launch gating, and CDN connectivity probing.
 ///     The work of each test is dispatched to the headless UI thread, and the observed state is returned so that it can be asserted on the test thread.
 ///     The tests run sequentially, since the probe tests depend on timing.
 /// </summary>
 [NotInParallel]
-public sealed class MainViewModelCDNTests
+public sealed class MainViewModelAddressSelectionTests
 {
-    private const string CustomMasterServer = "Custom Address ...";
-
     private static string ClientVariant => OperatingSystem.IsWindows() ? "wac" : OperatingSystem.IsLinux() ? "lac" : "mac";
+
+    [Test]
+    public async Task The_Master_Server_Options_Offer_The_Official_The_Local_And_A_Custom_Master_Server_And_Select_The_Official_One()
+    {
+        (string[] options, string? selectedOption, bool customMasterServerAddressFieldIsShown) = await HeadlessSession.Dispatch(() =>
+        {
+            MainViewModel viewModel = CreateIdleViewModel();
+
+            return (viewModel.AvailableMasterServerOptions.Select(option => option.DisplayText).ToArray(), viewModel.SelectedMasterServerAddressItem?.TargetURL, viewModel.CanShowCustomMasterServerAddressField);
+        });
+
+        using (Assert.Multiple())
+        {
+            await Assert.That(options.SequenceEqual(["api.kongor.net", "localhost:5555", "Custom Address ..."])).IsTrue();
+            await Assert.That(selectedOption).IsEqualTo("api.kongor.net");
+            await Assert.That(customMasterServerAddressFieldIsShown).IsFalse();
+        }
+    }
+
+    [Test]
+    public async Task An_Invalid_Custom_Master_Server_Address_Is_Reported_And_Disables_The_Game_Client_Launch()
+    {
+        (bool masterServerAddressIsValid, string statusMessage, bool canLaunchGameClient) = await HeadlessSession.Dispatch(() =>
+        {
+            MainViewModel viewModel = CreateIdleViewModel();
+
+            SelectCustomMasterServer(viewModel);
+
+            viewModel.CustomMasterServerAddress = "master .kongor.net";
+            viewModel.CustomCDNAddress = "localhost:5555/cdn";
+
+            return (viewModel.MasterServerAddressIsValid, viewModel.MasterServerStatusMessage, viewModel.CanLaunchGameClient);
+        });
+
+        using (Assert.Multiple())
+        {
+            await Assert.That(masterServerAddressIsValid).IsFalse();
+            await Assert.That(statusMessage).IsEqualTo("Invalid Master Server Address");
+            await Assert.That(canLaunchGameClient).IsFalse();
+        }
+    }
+
+    [Test]
+    public async Task Selecting_A_Built_In_Master_Server_Clears_An_Invalid_Custom_Master_Server_Address()
+    {
+        (bool masterServerAddressIsValid, string statusMessage, string? customMasterServerAddress, bool customMasterServerAddressFieldIsShown) = await HeadlessSession.Dispatch(() =>
+        {
+            MainViewModel viewModel = CreateIdleViewModel();
+
+            SelectCustomMasterServer(viewModel);
+
+            viewModel.CustomMasterServerAddress = "master .kongor.net";
+
+            SelectMasterServer(viewModel, "api.kongor.net");
+
+            return (viewModel.MasterServerAddressIsValid, viewModel.MasterServerStatusMessage, viewModel.CustomMasterServerAddress, viewModel.CanShowCustomMasterServerAddressField);
+        });
+
+        using (Assert.Multiple())
+        {
+            await Assert.That(masterServerAddressIsValid).IsTrue();
+            await Assert.That(statusMessage).IsEqualTo(string.Empty);
+            await Assert.That(customMasterServerAddress).IsNull();
+            await Assert.That(customMasterServerAddressFieldIsShown).IsFalse();
+        }
+    }
 
     [Test]
     public async Task The_Official_Master_Server_Offers_The_Public_CDNs_And_Selects_The_Mesh_CDN()
@@ -36,7 +100,7 @@ public sealed class MainViewModelCDNTests
         {
             MainViewModel viewModel = CreateIdleViewModel();
 
-            viewModel.MasterServerAddress = new ComboBoxItem { Content = "localhost:5555" };
+            SelectMasterServer(viewModel, "localhost:5555");
 
             return (viewModel.AvailableCDNOptions.Select(option => option.DisplayText).ToArray(), viewModel.SelectedCDNAddressItem?.TargetURL);
         });
@@ -51,24 +115,26 @@ public sealed class MainViewModelCDNTests
     [Test]
     public async Task A_Custom_Master_Server_Offers_Only_A_Custom_CDN_With_Both_Custom_Fields_Empty()
     {
-        (string[] options, bool customCDNAddressFieldIsShown, string? customMasterServerAddress, string? customCDNAddress, bool cdnAddressIsValid) = await HeadlessSession.Dispatch(() =>
+        (string[] options, bool customMasterServerAddressFieldIsShown, bool customCDNAddressFieldIsShown, string? customMasterServerAddress, string? customCDNAddress, string masterServerStatusMessage, bool cdnAddressIsValid) = await HeadlessSession.Dispatch(() =>
         {
             MainViewModel viewModel = CreateIdleViewModel();
 
-            viewModel.MasterServerAddress = new ComboBoxItem { Content = "localhost:5555" };
+            SelectMasterServer(viewModel, "localhost:5555");
             viewModel.SelectedCDNAddressItem = viewModel.AvailableCDNOptions.Single(option => option.IsCustom);
             viewModel.CustomCDNAddress = "cdn.example.com";
-            viewModel.MasterServerAddress = new ComboBoxItem { Content = CustomMasterServer };
+            SelectCustomMasterServer(viewModel);
 
-            return (viewModel.AvailableCDNOptions.Select(option => option.DisplayText).ToArray(), viewModel.CanShowCustomCDNAddressField, viewModel.CustomMasterServerAddress, viewModel.CustomCDNAddress, viewModel.CDNAddressIsValid);
+            return (viewModel.AvailableCDNOptions.Select(option => option.DisplayText).ToArray(), viewModel.CanShowCustomMasterServerAddressField, viewModel.CanShowCustomCDNAddressField, viewModel.CustomMasterServerAddress, viewModel.CustomCDNAddress, viewModel.MasterServerStatusMessage, viewModel.CDNAddressIsValid);
         });
 
         using (Assert.Multiple())
         {
             await Assert.That(options.SequenceEqual(["Custom CDN ..."])).IsTrue();
+            await Assert.That(customMasterServerAddressFieldIsShown).IsTrue();
             await Assert.That(customCDNAddressFieldIsShown).IsTrue();
             await Assert.That(customMasterServerAddress).IsEqualTo(string.Empty);
             await Assert.That(customCDNAddress).IsEqualTo(string.Empty);
+            await Assert.That(masterServerStatusMessage).IsEqualTo(string.Empty);
             await Assert.That(cdnAddressIsValid).IsFalse();
         }
     }
@@ -80,7 +146,7 @@ public sealed class MainViewModelCDNTests
         {
             MainViewModel viewModel = CreateIdleViewModel();
 
-            viewModel.MasterServerAddress = new ComboBoxItem { Content = CustomMasterServer };
+            SelectCustomMasterServer(viewModel);
             viewModel.CustomMasterServerAddress = "localhost:5555";
             viewModel.CustomCDNAddress = "cdn .kongor.net";
 
@@ -103,7 +169,7 @@ public sealed class MainViewModelCDNTests
         {
             MainViewModel viewModel = CreateIdleViewModel();
 
-            viewModel.MasterServerAddress = new ComboBoxItem { Content = CustomMasterServer };
+            SelectCustomMasterServer(viewModel);
             viewModel.CustomMasterServerAddress = "localhost:5555";
             viewModel.CustomCDNAddress = "localhost:5555/cdn";
 
@@ -125,7 +191,7 @@ public sealed class MainViewModelCDNTests
         {
             MainViewModel viewModel = CreateIdleViewModel();
 
-            viewModel.MasterServerAddress = new ComboBoxItem { Content = CustomMasterServer };
+            SelectCustomMasterServer(viewModel);
             viewModel.CustomCDNAddress = "localhost:5555/cdn";
 
             return (viewModel.CanLaunchGameClient, viewModel.CanLaunchMapEditor);
@@ -147,11 +213,11 @@ public sealed class MainViewModelCDNTests
 
             string officialCDNURL = viewModel.ResolveActiveCDNURL();
 
-            viewModel.MasterServerAddress = new ComboBoxItem { Content = "localhost:5555" };
+            SelectMasterServer(viewModel, "localhost:5555");
 
             string localCDNURL = viewModel.ResolveActiveCDNURL();
 
-            viewModel.MasterServerAddress = new ComboBoxItem { Content = CustomMasterServer };
+            SelectCustomMasterServer(viewModel);
 
             string emptyCustomCDNURL = viewModel.ResolveActiveCDNURL();
 
@@ -280,7 +346,7 @@ public sealed class MainViewModelCDNTests
         {
             MainViewModel viewModel = CreateIdleViewModel();
 
-            viewModel.MasterServerAddress = new ComboBoxItem { Content = CustomMasterServer };
+            SelectCustomMasterServer(viewModel);
 
             // Holding The Log File Open Exclusively Makes Every Write To It Fail While The Probe Runs
             using (FileStream logFile = new (Path.Combine(Environment.CurrentDirectory, DeploymentManifest.LogFileName), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
@@ -308,11 +374,17 @@ public sealed class MainViewModelCDNTests
     {
         MainViewModel viewModel = CreateIdleViewModel();
 
-        viewModel.MasterServerAddress = new ComboBoxItem { Content = CustomMasterServer };
+        SelectCustomMasterServer(viewModel);
         viewModel.CustomCDNAddress = customCDNAddress;
 
         return viewModel;
     }
+
+    private static void SelectMasterServer(MainViewModel viewModel, string targetURL)
+        => viewModel.SelectedMasterServerAddressItem = viewModel.AvailableMasterServerOptions.Single(option => option.TargetURL == targetURL);
+
+    private static void SelectCustomMasterServer(MainViewModel viewModel)
+        => viewModel.SelectedMasterServerAddressItem = viewModel.AvailableMasterServerOptions.Single(option => option.IsCustom);
 
     private static Task WaitForProbeResult(MainViewModel viewModel)
         => WaitUntil(() => viewModel.CDNProbeInProgress is false && string.IsNullOrEmpty(viewModel.CDNProbeStatusMessage) is false);

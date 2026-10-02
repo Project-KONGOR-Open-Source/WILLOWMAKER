@@ -2,8 +2,15 @@ namespace WILLOWMAKER.Core.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    public IReadOnlyList<AddressSelectItem> AvailableMasterServerOptions { get; } =
+    [
+        new () { DisplayText = "api.kongor.net", TargetURL = "api.kongor.net" },
+        new () { DisplayText = "localhost:5555", TargetURL = "localhost:5555" },
+        new () { DisplayText = "Custom Address ...", TargetURL = null }
+    ];
+
     [ObservableProperty]
-    public partial ComboBoxItem? MasterServerAddress { get; set; } = new () { Content = "api.kongor.net" }; // Needs To Match The Default Value In The XAML
+    public partial AddressSelectItem? SelectedMasterServerAddressItem { get; set; }
 
     [ObservableProperty]
     public partial string? CustomMasterServerAddress { get; set; }
@@ -15,10 +22,13 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
     public partial bool MasterServerAddressIsValid { get; set; } = true;
 
-    public ObservableCollection<CDNSelectItem> AvailableCDNOptions { get; } = [];
+    [ObservableProperty]
+    public partial string MasterServerStatusMessage { get; set; } = string.Empty;
+
+    public ObservableCollection<AddressSelectItem> AvailableCDNOptions { get; } = [];
 
     [ObservableProperty]
-    public partial CDNSelectItem? SelectedCDNAddressItem { get; set; }
+    public partial AddressSelectItem? SelectedCDNAddressItem { get; set; }
 
     [ObservableProperty]
     public partial string? CustomCDNAddress { get; set; }
@@ -65,44 +75,48 @@ public partial class MainViewModel : ObservableObject
 
     private CancellationTokenSource? probeCancellationTokenSource;
 
-    partial void OnMasterServerAddressChanged(ComboBoxItem? oldValue, ComboBoxItem? newValue)
+    partial void OnSelectedMasterServerAddressItemChanged(AddressSelectItem? oldValue, AddressSelectItem? newValue)
     {
-        if (newValue is not null)
+        if (newValue is null)
+            return;
+
+        if (newValue.IsCustom)
         {
-            string addressText = newValue.Content?.ToString() ?? string.Empty;
-            bool isCustom = addressText.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase);
+            CanShowCustomMasterServerAddressField = true;
+            CustomMasterServerAddress = string.Empty;
+            CustomCDNAddress = string.Empty;
 
-            CanShowCustomMasterServerAddressField = isCustom;
-
-            if (isCustom)
-            {
-                CustomMasterServerAddress = string.Empty;
-                CustomCDNAddress = string.Empty;
-                MasterServerAddressIsValid = AddressValidation.IsValidAddress(CustomMasterServerAddress);
-            }
-
-            else
-            {
-                CustomMasterServerAddress = null;
-                MasterServerAddressIsValid = true;
-
-                LogLaunchParameters();
-            }
-
-            PopulateCDNOptions(addressText);
+            ValidateCustomMasterServerAddress();
         }
+
+        else
+        {
+            CanShowCustomMasterServerAddressField = false;
+            CustomMasterServerAddress = null;
+            MasterServerAddressIsValid = true;
+            MasterServerStatusMessage = string.Empty;
+
+            LogLaunchParameters();
+        }
+
+        PopulateCDNOptions(newValue);
     }
 
     partial void OnCustomMasterServerAddressChanged(string? oldValue, string? newValue)
     {
-        bool isCustom = MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false;
+        if (CanShowCustomMasterServerAddressField is false)
+            return;
 
-        MasterServerAddressIsValid = isCustom
-            ? AddressValidation.IsValidAddress(CustomMasterServerAddress)
-            : true;
+        ValidateCustomMasterServerAddress();
     }
 
-    partial void OnSelectedCDNAddressItemChanged(CDNSelectItem? oldValue, CDNSelectItem? newValue)
+    private void ValidateCustomMasterServerAddress()
+    {
+        MasterServerAddressIsValid = AddressValidation.IsValidAddress(CustomMasterServerAddress);
+        MasterServerStatusMessage = MasterServerAddressIsValid || string.IsNullOrWhiteSpace(CustomMasterServerAddress) ? string.Empty : "Invalid Master Server Address";
+    }
+
+    partial void OnSelectedCDNAddressItemChanged(AddressSelectItem? oldValue, AddressSelectItem? newValue)
     {
         if (newValue is null)
             return;
@@ -147,47 +161,42 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    private void InitialiseCDNOptions()
+    private void PopulateCDNOptions(AddressSelectItem masterServer)
     {
-        PopulateCDNOptions("api.kongor.net");
-    }
-
-    private void PopulateCDNOptions(string masterServer)
-    {
-        CDNSelectItem localItem = new ()
+        AddressSelectItem localItem = new ()
         {
             DisplayText = "localhost:5555/cdn",
             TargetURL   = "localhost:5555/cdn"
         };
 
-        CDNSelectItem meshItem = new ()
+        AddressSelectItem meshItem = new ()
         {
             DisplayText = "cdn.kongor.net",
             TargetURL   = "cdn.kongor.net",
             TooltipText = "Hosted on a global mesh network."
         };
 
-        CDNSelectItem servicesItem = new ()
+        AddressSelectItem servicesItem = new ()
         {
             DisplayText = "api.kongor.net/cdn",
             TargetURL   = "api.kongor.net/cdn",
             TooltipText = "Hosted by the Project KONGOR services host and is intended as a Redundant Fault Tolerant High Availability Fallback."
         };
 
-        CDNSelectItem customItem = new ()
+        AddressSelectItem customItem = new ()
         {
             DisplayText = "Custom CDN ...",
             TargetURL   = null
         };
 
         // A Custom Master Server Is Expected To Come With A Custom CDN, So That Is The Only Option Offered For It
-        CDNSelectItem[] options = masterServer.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ? [customItem]
-            : masterServer.Contains("localhost", StringComparison.OrdinalIgnoreCase) ? [localItem, meshItem, servicesItem, customItem]
+        AddressSelectItem[] options = masterServer.IsCustom ? [customItem]
+            : masterServer.TargetURL?.Contains("localhost", StringComparison.OrdinalIgnoreCase) is true ? [localItem, meshItem, servicesItem, customItem]
             : [meshItem, servicesItem, customItem];
 
         AvailableCDNOptions.Clear();
 
-        foreach (CDNSelectItem option in options)
+        foreach (AddressSelectItem option in options)
             AvailableCDNOptions.Add(option);
 
         SelectedCDNAddressItem = options[0];
@@ -309,6 +318,8 @@ public partial class MainViewModel : ObservableObject
         });
     }
 
+    private string? ActiveMasterServerAddress => SelectedMasterServerAddressItem?.IsCustom is true ? CustomMasterServerAddress : SelectedMasterServerAddressItem?.TargetURL;
+
     private string? ActiveCDNAddress => SelectedCDNAddressItem?.IsCustom is true ? CustomCDNAddress : SelectedCDNAddressItem?.TargetURL;
 
     public string ResolveActiveCDNURL()
@@ -324,9 +335,7 @@ public partial class MainViewModel : ObservableObject
 
     private void LogLaunchParameters()
     {
-        string address = MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false
-            ? CustomMasterServerAddress ?? throw new NullReferenceException("Custom Master Server Address Is NULL")
-            : MasterServerAddress?.Content?.ToString() ?? throw new NullReferenceException("Master Server Address Is NULL");
+        string address = ActiveMasterServerAddress ?? throw new NullReferenceException("Master Server Address Is NULL");
 
         // The Game Client Does Not Understand "localhost" As A Valid Address, So We Need To Replace It With The Loopback Address "127.0.0.1" For Locally Hosted Master Servers
         // We Also Want To Wait Until Reaching The Colon Before Replacing The Local IP Address, Otherwise "localhost" Appears In The Log With The "t" Missing From The End
@@ -531,9 +540,7 @@ public partial class MainViewModel : ObservableObject
 
     private string BuildMasterServerAddress()
     {
-        string address = MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false
-            ? CustomMasterServerAddress ?? throw new NullReferenceException("Custom Master Server Address Is NULL")
-            : MasterServerAddress?.Content?.ToString() ?? throw new NullReferenceException("Master Server Address Is NULL");
+        string address = ActiveMasterServerAddress ?? throw new NullReferenceException("Master Server Address Is NULL");
 
         // The Game Client Does Not Understand "localhost" As A Valid Address, So We Need To Replace It With The Loopback Address "127.0.0.1" For Locally Hosted Master Servers
         return address.Replace("localhost", IPAddress.Loopback.MapToIPv4().ToString());
