@@ -262,14 +262,17 @@ public partial class MainViewModel : ObservableObject
     {
         SetCDNProbeState(inProgress: true, succeeded: false, statusMessage: "Probing CDN Connectivity ...", cancellationToken);
 
-        string normalised = AddressValidation.NormaliseCDNURL(rawAddress);
-        string variant    = ResolveDefaultClientVariant();
-        string probeURL   = $"{normalised}{variant}/manifest.json";
-
-        Log(LogCategory.Synchronise, $@"INIT: Probing CDN At ""{probeURL}""");
+        bool succeeded = false;
+        string result;
 
         try
         {
+            string normalised = AddressValidation.NormaliseCDNURL(rawAddress);
+            string variant    = ResolveDefaultClientVariant();
+            string probeURL   = $"{normalised}{variant}/manifest.json";
+
+            Log(LogCategory.Synchronise, $@"INIT: Probing CDN At ""{probeURL}""");
+
             using HttpClient client = new ();
             client.DefaultRequestHeaders.UserAgent.ParseAdd($"WILLOWMAKER/{VersionChecker.CurrentVersionDisplay}");
             client.Timeout = TimeSpan.FromSeconds(5);
@@ -277,36 +280,26 @@ public partial class MainViewModel : ObservableObject
             using HttpRequestMessage request = new (HttpMethod.Head, probeURL);
             using HttpResponseMessage response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-            string status = $"HTTP {(int) response.StatusCode} ({response.StatusCode})";
-
-            if (response.IsSuccessStatusCode)
-            {
-                Log(LogCategory.Synchronise, $"INIT: CDN Probe Succeeded: {status}");
-
-                SetCDNProbeState(inProgress: false, succeeded: true, statusMessage: $"CDN Is Online: {status}", cancellationToken);
-
-                return;
-            }
-
-            Log(LogCategory.Synchronise, $"WARN: CDN Probe Failed: {status}");
-
-            SetCDNProbeState(inProgress: false, succeeded: false, statusMessage: $"CDN Is Unreachable: {status}", cancellationToken);
+            succeeded = response.IsSuccessStatusCode;
+            result    = $"HTTP {(int) response.StatusCode} ({response.StatusCode})";
         }
 
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            return;
         }
 
         catch (Exception exception)
         {
-            string reason = exception is HttpRequestException httpRequestException && httpRequestException.StatusCode is not null
+            result = exception is HttpRequestException httpRequestException && httpRequestException.StatusCode is not null
                 ? $"HTTP {(int) httpRequestException.StatusCode} ({httpRequestException.StatusCode})"
                 : exception.Message;
-
-            Log(LogCategory.Synchronise, $"WARN: CDN Probe Failed: {reason}");
-
-            SetCDNProbeState(inProgress: false, succeeded: false, statusMessage: $"CDN Is Unreachable: {reason}", cancellationToken);
         }
+
+        // The Final State Is Applied Before The Result Is Logged, So That A Failure To Write To The Log Cannot Leave The Probe In Progress
+        SetCDNProbeState(inProgress: false, succeeded: succeeded, statusMessage: succeeded ? $"CDN Is Online: {result}" : $"CDN Is Unreachable: {result}", cancellationToken);
+
+        Log(LogCategory.Synchronise, succeeded ? $"INIT: CDN Probe Succeeded: {result}" : $"WARN: CDN Probe Failed: {result}");
     }
 
     private void SetCDNProbeState(bool inProgress, bool succeeded, string statusMessage, CancellationToken cancellationToken)
