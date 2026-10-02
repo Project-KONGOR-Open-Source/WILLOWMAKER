@@ -15,10 +15,8 @@ public static class AddressValidation
 
         string trimmed = rawURL.Trim();
 
-        if (trimmed.StartsWith("::1", StringComparison.OrdinalIgnoreCase) && (trimmed.Length == 3 || trimmed[3] is '/' or ':'))
-            trimmed = $"[::1]{trimmed[3..]}";
-
-        string urlWithScheme = trimmed.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || trimmed.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+        // An Address Which Already Has A Scheme Keeps It, So That Validation Rejects An Unsupported Scheme Instead Of Accepting It Nested Inside A Prepended One
+        string urlWithScheme = trimmed.Contains("://", StringComparison.Ordinal)
             ? trimmed
             : IsLoopbackHost(trimmed) ? $"http://{trimmed}" : $"https://{trimmed}";
 
@@ -39,16 +37,11 @@ public static class AddressValidation
                 return false;
         }
 
-        string candidateAddress = rawAddress;
-
-        if (candidateAddress.StartsWith("::1", StringComparison.OrdinalIgnoreCase) && (candidateAddress.Length == 3 || candidateAddress[3] is '/' or ':'))
-            candidateAddress = $"[::1]{candidateAddress[3..]}";
-
-        string? candidateURL = candidateAddress.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || candidateAddress.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
-            ? candidateAddress
-            : candidateAddress.Contains("://", StringComparison.Ordinal)
+        string? candidateURL = rawAddress.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || rawAddress.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            ? rawAddress
+            : rawAddress.Contains("://", StringComparison.Ordinal)
                 ? null
-                : $"http://{candidateAddress}";
+                : $"http://{rawAddress}";
 
         if (candidateURL is null)
             return false;
@@ -77,12 +70,6 @@ public static class AddressValidation
 
                 return bracketedHost.Equals("[::1]", StringComparison.OrdinalIgnoreCase);
             }
-        }
-
-        if (address.StartsWith("::1", StringComparison.OrdinalIgnoreCase))
-        {
-            if (address.Length == 3 || address[3] is '/' or ':')
-                return true;
         }
 
         int delimiterIndex = address.IndexOfAny(['/', ':']);
