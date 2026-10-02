@@ -52,10 +52,13 @@ public partial class MainViewModel : ObservableObject
             return true;
         }
 
-        // Only The Map Editor Can Be Launched With An Invalid CDN Address, And It Proceeds Without Synchronising
+        // Only The Map Editor Can Be Launched With An Invalid CDN Address, Which Is Reported As A Failed Synchronisation So That The User Is Told About It
         if (CDNAddressIsValid is false)
         {
-            Log(LogCategory.Synchronise, "SKIP: Synchronisation Skipped (Invalid CDN Address)");
+            Log(LogCategory.Synchronise, $@"FAIL: Invalid CDN Address ""{ActiveCDNAddress}"" :: Synchronisation Aborted");
+
+            SynchronisationIsFailed = true;
+            SynchronisationStatusMessage = "Invalid CDN Address; Synchronisation Aborted";
 
             return false;
         }

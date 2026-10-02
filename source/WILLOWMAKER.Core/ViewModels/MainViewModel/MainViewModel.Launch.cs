@@ -424,6 +424,35 @@ public partial class MainViewModel : ObservableObject
         return shouldBypass;
     }
 
+    private async Task<bool> ConfirmMapEditorLaunchWithoutSynchronisation()
+    {
+        if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop || desktop.MainWindow is null)
+            return false;
+
+        string problem = CDNAddressIsValid
+            ? $"The map editor's resources could not be synchronised from the Content Delivery Network ({SynchronisationStatusMessage})."
+            : string.IsNullOrWhiteSpace(ActiveCDNAddress)
+                ? "No CDN address has been entered, so the map editor's resources cannot be synchronised from the Content Delivery Network."
+                : $@"The CDN address ""{ActiveCDNAddress}"" is not valid, so the map editor's resources cannot be synchronised from the Content Delivery Network.";
+
+        string message = new StringBuilder()
+            .Append(problem + " ")
+            .Append("The map editor can still be opened, but it may not have the latest resources.")
+            .AppendLine().AppendLine()
+            .Append("Continue?")
+            .ToString();
+
+        SynchronisationBypassDialog dialog = new (message);
+
+        bool shouldContinue = await dialog.ShowDialog<bool>(desktop.MainWindow);
+
+        Log(LogCategory.Synchronise, shouldContinue
+            ? "WARN: Opening The Map Editor Without Synchronised Resources"
+            : "SKIP: Map Editor Launch Cancelled By User");
+
+        return shouldContinue;
+    }
+
     [RelayCommand]
     private async Task LaunchMapEditor()
     {
@@ -433,9 +462,9 @@ public partial class MainViewModel : ObservableObject
         {
             Log(LogCategory.Executable, "Map Editor Launch Initiated");
 
-            // The Map Editor Works Offline, So A Synchronisation Which Cannot Be Performed Only Means That It May Not Have The Latest Resources
-            if (await SynchroniseContent() is false)
-                Log(LogCategory.Synchronise, "WARN: Launching The Map Editor Without Synchronised Resources");
+            // The Map Editor Works Offline, So A Synchronisation Problem Does Not Prevent It From Being Opened, But The User Is Told About The Problem And Can Choose To Fix It First
+            if (await SynchroniseContent() is false && await ConfirmMapEditorLaunchWithoutSynchronisation() is false)
+                return;
 
             if (TryResolveGameExecutable(out FileInfo? executable) is false)
                 return;
