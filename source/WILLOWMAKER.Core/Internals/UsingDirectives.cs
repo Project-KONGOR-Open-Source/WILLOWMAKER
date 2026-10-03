@@ -13,10 +13,12 @@ global using CommunityToolkit.Mvvm.Input;
 global using Microsoft.Extensions.FileSystemGlobbing;
 
 global using System.Collections.Concurrent;
+global using System.Collections.ObjectModel;
 global using System.Diagnostics;
 global using System.Diagnostics.CodeAnalysis;
 global using System.IO.Compression;
 global using System.Net;
+global using System.Net.Http;
 global using System.Runtime.InteropServices;
 global using System.Runtime.InteropServices.ComTypes;
 global using System.Security.Cryptography;
@@ -27,6 +29,7 @@ global using System.Text.RegularExpressions;
 
 global using WILLOWMAKER.Core.Constants;
 global using WILLOWMAKER.Core.Enumerations;
+global using WILLOWMAKER.Core.Models;
 global using WILLOWMAKER.Core.Services;
 global using WILLOWMAKER.Core.Utilities;
 global using WILLOWMAKER.Core.ViewModels;

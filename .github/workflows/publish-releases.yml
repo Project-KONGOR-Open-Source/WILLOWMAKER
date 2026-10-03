@@ -66,10 +66,11 @@ jobs:
     - name: "Check Out Branch"
       uses: "actions/checkout@v7"
 
-    - name: "Install .NET 10"
-      uses: "actions/setup-dotnet@v5"
+    - name: "Install .NET 11"
+      uses: "actions/setup-dotnet@v6"
       with:
-        dotnet-version: "10.x"
+        dotnet-version: "11.x"
+        dotnet-quality: "preview"
 
     # pwsh is pre-installed on every GitHub-hosted runner (all OSes, both architectures) and is used uniformly across the matrix to avoid splitting shell idioms between Linux/macOS bash and Windows PowerShell
     # the version override strips the leading `v` from the tag name and passes it to MSBuild

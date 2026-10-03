@@ -2,8 +2,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="clr-namespace:WILLOWMAKER.Core.Models"
              xmlns:vm="clr-namespace:WILLOWMAKER.Core.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="1250" Width="1250" d:DesignHeight="750" Height="750"
+             mc:Ignorable="d" d:DesignWidth="1150" Width="1150" d:DesignHeight="600" Height="600"
              x:Class="WILLOWMAKER.Core.Views.MainView"
              x:DataType="vm:MainViewModel">
 
@@ -11,10 +12,22 @@
         <vm:MainViewModel /> <!-- This Only Sets The DataContext For The Previewer In An IDE, To Set The Actual DataContext For Runtime, Set The DataContext Property In Code -->
     </Design.DataContext>
 
+    <UserControl.Resources>
+        <!-- Shared By The Master Server And CDN Dropdowns, So That Both Present Their Addresses The Same Way; The Address Stays Centred Whether Or Not The Tooltip Badge Is Shown -->
+        <DataTemplate x:Key="AddressSelectItemTemplate" x:DataType="models:AddressSelectItem">
+            <Grid>
+                <TextBlock Text="{Binding DisplayText}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <Border Width="16" Height="16" CornerRadius="8" Background="#555555" HorizontalAlignment="Right" VerticalAlignment="Center" IsVisible="{Binding HasTooltip}" ToolTip.Tip="{Binding TooltipText}">
+                    <TextBlock Text="!" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
+                </Border>
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+
     <!-- Colours & Palettes: https://materialui.co/ -->
 
     <StackPanel>
-        <Grid ColumnDefinitions="Auto, Auto" Height="750">
+        <Grid ColumnDefinitions="Auto, Auto" Height="600">
             <StackPanel Grid.Column="0" Width="150" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#131418">
                 <Button Height="150" Command="{Binding GoToURLCommand}" CommandParameter="{Binding GitHubLink}" Cursor="Hand" Background="#131418" >
                     <Image Source="/Assets/github-logo.png" Margin="15" />
@@ -68,40 +81,68 @@
                         </Style>
                     </Button.Styles>
                 </Button>
-                <Button Height="150" Command="{Binding GoToURLCommand}" CommandParameter="{Binding ElementLink}" Cursor="Hand" Background="#131418" >
-                    <Image Source="/Assets/element-logo.png" Margin="15" />
-                    <Button.Styles>
-                        <Style Selector="Button:pointerover > Image">
-                            <Setter Property="Width" Value="130" />
-                            <Setter Property="Height" Value="130" />
-                            <Setter Property="Margin" Value="10"/>
-                        </Style>
-                        <Style Selector="Button:pointerover /template/ ContentPresenter">
-                            <Setter Property="Background" Value="#131418" />
-                        </Style>
-                    </Button.Styles>
-                </Button>
             </StackPanel>
 
-            <StackPanel Grid.Column="1" Width="1100" Background="#131418" Focusable="True" PointerPressed="Background_PointerPressed">
+            <StackPanel Grid.Column="1" Width="1000" Background="#131418" Focusable="True" PointerPressed="Background_PointerPressed">
                 <StackPanel.Background>
                     <ImageBrush Source="/Assets/caldavar.png" Stretch="UniformToFill" Opacity="0.20" />
                 </StackPanel.Background>
 
                 <Grid RowDefinitions="Auto, Auto">
-                    <Grid Grid.Row="0" Height="690" ColumnDefinitions="Auto, Auto, Auto">
-                        <StackPanel Grid.Column="0" Width="350" />
+                    <Grid Grid.Row="0" Height="540" ColumnDefinitions="Auto, Auto, Auto">
+                        <StackPanel Grid.Column="0" Width="300" />
 
-                        <StackPanel Grid.Column="1" Width="400" Margin="0, 280, 0, 0">
+                        <StackPanel Grid.Column="1" Width="400" Margin="0, 160, 0, 0">
+                            <StackPanel.Styles>
+                                <!-- Stretch The Dropdown Items Across The Dropdown, So That The Shared Item Template Can Centre Each Address -->
+                                <Style Selector="ComboBoxItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                </Style>
+
+                                <!-- The Connectivity Status Beneath Each Address Input -->
+                                <Style Selector="TextBlock.probing">
+                                    <Setter Property="Foreground" Value="#AAAAAA" />
+                                    <Setter Property="FontStyle" Value="Italic" />
+                                </Style>
+                                <Style Selector="TextBlock.online">
+                                    <Setter Property="Foreground" Value="DarkSeaGreen" />
+                                    <Setter Property="FontStyle" Value="Normal" />
+                                </Style>
+                                <Style Selector="TextBlock.failed">
+                                    <Setter Property="Foreground" Value="OrangeRed" />
+                                    <Setter Property="FontStyle" Value="Normal" />
+                                </Style>
+                            </StackPanel.Styles>
+
                             <Label Width="400" Margin="0, 0, 0, 5" HorizontalAlignment="Center" HorizontalContentAlignment="Center">Master Server Address</Label>
 
-                            <ComboBox SelectedValue="{Binding MasterServerAddress}" Name="MasterServerAddressDropdown" SelectedIndex="0" Width="400" HorizontalAlignment="Center" HorizontalContentAlignment="Center" IsEnabled="{Binding MasterServerInputIsEnabled}">
-                                <ComboBoxItem HorizontalContentAlignment="Stretch">api.kongor.net</ComboBoxItem>
-                                <ComboBoxItem HorizontalContentAlignment="Stretch">localhost:5555</ComboBoxItem>
-                                <ComboBoxItem HorizontalContentAlignment="Stretch">Custom Address ...</ComboBoxItem>
-                            </ComboBox>
+                            <ComboBox Name="MasterServerAddressDropdown" ItemsSource="{Binding AvailableMasterServerOptions}" SelectedItem="{Binding SelectedMasterServerAddressItem}" ItemTemplate="{StaticResource AddressSelectItemTemplate}" IsEnabled="{Binding MasterServerInputIsEnabled}" Width="400" HorizontalAlignment="Center" HorizontalContentAlignment="Stretch" />
 
                             <TextBox Text="{Binding CustomMasterServerAddress}" Width="400" Margin="0, 10, 0, 0" HorizontalAlignment="Center" TextAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" IsEnabled="{Binding MasterServerInputIsEnabled}" LostFocus="CustomMasterServerAddress_LostFocus" KeyDown="CustomMasterServerAddress_KeyDown" />
+
+                            <TextBlock Classes.probing="{Binding MasterServerProbe.InProgress}"
+                                       Classes.online="{Binding MasterServerProbe.Succeeded}"
+                                       Classes.failed="{Binding MasterServerProbe.Failed}"
+                                       Text="{Binding MasterServerProbe.StatusMessage}"
+                                       Width="400" Margin="0, 5, 0, 0"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       FontSize="11" />
+
+                            <Label Width="400" Margin="0, 10, 0, 5" HorizontalAlignment="Center" HorizontalContentAlignment="Center">Content Delivery Network</Label>
+
+                            <ComboBox Name="CDNOptionsDropdown" ItemsSource="{Binding AvailableCDNOptions}" SelectedItem="{Binding SelectedCDNAddressItem}" ItemTemplate="{StaticResource AddressSelectItemTemplate}" IsEnabled="{Binding CDNInputIsEnabled}" Width="400" HorizontalAlignment="Center" HorizontalContentAlignment="Stretch" />
+
+                            <TextBox Text="{Binding CustomCDNAddress}" Width="400" Margin="0, 10, 0, 0" HorizontalAlignment="Center" TextAlignment="Center" IsVisible="{Binding CanShowCustomCDNAddressField}" IsEnabled="{Binding CDNInputIsEnabled}" LostFocus="CustomCDNAddress_LostFocus" KeyDown="CustomCDNAddress_KeyDown" />
+
+                            <TextBlock Classes.probing="{Binding CDNProbe.InProgress}"
+                                       Classes.online="{Binding CDNProbe.Succeeded}"
+                                       Classes.failed="{Binding CDNProbe.Failed}"
+                                       Text="{Binding CDNProbe.StatusMessage}"
+                                       Width="400" Margin="0, 5, 0, 0"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       FontSize="11" />
 
                             <StackPanel Orientation="Horizontal" Margin="0, 10, 0, 0" HorizontalAlignment="Center">
                                 <Button Command="{Binding LaunchMapEditorCommand}" Width="175" Height="60" Margin="0, 0, 5, 0" Cursor="Hand" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchMapEditor}" Background="DarkGreen">
@@ -176,7 +217,7 @@
                             </StackPanel>
                         </StackPanel>
 
-                        <Grid Grid.Column="2" Width="350" VerticalAlignment="Top" Margin="0, 15, 0, 0" ColumnDefinitions="*, Auto">
+                        <Grid Grid.Column="2" Width="300" VerticalAlignment="Top" Margin="0, 15, 0, 0" ColumnDefinitions="*, Auto">
                             <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
                                         IsVisible="{Binding UpdateCheckIsInProgress}">
                                 <Path Classes="spinner" Width="15" Height="15" VerticalAlignment="Center" Margin="0, 0, 5, 0"
@@ -264,7 +305,7 @@
                         <!-- Synchronisation Failure State: A Single Centred Failure Message -->
                         <TextBlock Height="20" Margin="10, 0, 10, 0" Text="{Binding SynchronisationStatusMessage}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" Foreground="#CCCCCC" IsVisible="{Binding SynchronisationIsFailed}" />
 
-                        <ProgressBar Width="1080" Height="15" Margin="0, 10, 0, 15" Minimum="0" Maximum="100" Value="{Binding SynchronisationProgressPercent}" IsVisible="{Binding SynchronisationIsScheduled}" Foreground="DarkGreen" />
+                        <ProgressBar Width="980" Height="15" Margin="0, 10, 0, 15" Minimum="0" Maximum="100" Value="{Binding SynchronisationProgressPercent}" IsVisible="{Binding SynchronisationIsScheduled}" Foreground="DarkGreen" />
                     </StackPanel>
                 </Grid>
             </StackPanel>

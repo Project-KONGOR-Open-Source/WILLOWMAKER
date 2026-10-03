@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <IsPackable>false</IsPackable>
+        <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="TUnit" Version="1.72.0" />
+    </ItemGroup>
+
+    <!-- The View Models Create Avalonia Controls And Dispatch To The UI Thread, So Their Tests Run On The Headless Avalonia Platform -->
+    <ItemGroup>
+        <PackageReference Include="Avalonia.Headless" Version="12.1.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../WILLOWMAKER.Core/WILLOWMAKER.Core.csproj" />
+    </ItemGroup>
+
+</Project>

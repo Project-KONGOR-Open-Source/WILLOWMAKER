@@ -20,11 +20,11 @@
 <Project>
 
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFramework>net11.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <WarningsAsErrors>nullable</WarningsAsErrors>
-        <Version>2.1.4</Version>
+        <Version>2.2.0</Version>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)' != 'Release'">
@@ -44,7 +44,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt"/>
+        <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols*.txt"/>
     </ItemGroup>
 
 </Project>

@@ -5,6 +5,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SynchronisationIsIdle))]
     [NotifyPropertyChangedFor(nameof(MasterServerInputIsEnabled))]
+    [NotifyPropertyChangedFor(nameof(CDNInputIsEnabled))]
     [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]
     [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
     public partial bool SynchronisationIsActive { get; set; } = false;
@@ -51,6 +52,17 @@ public partial class MainViewModel : ObservableObject
             return true;
         }
 
+        // Only The Map Editor Can Be Launched With An Invalid CDN Address, Which Is Reported As A Failed Synchronisation So That The User Is Told About It
+        if (CDNAddressIsValid is false)
+        {
+            Log(LogCategory.Synchronise, $@"FAIL: Invalid CDN Address ""{ActiveCDNAddress}"" :: Synchronisation Aborted");
+
+            SynchronisationIsFailed = true;
+            SynchronisationStatusMessage = "Invalid CDN Address; Synchronisation Aborted";
+
+            return false;
+        }
+
         SynchronisationIsActive = true;
         SynchronisationIsScheduled = false;
         SynchronisationIsFailed = false;
@@ -64,10 +76,11 @@ public partial class MainViewModel : ObservableObject
         try
         {
             string variant = ResolveDefaultClientVariant();
+            string cdnURL  = ResolveActiveCDNURL();
 
-            Log(LogCategory.Synchronise, $@"INIT: Fetching Manifest For Variant ""{variant}"" From CDN");
+            Log(LogCategory.Synchronise, $@"INIT: Fetching Manifest For Variant ""{variant}"" From CDN ""{cdnURL}""");
 
-            Manifest manifest = await ContentBroker.FetchManifest(variant);
+            Manifest manifest = await ContentBroker.FetchManifest(variant, baseURL: cdnURL);
 
             Log(LogCategory.Synchronise, $"INIT: Manifest Version {manifest.Version} Lists {manifest.Files.Count} File(s)");
 
@@ -187,6 +200,7 @@ public partial class MainViewModel : ObservableObject
                 manifest:        manifest,
                 variant:         variant,
                 targetDirectory: Environment.CurrentDirectory,
+                baseURL:         cdnURL,
                 progress:        progress
             ));
 
