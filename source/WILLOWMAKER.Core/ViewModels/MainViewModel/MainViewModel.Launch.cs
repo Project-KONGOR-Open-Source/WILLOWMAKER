@@ -2,8 +2,15 @@ namespace WILLOWMAKER.Core.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    public IReadOnlyList<AddressSelectItem> AvailableMasterServerOptions { get; } =
+    [
+        new () { DisplayText = "api.kongor.net", TargetURL = "api.kongor.net" },
+        new () { DisplayText = "localhost:5555", TargetURL = "localhost:5555" },
+        new () { DisplayText = "Custom Address ...", TargetURL = null }
+    ];
+
     [ObservableProperty]
-    public partial ComboBoxItem? MasterServerAddress { get; set; } = new () { Content = "api.kongor.net" }; // Needs To Match The Default Value In The XAML
+    public partial AddressSelectItem? SelectedMasterServerAddressItem { get; set; }
 
     [ObservableProperty]
     public partial string? CustomMasterServerAddress { get; set; }
@@ -15,53 +22,225 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
     public partial bool MasterServerAddressIsValid { get; set; } = true;
 
+    public ConnectivityProbe MasterServerProbe { get; }
+
+    public ObservableCollection<AddressSelectItem> AvailableCDNOptions { get; } = [];
+
+    [ObservableProperty]
+    public partial AddressSelectItem? SelectedCDNAddressItem { get; set; }
+
+    [ObservableProperty]
+    public partial string? CustomCDNAddress { get; set; }
+
+    [ObservableProperty]
+    public partial bool CanShowCustomCDNAddressField { get; set; } = false;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
+    public partial bool CDNAddressIsValid { get; set; } = true;
+
+    public ConnectivityProbe CDNProbe { get; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]
     [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
+    [NotifyPropertyChangedFor(nameof(MasterServerInputIsEnabled))]
+    [NotifyPropertyChangedFor(nameof(CDNInputIsEnabled))]
     public partial bool LaunchIsInProgress { get; set; } = false;
 
-    public bool MasterServerInputIsEnabled => UpdateCheckIsIdle && UpdateIsInstalling is false && SynchronisationIsIdle;
+    public bool MasterServerInputIsEnabled => UpdateCheckIsIdle && UpdateIsInstalling is false && SynchronisationIsIdle && LaunchIsInProgress is false;
+
+    public bool CDNInputIsEnabled => MasterServerInputIsEnabled;
 
     public bool CanLaunchMapEditor => UpdateCheckIsIdle && UpdateIsInstalling is false && SynchronisationIsIdle && LaunchIsInProgress is false;
 
-    public bool CanLaunchGameClient => UpdateCheckIsIdle && UpdateIsInstalling is false && MasterServerAddressIsValid && SynchronisationIsIdle && LaunchIsInProgress is false;
+    public bool CanLaunchGameClient => UpdateCheckIsIdle && UpdateIsInstalling is false && MasterServerAddressIsValid && CDNAddressIsValid && SynchronisationIsIdle && LaunchIsInProgress is false;
 
     public string LaunchMapEditorButtonText => "Open Map Editor";
 
     public string LaunchGameClientButtonText => "Play Heroes Of Newerth";
 
-    partial void OnMasterServerAddressChanged(ComboBoxItem? oldValue, ComboBoxItem? newValue)
+    private static TimeSpan ProbeDebounceDelay { get; } = TimeSpan.FromMilliseconds(350);
+
+    partial void OnSelectedMasterServerAddressItemChanged(AddressSelectItem? oldValue, AddressSelectItem? newValue)
     {
-        if (newValue is not null)
+        if (newValue is null)
+            return;
+
+        if (newValue.IsCustom)
         {
-            CanShowCustomMasterServerAddressField = newValue.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false;
+            CanShowCustomMasterServerAddressField = true;
+            CustomMasterServerAddress = string.Empty;
+            CustomCDNAddress = string.Empty;
 
-            MasterServerAddressIsValid = (MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false) is false
-                ? true
-                : (MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false) is true && string.IsNullOrWhiteSpace(CustomMasterServerAddress) is false
-                    ? true : false;
-
-            if (CanShowCustomMasterServerAddressField is false)
-            {
-                CustomMasterServerAddress = null;
-                MasterServerAddressIsValid = true;
-
-                LogLaunchParameters();
-            }
+            ValidateAndProbeCustomMasterServerAddress();
         }
+
+        else
+        {
+            CanShowCustomMasterServerAddressField = false;
+            CustomMasterServerAddress = null;
+            MasterServerAddressIsValid = true;
+
+            ScheduleMasterServerProbe(newValue.TargetURL, ProbeDebounceDelay);
+
+            LogLaunchParameters();
+        }
+
+        PopulateCDNOptions(newValue);
     }
 
     partial void OnCustomMasterServerAddressChanged(string? oldValue, string? newValue)
     {
-        MasterServerAddressIsValid = (MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false) is true && string.IsNullOrWhiteSpace(CustomMasterServerAddress) is false
-            ? true : false;
+        if (CanShowCustomMasterServerAddressField is false)
+            return;
+
+        ValidateAndProbeCustomMasterServerAddress();
     }
+
+    private void ValidateAndProbeCustomMasterServerAddress()
+    {
+        MasterServerAddressIsValid = AddressValidation.IsValidAddress(CustomMasterServerAddress);
+
+        if (MasterServerAddressIsValid)
+            ScheduleMasterServerProbe(CustomMasterServerAddress, ProbeDebounceDelay);
+
+        else
+            MasterServerProbe.ReportInvalidAddress(CustomMasterServerAddress);
+    }
+
+    partial void OnSelectedCDNAddressItemChanged(AddressSelectItem? oldValue, AddressSelectItem? newValue)
+    {
+        if (newValue is null)
+            return;
+
+        if (newValue.IsCustom)
+        {
+            CanShowCustomCDNAddressField = true;
+
+            ValidateAndProbeCustomCDNAddress();
+        }
+
+        else
+        {
+            CanShowCustomCDNAddressField = false;
+            CustomCDNAddress = null;
+            CDNAddressIsValid = true;
+
+            ScheduleCDNProbe(newValue.TargetURL, ProbeDebounceDelay);
+        }
+    }
+
+    partial void OnCustomCDNAddressChanged(string? oldValue, string? newValue)
+    {
+        if (CanShowCustomCDNAddressField is false)
+            return;
+
+        ValidateAndProbeCustomCDNAddress();
+    }
+
+    private void ValidateAndProbeCustomCDNAddress()
+    {
+        CDNAddressIsValid = AddressValidation.IsValidAddress(CustomCDNAddress);
+
+        if (CDNAddressIsValid)
+            ScheduleCDNProbe(CustomCDNAddress, ProbeDebounceDelay);
+
+        else
+            CDNProbe.ReportInvalidAddress(CustomCDNAddress);
+    }
+
+    private void PopulateCDNOptions(AddressSelectItem masterServer)
+    {
+        AddressSelectItem localItem = new ()
+        {
+            DisplayText = "localhost:5555/cdn",
+            TargetURL   = "localhost:5555/cdn"
+        };
+
+        AddressSelectItem meshItem = new ()
+        {
+            DisplayText = "cdn.kongor.net",
+            TargetURL   = "cdn.kongor.net",
+            TooltipText = "Hosted on a global mesh network."
+        };
+
+        AddressSelectItem servicesItem = new ()
+        {
+            DisplayText = "api.kongor.net/cdn",
+            TargetURL   = "api.kongor.net/cdn",
+            TooltipText = "Hosted by the Project KONGOR services host and is intended as a redundant fault-tolerant highly-available fallback."
+        };
+
+        AddressSelectItem customItem = new ()
+        {
+            DisplayText = "Custom Address ...",
+            TargetURL   = null
+        };
+
+        // A Custom Master Server Is Expected To Come With A Custom CDN, So That Is The Only Option Offered For It
+        AddressSelectItem[] options = masterServer.IsCustom ? [customItem]
+            : masterServer.TargetURL?.Contains("localhost", StringComparison.OrdinalIgnoreCase) is true ? [localItem, meshItem, servicesItem, customItem]
+            : [meshItem, servicesItem, customItem];
+
+        AvailableCDNOptions.Clear();
+
+        foreach (AddressSelectItem option in options)
+            AvailableCDNOptions.Add(option);
+
+        SelectedCDNAddressItem = options[0];
+    }
+
+    private void ScheduleMasterServerProbe(string? address, TimeSpan delay)
+    {
+        if (string.IsNullOrWhiteSpace(address))
+            MasterServerProbe.Reset();
+
+        else
+            MasterServerProbe.Start(BuildMasterServerProbeURL(address), delay);
+    }
+
+    private void ScheduleCDNProbe(string? address, TimeSpan delay)
+    {
+        if (string.IsNullOrWhiteSpace(address))
+            CDNProbe.Reset();
+
+        else
+            CDNProbe.Start($"{AddressValidation.NormaliseCDNURL(address)}{ResolveDefaultClientVariant()}/manifest.json", delay);
+    }
+
+    [RelayCommand]
+    private void TriggerImmediateMasterServerProbe()
+    {
+        if (AddressValidation.IsValidAddress(ActiveMasterServerAddress))
+            ScheduleMasterServerProbe(ActiveMasterServerAddress, TimeSpan.Zero);
+    }
+
+    [RelayCommand]
+    private void TriggerImmediateCDNProbe()
+    {
+        if (AddressValidation.IsValidAddress(ActiveCDNAddress))
+            ScheduleCDNProbe(ActiveCDNAddress, TimeSpan.Zero);
+    }
+
+    // The Game Client Talks To The Master Server Over Plain HTTP, So An Address Without A Scheme Is Probed Over HTTP Too, At The Master Server's Health Endpoint
+    private static string BuildMasterServerProbeURL(string address)
+    {
+        string baseURL = address.Contains("://", StringComparison.Ordinal) ? address : $"http://{address}";
+
+        return $"{baseURL.TrimEnd('/')}/health";
+    }
+
+    private string? ActiveMasterServerAddress => SelectedMasterServerAddressItem?.IsCustom is true ? CustomMasterServerAddress : SelectedMasterServerAddressItem?.TargetURL;
+
+    private string? ActiveCDNAddress => SelectedCDNAddressItem?.IsCustom is true ? CustomCDNAddress : SelectedCDNAddressItem?.TargetURL;
+
+    public string ResolveActiveCDNURL()
+        => AddressValidation.NormaliseCDNURL(ActiveCDNAddress);
 
     private void LogLaunchParameters()
     {
-        string address = MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false
-            ? CustomMasterServerAddress ?? throw new NullReferenceException("Custom Master Server Address Is NULL")
-            : MasterServerAddress?.Content?.ToString() ?? throw new NullReferenceException("Master Server Address Is NULL");
+        string address = ActiveMasterServerAddress ?? throw new NullReferenceException("Master Server Address Is NULL");
 
         // The Game Client Does Not Understand "localhost" As A Valid Address, So We Need To Replace It With The Loopback Address "127.0.0.1" For Locally Hosted Master Servers
         // We Also Want To Wait Until Reaching The Colon Before Replacing The Local IP Address, Otherwise "localhost" Appears In The Log With The "t" Missing From The End
@@ -159,6 +338,35 @@ public partial class MainViewModel : ObservableObject
         return shouldBypass;
     }
 
+    private async Task<bool> ConfirmMapEditorLaunchWithoutSynchronisation()
+    {
+        if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop || desktop.MainWindow is null)
+            return false;
+
+        string problem = CDNAddressIsValid
+            ? $"The map editor's resources could not be synchronised from the Content Delivery Network ({SynchronisationStatusMessage})."
+            : string.IsNullOrWhiteSpace(ActiveCDNAddress)
+                ? "No CDN address has been entered, so the map editor's resources cannot be synchronised from the Content Delivery Network."
+                : $@"The CDN address ""{ActiveCDNAddress}"" is not valid, so the map editor's resources cannot be synchronised from the Content Delivery Network.";
+
+        string message = new StringBuilder()
+            .Append(problem + " ")
+            .Append("The map editor can still be opened, but it may not have the latest resources.")
+            .AppendLine().AppendLine()
+            .Append("Continue?")
+            .ToString();
+
+        SynchronisationBypassDialog dialog = new (message);
+
+        bool shouldContinue = await dialog.ShowDialog<bool>(desktop.MainWindow);
+
+        Log(LogCategory.Synchronise, shouldContinue
+            ? "WARN: Opening The Map Editor Without Synchronised Resources"
+            : "SKIP: Map Editor Launch Cancelled By User");
+
+        return shouldContinue;
+    }
+
     [RelayCommand]
     private async Task LaunchMapEditor()
     {
@@ -168,7 +376,8 @@ public partial class MainViewModel : ObservableObject
         {
             Log(LogCategory.Executable, "Map Editor Launch Initiated");
 
-            if (await SynchroniseContent() is false)
+            // The Map Editor Works Offline, So A Synchronisation Problem Does Not Prevent It From Being Opened, But The User Is Told About The Problem And Can Choose To Fix It First
+            if (await SynchroniseContent() is false && await ConfirmMapEditorLaunchWithoutSynchronisation() is false)
                 return;
 
             if (TryResolveGameExecutable(out FileInfo? executable) is false)
@@ -236,9 +445,7 @@ public partial class MainViewModel : ObservableObject
 
     private string BuildMasterServerAddress()
     {
-        string address = MasterServerAddress?.Content?.ToString()?.Contains("CUSTOM", StringComparison.OrdinalIgnoreCase) ?? false
-            ? CustomMasterServerAddress ?? throw new NullReferenceException("Custom Master Server Address Is NULL")
-            : MasterServerAddress?.Content?.ToString() ?? throw new NullReferenceException("Master Server Address Is NULL");
+        string address = ActiveMasterServerAddress ?? throw new NullReferenceException("Master Server Address Is NULL");
 
         // The Game Client Does Not Understand "localhost" As A Valid Address, So We Need To Replace It With The Loopback Address "127.0.0.1" For Locally Hosted Master Servers
         return address.Replace("localhost", IPAddress.Loopback.MapToIPv4().ToString());

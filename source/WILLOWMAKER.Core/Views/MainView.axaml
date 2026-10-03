@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="clr-namespace:WILLOWMAKER.Core.Models"
              xmlns:vm="clr-namespace:WILLOWMAKER.Core.ViewModels"
              mc:Ignorable="d" d:DesignWidth="1150" Width="1150" d:DesignHeight="600" Height="600"
              x:Class="WILLOWMAKER.Core.Views.MainView"
@@ -10,6 +11,18 @@
     <Design.DataContext>
         <vm:MainViewModel /> <!-- This Only Sets The DataContext For The Previewer In An IDE, To Set The Actual DataContext For Runtime, Set The DataContext Property In Code -->
     </Design.DataContext>
+
+    <UserControl.Resources>
+        <!-- Shared By The Master Server And CDN Dropdowns, So That Both Present Their Addresses The Same Way; The Address Stays Centred Whether Or Not The Tooltip Badge Is Shown -->
+        <DataTemplate x:Key="AddressSelectItemTemplate" x:DataType="models:AddressSelectItem">
+            <Grid>
+                <TextBlock Text="{Binding DisplayText}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <Border Width="16" Height="16" CornerRadius="8" Background="#555555" HorizontalAlignment="Right" VerticalAlignment="Center" IsVisible="{Binding HasTooltip}" ToolTip.Tip="{Binding TooltipText}">
+                    <TextBlock Text="!" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
+                </Border>
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
 
     <!-- Colours & Palettes: https://materialui.co/ -->
 
@@ -79,16 +92,57 @@
                     <Grid Grid.Row="0" Height="540" ColumnDefinitions="Auto, Auto, Auto">
                         <StackPanel Grid.Column="0" Width="300" />
 
-                        <StackPanel Grid.Column="1" Width="400" Margin="0, 205, 0, 0">
+                        <StackPanel Grid.Column="1" Width="400" Margin="0, 160, 0, 0">
+                            <StackPanel.Styles>
+                                <!-- Stretch The Dropdown Items Across The Dropdown, So That The Shared Item Template Can Centre Each Address -->
+                                <Style Selector="ComboBoxItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                </Style>
+
+                                <!-- The Connectivity Status Beneath Each Address Input -->
+                                <Style Selector="TextBlock.probing">
+                                    <Setter Property="Foreground" Value="#AAAAAA" />
+                                    <Setter Property="FontStyle" Value="Italic" />
+                                </Style>
+                                <Style Selector="TextBlock.online">
+                                    <Setter Property="Foreground" Value="DarkSeaGreen" />
+                                    <Setter Property="FontStyle" Value="Normal" />
+                                </Style>
+                                <Style Selector="TextBlock.failed">
+                                    <Setter Property="Foreground" Value="OrangeRed" />
+                                    <Setter Property="FontStyle" Value="Normal" />
+                                </Style>
+                            </StackPanel.Styles>
+
                             <Label Width="400" Margin="0, 0, 0, 5" HorizontalAlignment="Center" HorizontalContentAlignment="Center">Master Server Address</Label>
 
-                            <ComboBox SelectedValue="{Binding MasterServerAddress}" Name="MasterServerAddressDropdown" SelectedIndex="0" Width="400" HorizontalAlignment="Center" HorizontalContentAlignment="Center" IsEnabled="{Binding MasterServerInputIsEnabled}">
-                                <ComboBoxItem HorizontalContentAlignment="Stretch">api.kongor.net</ComboBoxItem>
-                                <ComboBoxItem HorizontalContentAlignment="Stretch">localhost:5555</ComboBoxItem>
-                                <ComboBoxItem HorizontalContentAlignment="Stretch">Custom Address ...</ComboBoxItem>
-                            </ComboBox>
+                            <ComboBox Name="MasterServerAddressDropdown" ItemsSource="{Binding AvailableMasterServerOptions}" SelectedItem="{Binding SelectedMasterServerAddressItem}" ItemTemplate="{StaticResource AddressSelectItemTemplate}" IsEnabled="{Binding MasterServerInputIsEnabled}" Width="400" HorizontalAlignment="Center" HorizontalContentAlignment="Stretch" />
 
                             <TextBox Text="{Binding CustomMasterServerAddress}" Width="400" Margin="0, 10, 0, 0" HorizontalAlignment="Center" TextAlignment="Center" IsVisible="{Binding CanShowCustomMasterServerAddressField}" IsEnabled="{Binding MasterServerInputIsEnabled}" LostFocus="CustomMasterServerAddress_LostFocus" KeyDown="CustomMasterServerAddress_KeyDown" />
+
+                            <TextBlock Classes.probing="{Binding MasterServerProbe.InProgress}"
+                                       Classes.online="{Binding MasterServerProbe.Succeeded}"
+                                       Classes.failed="{Binding MasterServerProbe.Failed}"
+                                       Text="{Binding MasterServerProbe.StatusMessage}"
+                                       Width="400" Margin="0, 5, 0, 0"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       FontSize="11" />
+
+                            <Label Width="400" Margin="0, 10, 0, 5" HorizontalAlignment="Center" HorizontalContentAlignment="Center">Content Delivery Network</Label>
+
+                            <ComboBox Name="CDNOptionsDropdown" ItemsSource="{Binding AvailableCDNOptions}" SelectedItem="{Binding SelectedCDNAddressItem}" ItemTemplate="{StaticResource AddressSelectItemTemplate}" IsEnabled="{Binding CDNInputIsEnabled}" Width="400" HorizontalAlignment="Center" HorizontalContentAlignment="Stretch" />
+
+                            <TextBox Text="{Binding CustomCDNAddress}" Width="400" Margin="0, 10, 0, 0" HorizontalAlignment="Center" TextAlignment="Center" IsVisible="{Binding CanShowCustomCDNAddressField}" IsEnabled="{Binding CDNInputIsEnabled}" LostFocus="CustomCDNAddress_LostFocus" KeyDown="CustomCDNAddress_KeyDown" />
+
+                            <TextBlock Classes.probing="{Binding CDNProbe.InProgress}"
+                                       Classes.online="{Binding CDNProbe.Succeeded}"
+                                       Classes.failed="{Binding CDNProbe.Failed}"
+                                       Text="{Binding CDNProbe.StatusMessage}"
+                                       Width="400" Margin="0, 5, 0, 0"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       FontSize="11" />
 
                             <StackPanel Orientation="Horizontal" Margin="0, 10, 0, 0" HorizontalAlignment="Center">
                                 <Button Command="{Binding LaunchMapEditorCommand}" Width="175" Height="60" Margin="0, 0, 5, 0" Cursor="Hand" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchMapEditor}" Background="DarkGreen">
