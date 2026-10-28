@@ -16,7 +16,6 @@ public static class DeploymentManifest
     public static string ApplicationExecutableFileName =>
           OperatingSystem.IsWindows() ? $"{ApplicationName}.exe"
         : OperatingSystem.IsLinux()   ? ApplicationName
-        : OperatingSystem.IsMacOS()   ? ApplicationName
         : throw new PlatformNotSupportedException($@"Unsupported Operating System: {Environment.OSVersion.Platform}");
 
     /// <summary>
@@ -27,7 +26,6 @@ public static class DeploymentManifest
     public static string[] NativeLibrariesFileNames =>
           OperatingSystem.IsWindows() ? [ "av_libglesv2.dll", "libHarfBuzzSharp.dll", "libSkiaSharp.dll" ]
         : OperatingSystem.IsLinux()   ? [ "libHarfBuzzSharp.so", "libSkiaSharp.so" ]
-        : OperatingSystem.IsMacOS()   ? [ "libAvaloniaNative.dylib", "libHarfBuzzSharp.dylib", "libSkiaSharp.dylib" ]
         : throw new PlatformNotSupportedException($@"Unsupported Operating System: {Environment.OSVersion.Platform}");
 
     /// <summary>
@@ -42,7 +40,6 @@ public static class DeploymentManifest
     public static string HeroesOfNewerthExecutableFileName =>
           OperatingSystem.IsWindows() ? "hon.exe"
         : OperatingSystem.IsLinux()   ? "hon"
-        : OperatingSystem.IsMacOS()   ? "HoN64"
         : throw new PlatformNotSupportedException($@"Unsupported Operating System: {Environment.OSVersion.Platform}");
 
     /// <summary>

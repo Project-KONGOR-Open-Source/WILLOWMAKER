@@ -14,11 +14,11 @@ jobs:
 
   build-and-test:
 
-    # WILLOWMAKER is released for Windows, Linux, and macOS, and the CDN tests resolve a different client distribution variant on each operating system, so the suite runs on all three
+    # WILLOWMAKER is released for Windows and Linux, and the CDN tests resolve a different client distribution variant on each operating system, so the suite runs on both
     strategy:
       fail-fast: false
       matrix:
-        os: [ "ubuntu-latest", "windows-latest", "macos-latest" ]
+        os: [ "ubuntu-latest", "windows-latest" ]
 
     runs-on: ${{ matrix.os }}
 

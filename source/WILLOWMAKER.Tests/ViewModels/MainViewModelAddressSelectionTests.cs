@@ -8,7 +8,7 @@ namespace WILLOWMAKER.Tests.ViewModels;
 [NotInParallel]
 public sealed class MainViewModelAddressSelectionTests
 {
-    private static string ClientVariant => OperatingSystem.IsWindows() ? "wac" : OperatingSystem.IsLinux() ? "lac" : "mac";
+    private static string ClientVariant => OperatingSystem.IsWindows() ? "wac" : "lac";
 
     [Test]
     public async Task The_Master_Server_Options_Offer_The_Official_The_Local_And_A_Custom_Master_Server_And_Select_The_Official_One()

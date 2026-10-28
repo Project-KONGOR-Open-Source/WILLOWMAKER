@@ -8,7 +8,7 @@
 
 <br/>
 
-Publish Self-Contained Binaries For Windows/Linux/macOS
+Publish Self-Contained Binaries For Windows/Linux
 
 > [!NOTE]
 > PowerShell 7 or greater needs to be installed: https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell.

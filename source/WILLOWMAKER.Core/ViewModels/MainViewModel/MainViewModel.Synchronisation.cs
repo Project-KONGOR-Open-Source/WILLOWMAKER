@@ -252,13 +252,12 @@ public partial class MainViewModel : ObservableObject
 
     /// <summary>
     ///     Returns the bucket variant that matches the current client operating system.
-    ///     The GEMINI pipeline publishes <c>wac</c>, <c>lac</c>, and <c>mac</c> variants for the Windows, Linux, and macOS client distributions.
+    ///     The GEMINI pipeline publishes <c>wac</c> and <c>lac</c> variants for the Windows and Linux client distributions.
     /// </summary>
     private static string ResolveDefaultClientVariant()
     {
         return OperatingSystem.IsWindows() ? "wac"
              : OperatingSystem.IsLinux()   ? "lac"
-             : OperatingSystem.IsMacOS()   ? "mac"
              : throw new PlatformNotSupportedException($@"Unsupported Operating System: {Environment.OSVersion.Platform}");
     }
 

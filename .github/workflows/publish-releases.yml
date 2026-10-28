@@ -22,8 +22,8 @@ jobs:
       fail-fast: false
 
       # one matrix entry per target RID
-      # each job runs on the OS that matches its RID because Native AOT emits native code and requires the target OS's own toolchain (MSVC link.exe on Windows, clang/ld on Linux and macOS)
-      # cross-building all six targets from one runner is not possible
+      # each job runs on the OS that matches its RID because Native AOT emits native code and requires the target OS's own toolchain (MSVC link.exe on Windows, clang/ld on Linux)
+      # cross-building all four targets from one runner is not possible
       # canonical list of valid `runner:` labels (x64 and ARM64, all OSes, with deprecation dates) lives at https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners
       # per-image software inventories live at https://github.com/actions/runner-images (x64) and https://github.com/actions/partner-runner-images (ARM64); deprecation announcements land at https://github.blog/changelog/label/actions
       # runners are pinned to explicit image versions rather than floating `-latest` labels, so a GitHub-initiated image rollover cannot silently change the build environment mid-release
@@ -49,16 +49,6 @@ jobs:
             profile:     "Linux.arm64.NativeAOT.pubxml"
             publish_dir: "linux-arm64-native-aot"
 
-          - asset:       "macos-x64"
-            runner:      "macos-15-intel"
-            profile:     "macOS.x64.NativeAOT.pubxml"
-            publish_dir: "macos-x64-native-aot"
-
-          - asset:       "macos-arm64"
-            runner:      "macos-15"
-            profile:     "macOS.arm64.NativeAOT.pubxml"
-            publish_dir: "macos-arm64-native-aot"
-
     runs-on: ${{ matrix.runner }}
 
     steps:
@@ -72,7 +62,7 @@ jobs:
         dotnet-version: "11.x"
         dotnet-quality: "preview"
 
-    # pwsh is pre-installed on every GitHub-hosted runner (all OSes, both architectures) and is used uniformly across the matrix to avoid splitting shell idioms between Linux/macOS bash and Windows PowerShell
+    # pwsh is pre-installed on every GitHub-hosted runner (all OSes, both architectures) and is used uniformly across the matrix to avoid splitting shell idioms between Linux bash and Windows PowerShell
     # the version override strips the leading `v` from the tag name and passes it to MSBuild
     # under normal discipline the tag matches the <Version> in Directory.Build.props, so this is a no-op in the happy path; it is kept as a safety belt so if someone cuts a tag without remembering to bump Directory.Build.props (or vice versa), the binary's stamped version still matches the tag users downloaded
     - name: "Publish Native AOT"
@@ -82,19 +72,18 @@ jobs:
         dotnet publish source/WILLOWMAKER -p:PublishProfile=${{ matrix.profile }} -p:Version=$Version
 
     # the `Compress-Archive` PowerShell cmdlet is used on Windows because `zip` is not reliably on PATH in pwsh on GitHub's Windows runner images, and Windows has no exec-bit concept so dropping UNIX permission metadata is harmless
-    # the external `zip` command is used on Linux/macOS because Compress-Archive would drop the exec bits there, causing the unzipped binary to fail to launch without a manual chmod
-    # debug artefacts are removed before zipping to keep release zips small: `.pdb` files on Windows, `.dbg` files on Linux, and `.dSYM` bundles (which are directories, not files) on macOS; users who need symbols can build from source
+    # the external `zip` command is used on Linux because Compress-Archive would drop the exec bits there, causing the unzipped binary to fail to launch without a manual chmod
+    # debug artefacts are removed before zipping to keep release zips small: `.pdb` files on Windows and `.dbg` files on Linux; users who need symbols can build from source
     - name: "Create Release Asset"
       shell: "pwsh"
       run: |
         Set-Location "source/WILLOWMAKER/bin/Publish/${{ matrix.publish_dir }}"
         Get-ChildItem -Recurse -File -Include '*.pdb', '*.dbg' | Remove-Item -Force
-        Get-ChildItem -Recurse -Directory -Filter '*.dSYM' | Remove-Item -Recurse -Force
         $ZipPath = "$env:GITHUB_WORKSPACE/${{ matrix.asset }}-$env:GITHUB_REF_NAME.zip"
         if ($IsWindows) { Compress-Archive -Path .\* -DestinationPath $ZipPath } else { zip -r $ZipPath . }
 
     # each matrix job runs on its own isolated runner, so it can't write directly to a shared release
-    # instead, each zip is uploaded as a workflow artefact, then the dedicated `release` job downloads all six and publishes them together
+    # instead, each zip is uploaded as a workflow artefact, then the dedicated `release` job downloads all four and publishes them together
     # `if-no-files-found: error` means a silent publish failure that produced no zip will fail the job loudly rather than quietly ship a release missing a platform
     - name: "Upload Asset Artefact"
       uses: "actions/upload-artifact@v7"
@@ -105,7 +94,7 @@ jobs:
         retention-days: 1
 
   # the release job runs only after every matrix build succeeds (`needs: build` without `if: always()`)
-  # it downloads all six artefacts into one directory and creates a single GitHub Release containing all of them: one zip per platform, auto-generated source code archives, "Full Changelog" link, and a "Latest" badge when the tag isn't a pre-release
+  # it downloads all four artefacts into one directory and creates a single GitHub Release containing all of them: one zip per platform, auto-generated source code archives, "Full Changelog" link, and a "Latest" badge when the tag isn't a pre-release
   release:
 
     needs: build
@@ -113,7 +102,7 @@ jobs:
 
     steps:
 
-    # `merge-multiple: true` flattens all six per-platform artefact folders into a single `artefacts/` directory containing just the zips
+    # `merge-multiple: true` flattens all four per-platform artefact folders into a single `artefacts/` directory containing just the zips
     - name: "Download All Assets"
       uses: "actions/download-artifact@v8"
       with:

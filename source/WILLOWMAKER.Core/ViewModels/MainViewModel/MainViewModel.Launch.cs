@@ -471,7 +471,7 @@ public partial class MainViewModel : ObservableObject
 
     private async Task LaunchProcessAndExit(FileInfo executable, string[] arguments)
     {
-        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+        if (OperatingSystem.IsLinux())
         {
             try
             {

@@ -63,9 +63,6 @@ public static class FileLockDetector
         if (OperatingSystem.IsLinux())
             return GetLockingProcessesLinux(filePath);
 
-        if (OperatingSystem.IsMacOS())
-            return GetLockingProcessesMacOS(filePath);
-
         return new List<FileLockingProcess>();
     }
 
@@ -174,57 +171,5 @@ public static class FileLockDetector
         {
             return "Unknown Process";
         }
-    }
-
-    private static List<FileLockingProcess> GetLockingProcessesMacOS(string filePath)
-    {
-        List<FileLockingProcess> processes = new List<FileLockingProcess>();
-
-        try
-        {
-            // macOS Has No "procfs", But "lsof" Ships As Part Of The Base System On Every Release, So It Is A Reliable In-Box Source
-            ProcessStartInfo startInfo = new ProcessStartInfo
-            {
-                FileName = "lsof",
-                Arguments = $@"-F pcn -- ""{filePath}""",
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using Process? process = Process.Start(startInfo);
-
-            if (process is not null)
-            {
-                string output = process.StandardOutput.ReadToEnd();
-                process.WaitForExit();
-
-                // "lsof -F" Emits One Field Per Line, Each Prefixed With A Type Character: "p" For The Process ID And "c" For The Command Name
-                int currentProcessID = 0;
-
-                foreach (string line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-                {
-                    char fieldType = line[0];
-                    string fieldValue = line[1..];
-
-                    if (fieldType is 'p' && int.TryParse(fieldValue, out int parsedProcessID))
-                    {
-                        currentProcessID = parsedProcessID;
-                    }
-
-                    else if (fieldType is 'c' && currentProcessID is not 0)
-                    {
-                        processes.Add(new FileLockingProcess(currentProcessID, fieldValue));
-                    }
-                }
-            }
-        }
-
-        catch
-        {
-            // Swallowed Deliberately: Permissions Might Be Insufficient To Inspect Processes Owned By Another User
-        }
-
-        return processes;
     }
 }

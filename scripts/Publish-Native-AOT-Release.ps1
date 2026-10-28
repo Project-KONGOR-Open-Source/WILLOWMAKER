@@ -19,7 +19,6 @@ $ProjectPath       = Join-Path $SolutionDirectory 'WILLOWMAKER'
 
 $OperatingSystem = if     ($IsWindows) { 'Windows' }
                    elseif ($IsLinux)   { 'Linux'   }
-                   elseif ($IsMacOS)   { 'macOS'   }
                    else                { throw 'Unsupported Operating System' }
 
 $Architecture = switch ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)
@@ -74,7 +73,6 @@ if ($IsWindows)
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish exited with code $LASTEXITCODE" }
 
 Get-ChildItem -Path $PublishDirectory -Recurse -File      -Include '*.pdb', '*.dbg' | Remove-Item -Force
-Get-ChildItem -Path $PublishDirectory -Recurse -Directory -Filter  '*.dSYM'         | Remove-Item -Recurse -Force
 
 $PropsPath       = Join-Path $SolutionDirectory 'Directory.Build.props'
 $ResolvedVersion = (Select-Xml -Path $PropsPath -XPath '/Project/PropertyGroup/Version').Node.InnerText

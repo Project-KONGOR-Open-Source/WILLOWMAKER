@@ -8,9 +8,6 @@ public sealed class ModStacksTests
     [Test]
     public async Task The_Game_Program_Has_No_Architecture_In_Its_Name()
     {
-        if (OperatingSystem.IsWindows() is false && OperatingSystem.IsLinux() is false)
-            return;
-
         await Assert.That(DeploymentManifest.HeroesOfNewerthExecutableFileName).IsEqualTo(OperatingSystem.IsWindows() ? "hon.exe" : "hon");
     }
 

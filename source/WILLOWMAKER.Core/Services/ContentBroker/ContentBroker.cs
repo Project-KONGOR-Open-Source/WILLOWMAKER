@@ -412,7 +412,6 @@ public static class ContentBroker
     // The Deletion Pass Must Mirror The Filesystem's Own Case Sensitivity: A Fixed Case-Insensitive Comparer Would Wrongly Keep A Stale File That Differs From A Manifest Entry Only In Case On A Case-Sensitive Filesystem
     private static StringComparer PathComparer =>
           OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase
-        : OperatingSystem.IsMacOS()   ? StringComparer.OrdinalIgnoreCase
         : OperatingSystem.IsLinux()   ? StringComparer.Ordinal
         : throw new PlatformNotSupportedException($@"Unsupported Operating System: {Environment.OSVersion.Platform}");
 

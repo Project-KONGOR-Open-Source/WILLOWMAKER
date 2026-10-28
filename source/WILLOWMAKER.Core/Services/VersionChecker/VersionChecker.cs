@@ -63,7 +63,6 @@ public static partial class VersionChecker
         if (updateIsAvailable && root.TryGetProperty("assets", out JsonElement assets))
         {
             string platformIdentifier = OperatingSystem.IsWindows() ? "windows"
-                                      : OperatingSystem.IsMacOS()   ? "macos"
                                       : OperatingSystem.IsLinux()   ? "linux"
                                       : throw new PlatformNotSupportedException($@"Unsupported Operating System: {Environment.OSVersion.Platform}");
 
@@ -163,11 +162,11 @@ public static partial class VersionChecker
         if (OperatingSystem.IsWindows())
             SpawnWindowsUpdateScript(archivePath, tempDirectory, targetDirectory, executablePath, relativePathsToReplace);
 
-        else if (OperatingSystem.IsMacOS())
-            SpawnMacOSUpdateScript(archivePath, tempDirectory, targetDirectory, executablePath, relativePathsToReplace);
+        else if (OperatingSystem.IsLinux())
+            SpawnLinuxUpdateScript(archivePath, tempDirectory, targetDirectory, executablePath, relativePathsToReplace);
 
         else
-            SpawnLinuxUpdateScript(archivePath, tempDirectory, targetDirectory, executablePath, relativePathsToReplace);
+            throw new PlatformNotSupportedException($@"Unsupported Operating System: {Environment.OSVersion.Platform}");
 
         Environment.Exit(0);
     }
@@ -268,45 +267,6 @@ public static partial class VersionChecker
         {
             FileName = "powershell",
             Arguments = $@"-ExecutionPolicy Bypass -NoProfile -File ""{scriptPath}""",
-            UseShellExecute = false,
-            CreateNoWindow = true
-        });
-    }
-
-    private static void SpawnMacOSUpdateScript(string archivePath, string sourceDirectory, string targetDirectory, string executablePath, string[] relativePathsToReplace)
-    {
-        string scriptPath = Path.Combine(Path.GetTempPath(), "WILLOWMAKER.update.sh");
-
-        // The Relative Paths Are Embedded As A Bash Single-Quoted Word List So Each One Can Be Force-Deleted Before The New Files Are Copied In
-        string pathWordList = string.Join(" ", relativePathsToReplace.Select(relativePath => $"'{relativePath}'"));
-
-        string script =
-        $"""
-            #!/bin/bash
-            sleep 3.5
-            for relativePath in {pathWordList}; do
-                stalePath="{targetDirectory}/$relativePath"
-                if [ -e "$stalePath" ]; then
-                    chmod u+w "$stalePath" 2>/dev/null || true
-                    rm -f "$stalePath"
-                fi
-            done
-            cp -Rf "{sourceDirectory}/." "{targetDirectory}/"
-            chmod +x "{executablePath}"
-            open "{executablePath}"
-            rm -rf "{sourceDirectory}"
-            rm "{archivePath}"
-            rm "$0"
-        """;
-
-        File.WriteAllText(scriptPath, script);
-
-        Process.Start("chmod", $@"+x ""{scriptPath}""")?.WaitForExit();
-
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = "bash",
-            Arguments = scriptPath,
             UseShellExecute = false,
             CreateNoWindow = true
         });
