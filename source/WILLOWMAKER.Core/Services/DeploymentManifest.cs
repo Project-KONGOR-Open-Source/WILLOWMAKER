@@ -40,8 +40,8 @@ public static class DeploymentManifest
     ///     The Heroes Of Newerth game client executable name on the current platform.
     /// </summary>
     public static string HeroesOfNewerthExecutableFileName =>
-          OperatingSystem.IsWindows() ? "hon_x64.exe"
-        : OperatingSystem.IsLinux()   ? "hon-x86_64"
+          OperatingSystem.IsWindows() ? "hon.exe"
+        : OperatingSystem.IsLinux()   ? "hon"
         : OperatingSystem.IsMacOS()   ? "HoN64"
         : throw new PlatformNotSupportedException($@"Unsupported Operating System: {Environment.OSVersion.Platform}");
 

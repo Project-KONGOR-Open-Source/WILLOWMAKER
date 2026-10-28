@@ -280,18 +280,7 @@ public partial class MainViewModel : ObservableObject
 
             WriteCustomConfiguration();
 
-            string[] resources =
-            [
-                // relative to executable directory (e.g. "D:\Games\HoN Game Client v4.10.1")
-                "base", // base resources; always needs to be loaded first; loaded automatically, but included for clarity
-                "game", // game resources; always needs to be loaded immediately after base resources
-                $"{FileSystem.RuntimeDirectoryName}/configuration", // custom configuration files to override default configuration; configuration file load order: 1) startup.cfg, 2) login.cfg, 3) init.cfg, 4) autoexec.cfg
-                $"{FileSystem.RuntimeDirectoryName}/updates", // custom resource files to override default game resources; reserved for game updates
-                $"{FileSystem.RuntimeDirectoryName}/extensions", // custom resource files to override default game resources; reserved for mods and extensions
-
-                // relative to configuration directory (e.g. "C:\Users\KONGOR\Documents\Heroes Of Newerth x64")
-                "client" // the last path in the mod stack defines where user configuration files are saved to and loaded from
-            ];
+            string[] resources = ModStacks.GameClient;
 
             Log(LogCategory.Parameters, $"-mod {string.Join(";", resources)}");
 
@@ -383,19 +372,7 @@ public partial class MainViewModel : ObservableObject
             if (TryResolveGameExecutable(out FileInfo? executable) is false)
                 return;
 
-            string[] resources =
-            [
-                // relative to executable directory (e.g. "D:\Games\HoN Game Client v4.10.1")
-                "base", // base resources; always needs to be loaded first; loaded automatically, but included for clarity
-                "game", // game resources; always needs to be loaded immediately after base resources
-                "mapeditor", // map editor resources; loaded immediately after game resources to overlay editor tooling onto the game stack
-                $"{FileSystem.RuntimeDirectoryName}/configuration", // custom configuration files to override default configuration; configuration file load order: 1) startup.cfg, 2) login.cfg, 3) init.cfg, 4) autoexec.cfg
-                $"{FileSystem.RuntimeDirectoryName}/updates", // custom resource files to override default game resources; reserved for game updates
-                $"{FileSystem.RuntimeDirectoryName}/extensions", // custom resource files to override default game resources; reserved for mods and extensions
-
-                // relative to configuration directory (e.g. "C:\Users\KONGOR\Documents\Heroes Of Newerth x64")
-                "mapeditor" // the last path in the mod stack defines where user configuration files are saved to and loaded from
-            ];
+            string[] resources = ModStacks.MapEditor;
 
             Log(LogCategory.Parameters, $"-mod {string.Join(";", resources)}");
 
