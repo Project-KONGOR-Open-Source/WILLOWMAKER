@@ -246,7 +246,7 @@ public partial class MainViewModel : ObservableObject
         // We Also Want To Wait Until Reaching The Colon Before Replacing The Local IP Address, Otherwise "localhost" Appears In The Log With The "t" Missing From The End
         address = address.Replace("localhost" + ":", IPAddress.Loopback.MapToIPv4() + ":");
 
-        Log(LogCategory.Parameters, $"-masterserver {address} -webserver {address} -messageserver {address}");
+        Log(LogCategory.Parameters, string.Join(' ', ServiceArguments.For(address)));
     }
 
     [RelayCommand]
@@ -287,9 +287,7 @@ public partial class MainViewModel : ObservableObject
             string[] arguments =
             [
                 // services
-                $"-masterserver {address}",
-                $"-webserver {address}",
-                $"-messageserver {address}",
+                .. ServiceArguments.For(address),
 
                 // resources
                 $"-mod {string.Join(";", resources)}"
