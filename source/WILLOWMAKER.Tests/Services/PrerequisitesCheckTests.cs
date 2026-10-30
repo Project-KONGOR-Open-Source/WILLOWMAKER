@@ -73,6 +73,25 @@ public sealed class PrerequisitesCheckTests
     }
 
     [Test]
+    public async Task A_Check_Whose_Output_Stays_Open_Is_Stopped_And_Fails()
+    {
+        // The Check Exits At Once, But A Program It Started In The Background Keeps The Check's Output Open
+        ProcessStartInfo lingeringCheck = OperatingSystem.IsWindows()
+            ? new ProcessStartInfo("cmd.exe", "/c start /b ping -n 30 127.0.0.1& exit /b 0")
+            : new ProcessStartInfo("/bin/sh") { ArgumentList = { "-c", "sleep 30 & exit 0" } };
+
+        Stopwatch stopwatch = Stopwatch.StartNew();
+
+        PrerequisitesCheckResult result = await PrerequisitesCheck.Run(lingeringCheck, TimeSpan.FromSeconds(1));
+
+        using (Assert.Multiple())
+        {
+            await Assert.That(result.Outcome).IsEqualTo(PrerequisitesCheckOutcome.Failed);
+            await Assert.That(stopwatch.Elapsed).IsLessThan(TimeSpan.FromSeconds(10));
+        }
+    }
+
+    [Test]
     public async Task A_Missing_Check_Program_Fails()
     {
         string directory = CreateTemporaryDirectory();

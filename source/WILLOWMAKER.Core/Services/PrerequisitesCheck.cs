@@ -78,11 +78,22 @@ public static class PrerequisitesCheck
             try
             {
                 await process.WaitForExitAsync(deadline.Token).ConfigureAwait(false);
+
+                // A Program That The Check Started Can Keep Its Output Open After The Check Has Exited, So Reading The Output Is Held To The Same Deadline
+                await Task.WhenAll(output, error).WaitAsync(deadline.Token).ConfigureAwait(false);
             }
 
             catch (OperationCanceledException)
             {
-                process.Kill(entireProcessTree: true);
+                try
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+
+                // The Check Itself May Already Have Exited, Leaving Only The Program It Started, Which Is No Longer Part Of Its Process Tree
+                catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
+                {
+                }
 
                 cancellationToken.ThrowIfCancellationRequested();
 
