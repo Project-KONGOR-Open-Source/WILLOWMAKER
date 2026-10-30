@@ -12,6 +12,10 @@
         <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.12" />
     </ItemGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="WILLOWMAKER.Tests" />
+    </ItemGroup>
+
     <!-- Generates A Version String Constant From The Project's Version -->
     <Target Name="GenerateVersionSource" BeforeTargets="CoreCompile" DependsOnTargets="PrepareForBuild">
         <PropertyGroup>
