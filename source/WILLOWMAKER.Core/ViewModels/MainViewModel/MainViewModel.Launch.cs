@@ -276,6 +276,9 @@ public partial class MainViewModel : ObservableObject
             if (TryResolveGameExecutable(out FileInfo? executable) is false)
                 return;
 
+            if (await CheckPrerequisites() is false)
+                return;
+
             string address = BuildMasterServerAddress();
 
             WriteCustomConfiguration();
@@ -368,6 +371,9 @@ public partial class MainViewModel : ObservableObject
                 return;
 
             if (TryResolveGameExecutable(out FileInfo? executable) is false)
+                return;
+
+            if (await CheckPrerequisites() is false)
                 return;
 
             string[] resources = ModStacks.MapEditor;
@@ -469,20 +475,15 @@ public partial class MainViewModel : ObservableObject
 
     private async Task LaunchProcessAndExit(FileInfo executable, string[] arguments)
     {
-        if (OperatingSystem.IsLinux())
+        try
         {
-            try
-            {
-                UnixFileMode currentMode = File.GetUnixFileMode(executable.FullName);
+            // POSIX Systems Require The Execute Permission Bit To Be Explicitly Set For Downloaded Binaries To Run
+            ExecutePermission.Grant(executable.FullName);
+        }
 
-                // POSIX Systems Require The Execute Permission Bit To Be Explicitly Set For Downloaded Binaries To Run
-                File.SetUnixFileMode(executable.FullName, currentMode | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
-            }
-
-            catch (Exception exception)
-            {
-                Log(LogCategory.Executable, $@"Failed To Set POSIX Execution Permissions: {exception.Message}");
-            }
+        catch (Exception exception)
+        {
+            Log(LogCategory.Executable, $@"Failed To Set POSIX Execution Permissions: {exception.Message}");
         }
 
         Log(LogCategory.Command, $@"""{executable.FullName}"" {string.Join(" ", arguments)}");
@@ -501,8 +502,7 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        while (process.MainWindowHandle == IntPtr.Zero)
-            await Task.Delay(TimeSpan.FromMilliseconds(250));
+        await ProcessWindow.WaitUntilShown(process);
 
         Environment.Exit(0);
     }

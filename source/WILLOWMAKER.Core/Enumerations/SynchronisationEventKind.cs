@@ -12,6 +12,7 @@ public enum SynchronisationEventKind
     Deleted,
     DownloadFailed,
     DeletionFailed,
+    PermissionFailed,
     Completed,
     ProgressUpdated
 }

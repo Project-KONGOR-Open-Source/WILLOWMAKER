@@ -7,9 +7,14 @@ namespace WILLOWMAKER.Core.Services;
 public sealed record Manifest
 {
     /// <summary>
-    ///     The manifest version string.
+    ///     The version of the distribution's resources: the date on which the manifest was generated, as <c>5.YY.MM.DD</c>, because resources change independently of the binaries.
     /// </summary>
-    public required string Version { get; init; }
+    public required string VersionResources { get; init; }
+
+    /// <summary>
+    ///     The game's version, which the distribution's binaries were built with, as <c>5.YY.MM.DD</c>.
+    /// </summary>
+    public required string VersionExecutable { get; init; }
 
     /// <summary>
     ///     The algorithm used for the <see cref="ManifestEntry.Hash"/> values.
@@ -37,12 +42,13 @@ public sealed record Manifest
 }
 
 /// <summary>
-///     One entry in <see cref="Manifest.Files"/>: the size in bytes and the lowercase hex hash of the file's contents.
+///     One entry in <see cref="Manifest.Files"/>: the size in bytes, the lowercase hex hash of the file's contents, and whether the file is a program, which needs the execute permission on Linux.
 /// </summary>
 public sealed record ManifestEntry
 {
     public required long Size { get; init; }
     public required string Hash { get; init; }
+    public required bool Executable { get; init; }
 }
 
 /// <summary>

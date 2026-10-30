@@ -36,6 +36,7 @@ public static class ContentBroker
     ///     Mirrors the manifest's file list into <paramref name="targetDirectory"/>: downloads missing or mismatched files, and removes local files that are not in the manifest.
     ///     For each manifest entry the download pass asks two questions in order: first, may the file be fetched from the bucket (a remote-side check against <see cref="Manifest.ExcludeFromSource"/>); second, would writing it change a local path that must not be changed (a local-side check against <see cref="Manifest.ExcludeFromTarget"/>).
     ///     The deletion pass asks the local-side question alone, against <see cref="Manifest.ExcludeFromTarget"/>.
+    ///     A third pass gives every flagged program that neither question excludes the execute permission, and a program whose permission cannot be set counts as a failed file.
     ///     Leftover partial files from an interrupted run are removed up-front, before any downloads begin.
     ///     Downloads run in parallel and are written atomically via a <c>.partial</c> temporary file that is renamed on success.
     /// </summary>
@@ -257,6 +258,41 @@ public static class ContentBroker
                 failures.Add(new SynchronisationFailure(fullPath, exception.Message));
 
                 progress?.Report(new SynchronisationEvent(SynchronisationEventKind.DeletionFailed, $@"{fullPath}: {exception.Message}", 0));
+            }
+        }
+
+        // Third Pass: Give Every Flagged Program The Execute Permission, Including Programs That Were Already Up To Date, Because A Matching Hash Says Nothing About A File's Mode
+
+        foreach ((string rawRelativePath, ManifestEntry entry) in manifest.Files)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (entry.Executable is false)
+                continue;
+
+            string relativePath = NormaliseRelativePath(rawRelativePath);
+
+            if (MatchesAny(relativePath, sourceExclusions) || MatchesAny(relativePath, targetExclusions))
+                continue;
+
+            string localPath = Path.Combine(targetDirectory, relativePath.Replace('/', Path.DirectorySeparatorChar));
+
+            // A Program That Is Not There, Such As One Whose Download Failed, Has Nothing To Grant And Is Already Counted
+            if (File.Exists(localPath) is false)
+                continue;
+
+            try
+            {
+                ExecutePermission.Grant(localPath);
+            }
+
+            catch (Exception exception)
+            {
+                filesFailed++;
+
+                failures.Add(new SynchronisationFailure(relativePath, exception.Message));
+
+                progress?.Report(new SynchronisationEvent(SynchronisationEventKind.PermissionFailed, $@"{relativePath}: {exception.Message}", 0));
             }
         }
 

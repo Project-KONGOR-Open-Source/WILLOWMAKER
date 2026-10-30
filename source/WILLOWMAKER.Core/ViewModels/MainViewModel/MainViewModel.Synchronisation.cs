@@ -82,7 +82,7 @@ public partial class MainViewModel : ObservableObject
 
             Manifest manifest = await ContentBroker.FetchManifest(variant, baseURL: cdnURL);
 
-            Log(LogCategory.Synchronise, $"INIT: Manifest Version {manifest.Version} Lists {manifest.Files.Count} File(s)");
+            Log(LogCategory.Synchronise, $"INIT: Manifest Lists {manifest.Files.Count} File(s) For Executable Version {manifest.VersionExecutable} With Resources Version {manifest.VersionResources}");
 
             int filesDownloaded  = 0;
             int filesDeleted     = 0;
@@ -163,6 +163,7 @@ public partial class MainViewModel : ObservableObject
 
                     case SynchronisationEventKind.DownloadFailed:
                     case SynchronisationEventKind.DeletionFailed:
+                    case SynchronisationEventKind.PermissionFailed:
                     {
                         Log(LogCategory.Synchronise, $"FAIL: {synchronisationEvent.Detail}");
 

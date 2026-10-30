@@ -1,8 +1,13 @@
+using System.Runtime.Versioning;
+using System.Text.Json;
+
+using TUnit.Core.Enums;
+
 namespace WILLOWMAKER.Tests.Services.Synchronisation;
 
 /// <summary>
-///     Verifies the synchronisation engine's local reconciliation behaviour: up-front partial cleanup, mirror deletion, target exclusions, and up-to-date detection.
-///     The scenarios are constructed so that no downloads are required, which keeps the tests free of network access.
+///     Verifies the synchronisation engine's local reconciliation behaviour: up-front partial cleanup, mirror deletion, target exclusions, up-to-date detection, the execute permission, and the manifest's shape.
+///     The scenarios are constructed so that no downloads succeed, which keeps the tests free of network access.
 /// </summary>
 public sealed class ContentBrokerTests
 {
@@ -15,14 +20,21 @@ public sealed class ContentBrokerTests
         return directory;
     }
 
+    // Readable By Everyone And Writable By Its Owner, As A Download Creates A File, With No Execute Bit
+    private const UnixFileMode DownloadedMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
+
     private static Manifest CreateManifest(IReadOnlyDictionary<string, ManifestEntry>? files = null, IReadOnlyList<string>? excludeFromTarget = null) => new ()
     {
-        Version = "test",
+        VersionResources = "5.26.12.20",
+        VersionExecutable = "5.26.12.24",
         HashAlgorithm = "SHA-256",
         ExcludeFromSource = [],
         ExcludeFromTarget = excludeFromTarget ?? [],
         Files = files ?? new Dictionary<string, ManifestEntry>()
     };
+
+    private static ManifestEntry CreateEntry(byte[] content, bool executable = false)
+        => new () { Size = content.Length, Hash = Convert.ToHexStringLower(SHA256.HashData(content)), Executable = executable };
 
     // "Progress<T>" Posts Its Callbacks Asynchronously, So Events Could Arrive After The Synchronisation Returns; Recording Synchronously Keeps The Order Deterministic
     private sealed class RecordingProgress : IProgress<SynchronisationEvent>
@@ -137,7 +149,7 @@ public sealed class ContentBrokerTests
 
             Dictionary<string, ManifestEntry> files = new ()
             {
-                ["data.bin"] = new ManifestEntry { Size = content.Length, Hash = Convert.ToHexStringLower(SHA256.HashData(content)) }
+                ["data.bin"] = CreateEntry(content)
             };
 
             SynchronisationSummary summary = await ContentBroker.Synchronise(CreateManifest(files), "was", directory);
@@ -150,6 +162,135 @@ public sealed class ContentBrokerTests
                 await Assert.That(summary.FilesDeleted).IsEqualTo(0);
                 await Assert.That(summary.FilesFailed).IsEqualTo(0);
             }
+        }
+
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task A_Manifest_In_The_Old_Shape_Is_Refused()
+    {
+        const string oldManifest = """{"version": "4.10.1.20261029", "hashAlgorithm": "SHA-256", "excludeFromSource": ["manifest.json"], "excludeFromTarget": [], "files": {"hon.exe": {"size": 1, "hash": "00"}}}""";
+
+        await Assert.That(() => JsonSerializer.Deserialize(oldManifest, ManifestJSONContext.Default.Manifest)).Throws<JsonException>();
+    }
+
+    [Test]
+    public async Task A_Flagged_File_That_Failed_To_Download_Is_Counted_Once()
+    {
+        string directory = CreateTemporaryDirectory();
+
+        try
+        {
+            Dictionary<string, ManifestEntry> files = new ()
+            {
+                ["hon"] = CreateEntry(Encoding.UTF8.GetBytes("a program that is not present locally"), executable: true)
+            };
+
+            RecordingProgress recorder = new ();
+
+            // Nothing Listens On The Discard Port, So The Connection Is Refused At Once
+            SynchronisationSummary summary = await ContentBroker.Synchronise(CreateManifest(files), "was", directory, baseURL: "http://127.0.0.1:9/", progress: recorder);
+
+            using (Assert.Multiple())
+            {
+                await Assert.That(summary.FilesFailed).IsEqualTo(1);
+                await Assert.That(recorder.Events.Any(synchronisationEvent => synchronisationEvent.Kind is SynchronisationEventKind.PermissionFailed)).IsFalse();
+            }
+        }
+
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    [ExcludeOn(OS.Windows)]
+    [UnsupportedOSPlatform("windows")]
+    public async Task An_Up_To_Date_Flagged_File_Gains_The_Execute_Permission()
+    {
+        string directory = CreateTemporaryDirectory();
+
+        try
+        {
+            byte[] content = Encoding.UTF8.GetBytes("a program");
+
+            string localPath = Path.Combine(directory, "hon");
+
+            File.WriteAllBytes(localPath, content);
+            File.SetUnixFileMode(localPath, DownloadedMode);
+
+            SynchronisationSummary summary = await ContentBroker.Synchronise(CreateManifest(new Dictionary<string, ManifestEntry> { ["hon"] = CreateEntry(content, executable: true) }), "was", directory);
+
+            UnixFileMode mode = File.GetUnixFileMode(localPath);
+
+            using (Assert.Multiple())
+            {
+                await Assert.That(summary.FilesFailed).IsEqualTo(0);
+                await Assert.That(mode.HasFlag(UnixFileMode.UserExecute)).IsTrue();
+                await Assert.That(mode.HasFlag(UnixFileMode.GroupExecute)).IsTrue();
+                await Assert.That(mode.HasFlag(UnixFileMode.OtherExecute)).IsTrue();
+            }
+        }
+
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    [ExcludeOn(OS.Windows)]
+    [UnsupportedOSPlatform("windows")]
+    public async Task A_File_Without_The_Flag_Keeps_Its_Mode()
+    {
+        string directory = CreateTemporaryDirectory();
+
+        try
+        {
+            byte[] content = Encoding.UTF8.GetBytes("a resource");
+
+            string localPath = Path.Combine(directory, "readme.txt");
+
+            File.WriteAllBytes(localPath, content);
+            File.SetUnixFileMode(localPath, DownloadedMode);
+
+            await ContentBroker.Synchronise(CreateManifest(new Dictionary<string, ManifestEntry> { ["readme.txt"] = CreateEntry(content) }), "was", directory);
+
+            await Assert.That(File.GetUnixFileMode(localPath)).IsEqualTo(DownloadedMode);
+        }
+
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    [ExcludeOn(OS.Windows)]
+    [UnsupportedOSPlatform("windows")]
+    public async Task A_Flagged_File_Excluded_From_The_Target_Keeps_Its_Mode()
+    {
+        string directory = CreateTemporaryDirectory();
+
+        try
+        {
+            byte[] content = Encoding.UTF8.GetBytes("the launcher");
+
+            string localPath = Path.Combine(directory, "COMPEL");
+
+            File.WriteAllBytes(localPath, content);
+            File.SetUnixFileMode(localPath, DownloadedMode);
+
+            Dictionary<string, ManifestEntry> files = new () { ["COMPEL"] = CreateEntry(content, executable: true) };
+
+            await ContentBroker.Synchronise(CreateManifest(files, excludeFromTarget: [ "COMPEL" ]), "was", directory);
+
+            await Assert.That(File.GetUnixFileMode(localPath)).IsEqualTo(DownloadedMode);
         }
 
         finally

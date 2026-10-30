@@ -1,0 +1,32 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="WILLOWMAKER.Core.Views.PrerequisitesDialog"
+        Title="Missing Prerequisites"
+        Width="600" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        TransparencyLevelHint="Transparent"
+        Background="#F2131418">
+
+    <StackPanel Margin="25">
+        <TextBlock Text="Missing Prerequisites" FontSize="16" FontWeight="SemiBold" Foreground="OrangeRed" Margin="0, 0, 0, 10" />
+        <TextBlock Text="Heroes Of Newerth cannot start until the following is resolved." TextWrapping="Wrap" Margin="0, 0, 0, 15" />
+
+        <!-- The Report Can Be Selected, So That A Player Can Copy An Install Command Or A Download Address From It -->
+        <ScrollViewer MaxHeight="350" Margin="0, 0, 0, 15">
+            <SelectableTextBlock x:Name="ReportTextBlock" TextWrapping="Wrap" FontFamily="Cascadia Mono, Consolas, Menlo, Monospace" FontSize="12" Foreground="#CCCCCC" />
+        </ScrollViewer>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button Content="OK" Click="OK_Click" Background="Green" Cursor="Hand" Width="90" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                <Button.Styles>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="Green" />
+                        <Setter Property="FontWeight" Value="Medium" />
+                    </Style>
+                </Button.Styles>
+            </Button>
+        </StackPanel>
+    </StackPanel>
+
+</Window>
