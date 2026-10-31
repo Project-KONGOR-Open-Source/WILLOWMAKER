@@ -171,11 +171,11 @@ public sealed class ContentBrokerTests
     }
 
     [Test]
-    public async Task A_Manifest_Without_Its_Versions_Is_Refused()
+    [Arguments("""{"versionResources": "5.26.10.31", "hashAlgorithm": "SHA-256", "excludeFromSource": ["manifest.json"], "excludeFromTarget": [], "files": {"hon.exe": {"size": 1, "hash": "00", "executable": true}}}""")]
+    [Arguments("""{"versionExecutable": "5.26.10.31", "hashAlgorithm": "SHA-256", "excludeFromSource": ["manifest.json"], "excludeFromTarget": [], "files": {"hon.exe": {"size": 1, "hash": "00", "executable": true}}}""")]
+    public async Task A_Manifest_With_Only_One_Of_Its_Versions_Is_Refused(string manifestWithOneVersion)
     {
-        const string manifestWithoutVersions = """{"hashAlgorithm": "SHA-256", "excludeFromSource": ["manifest.json"], "excludeFromTarget": [], "files": {"hon.exe": {"size": 1, "hash": "00", "executable": true}}}""";
-
-        await Assert.That(() => JsonSerializer.Deserialize(manifestWithoutVersions, ManifestJSONContext.Default.Manifest)).Throws<JsonException>();
+        await Assert.That(() => JsonSerializer.Deserialize(manifestWithOneVersion, ManifestJSONContext.Default.Manifest)).Throws<JsonException>();
     }
 
     [Test]
