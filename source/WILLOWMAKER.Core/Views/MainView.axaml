@@ -92,7 +92,8 @@
                     <Grid Grid.Row="0" Height="540" ColumnDefinitions="Auto, Auto, Auto">
                         <StackPanel Grid.Column="0" Width="300" />
 
-                        <StackPanel Grid.Column="1" Width="400" Margin="0, 160, 0, 0">
+                        <!-- The Form Is Centred Vertically, So That It Stays Centred And Fits However Many Custom Address Fields Show -->
+                        <StackPanel Grid.Column="1" Width="400" VerticalAlignment="Center">
                             <StackPanel.Styles>
                                 <!-- Stretch The Dropdown Items Across The Dropdown, So That The Shared Item Template Can Centre Each Address -->
                                 <Style Selector="ComboBoxItem">
