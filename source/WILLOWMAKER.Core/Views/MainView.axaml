@@ -144,6 +144,21 @@
                                        TextAlignment="Center"
                                        FontSize="11" />
 
+                            <Label Width="400" Margin="0, 10, 0, 5" HorizontalAlignment="Center" HorizontalContentAlignment="Center">User Portal</Label>
+
+                            <ComboBox Name="UserPortalOptionsDropdown" ItemsSource="{Binding AvailableUserPortalOptions}" SelectedItem="{Binding SelectedUserPortalAddressItem}" ItemTemplate="{StaticResource AddressSelectItemTemplate}" IsEnabled="{Binding UserPortalInputIsEnabled}" Width="400" HorizontalAlignment="Center" HorizontalContentAlignment="Stretch" />
+
+                            <TextBox Text="{Binding CustomUserPortalAddress}" Width="400" Margin="0, 10, 0, 0" HorizontalAlignment="Center" TextAlignment="Center" IsVisible="{Binding CanShowCustomUserPortalAddressField}" IsEnabled="{Binding UserPortalInputIsEnabled}" LostFocus="CustomUserPortalAddress_LostFocus" KeyDown="CustomUserPortalAddress_KeyDown" />
+
+                            <TextBlock Classes.probing="{Binding UserPortalProbe.InProgress}"
+                                       Classes.online="{Binding UserPortalProbe.Succeeded}"
+                                       Classes.failed="{Binding UserPortalProbe.Failed}"
+                                       Text="{Binding UserPortalProbe.StatusMessage}"
+                                       Width="400" Margin="0, 5, 0, 0"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       FontSize="11" />
+
                             <StackPanel Orientation="Horizontal" Margin="0, 10, 0, 0" HorizontalAlignment="Center">
                                 <Button Command="{Binding LaunchMapEditorCommand}" Width="175" Height="60" Margin="0, 0, 5, 0" Cursor="Hand" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding CanLaunchMapEditor}" Background="DarkGreen">
                                     <Button.Styles>

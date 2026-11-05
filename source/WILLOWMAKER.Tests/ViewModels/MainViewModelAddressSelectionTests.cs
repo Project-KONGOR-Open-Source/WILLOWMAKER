@@ -461,6 +461,119 @@ public sealed class MainViewModelAddressSelectionTests
         }
     }
 
+    [Test]
+    public async Task The_User_Portal_Options_Offer_The_Official_And_A_Custom_Portal_For_The_Official_Master_Server_And_Select_The_Official_One()
+    {
+        (string[] options, string? selectedOption, string? userPortal) = await HeadlessSession.Dispatch(() =>
+        {
+            MainViewModel viewModel = CreateIdleViewModel();
+
+            return (viewModel.AvailableUserPortalOptions.Select(option => option.DisplayText).ToArray(), viewModel.SelectedUserPortalAddressItem?.TargetURL, viewModel.ResolveActiveUserPortalAddress());
+        });
+
+        using (Assert.Multiple())
+        {
+            await Assert.That(options.SequenceEqual(["portal.kongor.net", "Custom Address ..."])).IsTrue();
+            await Assert.That(selectedOption).IsEqualTo("portal.kongor.net");
+            await Assert.That(userPortal).IsEqualTo("portal.kongor.net");
+        }
+    }
+
+    [Test]
+    public async Task The_User_Portal_Options_Offer_The_Local_Portal_First_For_The_Local_Master_Server()
+    {
+        (string[] options, string? selectedOption, string? userPortal) = await HeadlessSession.Dispatch(() =>
+        {
+            MainViewModel viewModel = CreateIdleViewModel();
+
+            SelectMasterServer(viewModel, "localhost:5555");
+
+            return (viewModel.AvailableUserPortalOptions.Select(option => option.DisplayText).ToArray(), viewModel.SelectedUserPortalAddressItem?.TargetURL, viewModel.ResolveActiveUserPortalAddress());
+        });
+
+        using (Assert.Multiple())
+        {
+            await Assert.That(options.SequenceEqual(["localhost:5557", "portal.kongor.net", "Custom Address ..."])).IsTrue();
+            await Assert.That(selectedOption).IsEqualTo("localhost:5557");
+            await Assert.That(userPortal).IsEqualTo("localhost:5557");
+        }
+    }
+
+    [Test]
+    public async Task The_User_Portal_Options_Offer_Only_A_Custom_Portal_For_A_Custom_Master_Server()
+    {
+        (string[] options, bool customUserPortalAddressFieldIsShown) = await HeadlessSession.Dispatch(() =>
+        {
+            MainViewModel viewModel = CreateIdleViewModel();
+
+            SelectCustomMasterServer(viewModel);
+
+            return (viewModel.AvailableUserPortalOptions.Select(option => option.DisplayText).ToArray(), viewModel.CanShowCustomUserPortalAddressField);
+        });
+
+        using (Assert.Multiple())
+        {
+            await Assert.That(options.SequenceEqual(["Custom Address ..."])).IsTrue();
+            await Assert.That(customUserPortalAddressFieldIsShown).IsTrue();
+        }
+    }
+
+    [Test]
+    public async Task Changing_The_Master_Server_Refills_The_User_Portal_Options_And_Clears_A_Custom_Portal()
+    {
+        (string[] options, string? customUserPortalAddress, bool customUserPortalAddressFieldIsShown, string? userPortal) = await HeadlessSession.Dispatch(() =>
+        {
+            MainViewModel viewModel = CreateIdleViewModel();
+
+            SelectCustomMasterServer(viewModel);
+            viewModel.CustomUserPortalAddress = "portal.example.com";
+
+            SelectMasterServer(viewModel, "api.kongor.net");
+
+            return (viewModel.AvailableUserPortalOptions.Select(option => option.DisplayText).ToArray(), viewModel.CustomUserPortalAddress, viewModel.CanShowCustomUserPortalAddressField, viewModel.ResolveActiveUserPortalAddress());
+        });
+
+        using (Assert.Multiple())
+        {
+            await Assert.That(options.SequenceEqual(["portal.kongor.net", "Custom Address ..."])).IsTrue();
+            await Assert.That(customUserPortalAddress).IsNull();
+            await Assert.That(customUserPortalAddressFieldIsShown).IsFalse();
+            await Assert.That(userPortal).IsEqualTo("portal.kongor.net");
+        }
+    }
+
+    [Test]
+    public async Task A_Blank_Or_Invalid_Custom_User_Portal_Leaves_The_Game_Client_Launch_Enabled_And_Passes_No_User_Portal()
+    {
+        (bool canLaunchWithBlankPortal, string? blankPortal, bool canLaunchWithInvalidPortal, string? invalidPortal, string statusMessage, string? validPortal) = await HeadlessSession.Dispatch(() =>
+        {
+            MainViewModel viewModel = CreateViewModelWithCustomCDN("localhost:5555/cdn");
+
+            viewModel.CustomMasterServerAddress = "master.example.com";
+            viewModel.CustomUserPortalAddress = string.Empty;
+
+            (bool, string?) blank = (viewModel.CanLaunchGameClient, viewModel.ResolveActiveUserPortalAddress());
+
+            viewModel.CustomUserPortalAddress = "portal .example.com";
+
+            (bool, string?, string) invalid = (viewModel.CanLaunchGameClient, viewModel.ResolveActiveUserPortalAddress(), viewModel.UserPortalProbe.StatusMessage);
+
+            viewModel.CustomUserPortalAddress = "portal.example.com";
+
+            return (blank.Item1, blank.Item2, invalid.Item1, invalid.Item2, invalid.Item3, viewModel.ResolveActiveUserPortalAddress());
+        });
+
+        using (Assert.Multiple())
+        {
+            await Assert.That(canLaunchWithBlankPortal).IsTrue();
+            await Assert.That(blankPortal).IsNull();
+            await Assert.That(canLaunchWithInvalidPortal).IsTrue();
+            await Assert.That(invalidPortal).IsNull();
+            await Assert.That(statusMessage).IsEqualTo("Invalid User Portal Address");
+            await Assert.That(validPortal).IsEqualTo("portal.example.com");
+        }
+    }
+
     private static MainViewModel CreateIdleViewModel()
         => new () { UpdateStatus = UpdateStatus.ApplicationUpToDate };
 

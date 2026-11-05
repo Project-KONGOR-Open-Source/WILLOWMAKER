@@ -41,16 +41,36 @@ public partial class MainViewModel : ObservableObject
 
     public ConnectivityProbe CDNProbe { get; }
 
+    public ObservableCollection<AddressSelectItem> AvailableUserPortalOptions { get; } = [];
+
+    [ObservableProperty]
+    public partial AddressSelectItem? SelectedUserPortalAddressItem { get; set; }
+
+    [ObservableProperty]
+    public partial string? CustomUserPortalAddress { get; set; }
+
+    [ObservableProperty]
+    public partial bool CanShowCustomUserPortalAddressField { get; set; } = false;
+
+    // The User Portal Never Holds A Launch Back: Without A Valid One, The Game Starts Without "-userportal", And Its Login Screen Says The Portal Is Not Set
+    [ObservableProperty]
+    public partial bool UserPortalAddressIsValid { get; set; } = true;
+
+    public ConnectivityProbe UserPortalProbe { get; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]
     [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
     [NotifyPropertyChangedFor(nameof(MasterServerInputIsEnabled))]
     [NotifyPropertyChangedFor(nameof(CDNInputIsEnabled))]
+    [NotifyPropertyChangedFor(nameof(UserPortalInputIsEnabled))]
     public partial bool LaunchIsInProgress { get; set; } = false;
 
     public bool MasterServerInputIsEnabled => UpdateCheckIsIdle && UpdateIsInstalling is false && SynchronisationIsIdle && LaunchIsInProgress is false;
 
     public bool CDNInputIsEnabled => MasterServerInputIsEnabled;
+
+    public bool UserPortalInputIsEnabled => MasterServerInputIsEnabled;
 
     public bool CanLaunchMapEditor => UpdateCheckIsIdle && UpdateIsInstalling is false && SynchronisationIsIdle && LaunchIsInProgress is false;
 
@@ -72,6 +92,7 @@ public partial class MainViewModel : ObservableObject
             CanShowCustomMasterServerAddressField = true;
             CustomMasterServerAddress = string.Empty;
             CustomCDNAddress = string.Empty;
+            CustomUserPortalAddress = string.Empty;
 
             ValidateAndProbeCustomMasterServerAddress();
         }
@@ -88,6 +109,7 @@ public partial class MainViewModel : ObservableObject
         }
 
         PopulateCDNOptions(newValue);
+        PopulateUserPortalOptions(newValue);
     }
 
     partial void OnCustomMasterServerAddressChanged(string? oldValue, string? newValue)
@@ -150,6 +172,80 @@ public partial class MainViewModel : ObservableObject
             CDNProbe.ReportInvalidAddress(CustomCDNAddress);
     }
 
+    partial void OnSelectedUserPortalAddressItemChanged(AddressSelectItem? oldValue, AddressSelectItem? newValue)
+    {
+        if (newValue is null)
+            return;
+
+        if (newValue.IsCustom)
+        {
+            CanShowCustomUserPortalAddressField = true;
+
+            ValidateAndProbeCustomUserPortalAddress();
+        }
+
+        else
+        {
+            CanShowCustomUserPortalAddressField = false;
+            CustomUserPortalAddress = null;
+            UserPortalAddressIsValid = true;
+
+            ScheduleUserPortalProbe(newValue.TargetURL, ProbeDebounceDelay);
+        }
+    }
+
+    partial void OnCustomUserPortalAddressChanged(string? oldValue, string? newValue)
+    {
+        if (CanShowCustomUserPortalAddressField is false)
+            return;
+
+        ValidateAndProbeCustomUserPortalAddress();
+    }
+
+    private void ValidateAndProbeCustomUserPortalAddress()
+    {
+        UserPortalAddressIsValid = AddressValidation.IsValidAddress(CustomUserPortalAddress);
+
+        if (UserPortalAddressIsValid)
+            ScheduleUserPortalProbe(CustomUserPortalAddress, ProbeDebounceDelay);
+
+        else
+            UserPortalProbe.ReportInvalidAddress(CustomUserPortalAddress);
+    }
+
+    // A Portal's Accounts Exist Only On Its Own Master Server, So The Portal Offered First Is The One That Belongs To The Master Server Chosen
+    private void PopulateUserPortalOptions(AddressSelectItem masterServer)
+    {
+        AddressSelectItem localItem = new ()
+        {
+            DisplayText = "localhost:5557",
+            TargetURL   = "localhost:5557"
+        };
+
+        AddressSelectItem officialItem = new ()
+        {
+            DisplayText = "portal.kongor.net",
+            TargetURL   = "portal.kongor.net"
+        };
+
+        AddressSelectItem customItem = new ()
+        {
+            DisplayText = "Custom Address ...",
+            TargetURL   = null
+        };
+
+        AddressSelectItem[] options = masterServer.IsCustom ? [customItem]
+            : masterServer.TargetURL?.Contains("localhost", StringComparison.OrdinalIgnoreCase) is true ? [localItem, officialItem, customItem]
+            : [officialItem, customItem];
+
+        AvailableUserPortalOptions.Clear();
+
+        foreach (AddressSelectItem option in options)
+            AvailableUserPortalOptions.Add(option);
+
+        SelectedUserPortalAddressItem = options[0];
+    }
+
     private void PopulateCDNOptions(AddressSelectItem masterServer)
     {
         AddressSelectItem localItem = new ()
@@ -209,6 +305,24 @@ public partial class MainViewModel : ObservableObject
             CDNProbe.Start($"{AddressValidation.NormaliseCDNURL(address)}{ResolveDefaultClientVariant()}/manifest.json", delay);
     }
 
+    private void ScheduleUserPortalProbe(string? address, TimeSpan delay)
+    {
+        if (string.IsNullOrWhiteSpace(address))
+            UserPortalProbe.Reset();
+
+        else
+            UserPortalProbe.Start(BuildUserPortalProbeURL(address), delay);
+    }
+
+    [RelayCommand]
+    private void TriggerImmediateUserPortalProbe()
+    {
+        string? address = SelectedUserPortalAddressItem?.IsCustom is true ? CustomUserPortalAddress : SelectedUserPortalAddressItem?.TargetURL;
+
+        if (AddressValidation.IsValidAddress(address))
+            ScheduleUserPortalProbe(address, TimeSpan.Zero);
+    }
+
     [RelayCommand]
     private void TriggerImmediateMasterServerProbe()
     {
@@ -234,6 +348,25 @@ public partial class MainViewModel : ObservableObject
     private string? ActiveMasterServerAddress => SelectedMasterServerAddressItem?.IsCustom is true ? CustomMasterServerAddress : SelectedMasterServerAddressItem?.TargetURL;
 
     private string? ActiveCDNAddress => SelectedCDNAddressItem?.IsCustom is true ? CustomCDNAddress : SelectedCDNAddressItem?.TargetURL;
+
+    // The User Portal Serves Only HTTPS, So An Address Without A Scheme Is Probed Over HTTPS, At The Portal's Health Endpoint
+    private static string BuildUserPortalProbeURL(string address)
+    {
+        string baseURL = address.Contains("://", StringComparison.Ordinal) ? address : $"https://{address}";
+
+        return $"{baseURL.TrimEnd('/')}/health";
+    }
+
+    /// <summary>
+    ///     The user portal's address the game client is started with, or NULL when a custom portal is blank or invalid, in which case the game starts without one.
+    /// </summary>
+    public string? ResolveActiveUserPortalAddress()
+    {
+        if (SelectedUserPortalAddressItem?.IsCustom is not true)
+            return SelectedUserPortalAddressItem?.TargetURL;
+
+        return UserPortalAddressIsValid && string.IsNullOrWhiteSpace(CustomUserPortalAddress) is false ? CustomUserPortalAddress : null;
+    }
 
     public string ResolveActiveCDNURL()
         => AddressValidation.NormaliseCDNURL(ActiveCDNAddress);
@@ -287,10 +420,15 @@ public partial class MainViewModel : ObservableObject
 
             Log(LogCategory.Parameters, $"-mod {string.Join(";", resources)}");
 
+            // The Portal Keeps "localhost", Unlike The Master Server's Address, Since Its Development Certificate Names "localhost"
+            string? userPortal = ResolveActiveUserPortalAddress();
+
+            Log(LogCategory.Parameters, userPortal is null ? "No User Portal Is Set, So The Login Screen's Account Buttons Will Say So" : $"-userportal {userPortal}");
+
             string[] arguments =
             [
                 // services
-                .. ServiceArguments.For(address),
+                .. ServiceArguments.For(address, userPortal),
 
                 // resources
                 $"-mod {string.Join(";", resources)}"
