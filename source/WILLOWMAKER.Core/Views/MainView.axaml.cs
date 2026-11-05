@@ -162,6 +162,30 @@ public partial class MainView : UserControl
         }
     }
 
+    private void CustomUserPortalAddress_LostFocus(object? sender, RoutedEventArgs arguments)
+    {
+        if (DataContext is MainViewModel viewModel)
+        {
+            viewModel.TriggerImmediateUserPortalProbeCommand.Execute(null);
+        }
+    }
+
+    private void CustomUserPortalAddress_KeyDown(object? sender, KeyEventArgs arguments)
+    {
+        if (arguments.Key == Key.Enter && sender is InputElement inputElement)
+        {
+            MoveFocusToFocusableParent(inputElement);
+
+            // Moving The Focus Away Raises "LostFocus", Which Already Probes The User Portal, So The Probe Is Only Triggered Here When The Focus Could Not Be Moved
+            if (inputElement.IsFocused && DataContext is MainViewModel viewModel)
+            {
+                viewModel.TriggerImmediateUserPortalProbeCommand.Execute(null);
+            }
+
+            arguments.Handled = true;
+        }
+    }
+
     private static void MoveFocusToFocusableParent(InputElement inputElement)
     {
         Visual? parent = inputElement.GetVisualParent();
