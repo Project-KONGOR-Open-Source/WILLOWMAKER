@@ -6,6 +6,7 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(SynchronisationIsIdle))]
     [NotifyPropertyChangedFor(nameof(MasterServerInputIsEnabled))]
     [NotifyPropertyChangedFor(nameof(CDNInputIsEnabled))]
+    [NotifyPropertyChangedFor(nameof(UserPortalInputIsEnabled))]
     [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]
     [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
     public partial bool SynchronisationIsActive { get; set; } = false;

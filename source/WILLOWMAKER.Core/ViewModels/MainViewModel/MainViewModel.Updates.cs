@@ -17,6 +17,7 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(UpdateCheckIsIdle))]
     [NotifyPropertyChangedFor(nameof(MasterServerInputIsEnabled))]
     [NotifyPropertyChangedFor(nameof(CDNInputIsEnabled))]
+    [NotifyPropertyChangedFor(nameof(UserPortalInputIsEnabled))]
     [NotifyPropertyChangedFor(nameof(CanLaunchMapEditor))]
     [NotifyPropertyChangedFor(nameof(CanLaunchGameClient))]
     public partial UpdateStatus UpdateStatus { get; set; } = UpdateStatus.CheckInProgress;

@@ -574,6 +574,41 @@ public sealed class MainViewModelAddressSelectionTests
         }
     }
 
+    [Test]
+    public async Task The_User_Portal_Input_Is_Enabled_And_Disabled_With_The_Master_Server_Input_And_Reports_Each_Change()
+    {
+        (bool enabledDuringUpdateCheck, bool enabledAfterUpdateCheck, bool enabledDuringSynchronisation, int changesReported) = await HeadlessSession.Dispatch(() =>
+        {
+            MainViewModel viewModel = new ();
+
+            int changes = 0;
+
+            viewModel.PropertyChanged += (sender, arguments) =>
+            {
+                if (arguments.PropertyName == nameof(MainViewModel.UserPortalInputIsEnabled))
+                    changes++;
+            };
+
+            bool duringUpdateCheck = viewModel.UserPortalInputIsEnabled;
+
+            viewModel.UpdateStatus = UpdateStatus.ApplicationUpToDate;
+
+            bool afterUpdateCheck = viewModel.UserPortalInputIsEnabled;
+
+            viewModel.SynchronisationIsActive = true;
+
+            return (duringUpdateCheck, afterUpdateCheck, viewModel.UserPortalInputIsEnabled, changes);
+        });
+
+        using (Assert.Multiple())
+        {
+            await Assert.That(enabledDuringUpdateCheck).IsFalse();
+            await Assert.That(enabledAfterUpdateCheck).IsTrue();
+            await Assert.That(enabledDuringSynchronisation).IsFalse();
+            await Assert.That(changesReported).IsEqualTo(2);
+        }
+    }
+
     private static MainViewModel CreateIdleViewModel()
         => new () { UpdateStatus = UpdateStatus.ApplicationUpToDate };
 
