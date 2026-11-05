@@ -575,6 +575,32 @@ public sealed class MainViewModelAddressSelectionTests
     }
 
     [Test]
+    public async Task A_Custom_User_Portal_Given_With_The_HTTPS_Scheme_Is_Passed_Without_It_And_One_Given_With_Another_Scheme_Is_Invalid()
+    {
+        (bool httpsPortalIsValid, string? httpsPortal, bool httpPortalIsValid, string? httpPortal) = await HeadlessSession.Dispatch(() =>
+        {
+            MainViewModel viewModel = CreateIdleViewModel();
+
+            SelectCustomMasterServer(viewModel);
+            viewModel.CustomUserPortalAddress = "https://portal.example.com/";
+
+            (bool, string?) https = (viewModel.UserPortalAddressIsValid, viewModel.ResolveActiveUserPortalAddress());
+
+            viewModel.CustomUserPortalAddress = "http://portal.example.com";
+
+            return (https.Item1, https.Item2, viewModel.UserPortalAddressIsValid, viewModel.ResolveActiveUserPortalAddress());
+        });
+
+        using (Assert.Multiple())
+        {
+            await Assert.That(httpsPortalIsValid).IsTrue();
+            await Assert.That(httpsPortal).IsEqualTo("portal.example.com");
+            await Assert.That(httpPortalIsValid).IsFalse();
+            await Assert.That(httpPortal).IsNull();
+        }
+    }
+
+    [Test]
     public async Task The_User_Portal_Input_Is_Enabled_And_Disabled_With_The_Master_Server_Input_And_Reports_Each_Change()
     {
         (bool enabledDuringUpdateCheck, bool enabledAfterUpdateCheck, bool enabledDuringSynchronisation, int changesReported) = await HeadlessSession.Dispatch(() =>

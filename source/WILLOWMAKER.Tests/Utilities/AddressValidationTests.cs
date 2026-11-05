@@ -162,4 +162,31 @@ public sealed class AddressValidationTests
             await Assert.That(AddressValidation.IsValidAddress("cdn.kongor.net\0")).IsFalse();
         }
     }
+
+    [Test]
+    public async Task Normalise_User_Portal_Address_Drops_The_HTTPS_Scheme_And_Trailing_Slashes()
+    {
+        using (Assert.Multiple())
+        {
+            await Assert.That(AddressValidation.NormaliseUserPortalAddress("portal.example.com")).IsEqualTo("portal.example.com");
+            await Assert.That(AddressValidation.NormaliseUserPortalAddress("HTTPS://portal.example.com:8443/portal/")).IsEqualTo("portal.example.com:8443/portal");
+            await Assert.That(AddressValidation.NormaliseUserPortalAddress("localhost:5557")).IsEqualTo("localhost:5557");
+        }
+    }
+
+    [Test]
+    public async Task Normalise_User_Portal_Address_Refuses_Another_Scheme_A_Backslash_And_An_Address_Without_A_Host()
+    {
+        using (Assert.Multiple())
+        {
+            await Assert.That(AddressValidation.NormaliseUserPortalAddress("http://portal.example.com")).IsNull();
+            await Assert.That(AddressValidation.NormaliseUserPortalAddress("ftp://portal.example.com")).IsNull();
+            await Assert.That(AddressValidation.NormaliseUserPortalAddress("https://https://portal.example.com")).IsNull();
+            await Assert.That(AddressValidation.NormaliseUserPortalAddress(@"portal.example.com\portal")).IsNull();
+            await Assert.That(AddressValidation.NormaliseUserPortalAddress("/portal")).IsNull();
+            await Assert.That(AddressValidation.NormaliseUserPortalAddress("https://")).IsNull();
+            await Assert.That(AddressValidation.NormaliseUserPortalAddress(string.Empty)).IsNull();
+            await Assert.That(AddressValidation.NormaliseUserPortalAddress(null)).IsNull();
+        }
+    }
 }

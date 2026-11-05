@@ -24,6 +24,25 @@ public static class AddressValidation
     }
 
     /// <summary>
+    ///     Normalises a user portal address into the form the game client is started with, a host with an optional port and path, or returns NULL when the game client would refuse it.
+    /// </summary>
+    public static string? NormaliseUserPortalAddress(string? rawAddress)
+    {
+        if (string.IsNullOrEmpty(rawAddress))
+            return null;
+
+        // The Game Client Always Reaches The Portal Over HTTPS And Refuses An Address With A Scheme, So That Scheme Is Dropped, While Any Other Scheme, Or A Backslash, Makes The Address Invalid
+        string address = rawAddress.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ? rawAddress["https://".Length..] : rawAddress;
+
+        address = address.TrimEnd('/');
+
+        if (address.StartsWith('/') || address.Contains("://", StringComparison.Ordinal) || address.Contains('\\'))
+            return null;
+
+        return IsValidAddress(address) ? address : null;
+    }
+
+    /// <summary>
     ///     Determines whether the specified raw address or URL string is syntactically valid for network communication.
     /// </summary>
     public static bool IsValidAddress(string? rawAddress)

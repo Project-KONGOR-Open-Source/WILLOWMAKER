@@ -204,10 +204,12 @@ public partial class MainViewModel : ObservableObject
 
     private void ValidateAndProbeCustomUserPortalAddress()
     {
-        UserPortalAddressIsValid = AddressValidation.IsValidAddress(CustomUserPortalAddress);
+        string? address = AddressValidation.NormaliseUserPortalAddress(CustomUserPortalAddress);
+
+        UserPortalAddressIsValid = address is not null;
 
         if (UserPortalAddressIsValid)
-            ScheduleUserPortalProbe(CustomUserPortalAddress, ProbeDebounceDelay);
+            ScheduleUserPortalProbe(address, ProbeDebounceDelay);
 
         else
             UserPortalProbe.ReportInvalidAddress(CustomUserPortalAddress);
@@ -317,9 +319,9 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void TriggerImmediateUserPortalProbe()
     {
-        string? address = SelectedUserPortalAddressItem?.IsCustom is true ? CustomUserPortalAddress : SelectedUserPortalAddressItem?.TargetURL;
+        string? address = SelectedUserPortalAddressItem?.IsCustom is true ? AddressValidation.NormaliseUserPortalAddress(CustomUserPortalAddress) : SelectedUserPortalAddressItem?.TargetURL;
 
-        if (AddressValidation.IsValidAddress(address))
+        if (address is not null)
             ScheduleUserPortalProbe(address, TimeSpan.Zero);
     }
 
@@ -349,13 +351,9 @@ public partial class MainViewModel : ObservableObject
 
     private string? ActiveCDNAddress => SelectedCDNAddressItem?.IsCustom is true ? CustomCDNAddress : SelectedCDNAddressItem?.TargetURL;
 
-    // The User Portal Serves Only HTTPS, So An Address Without A Scheme Is Probed Over HTTPS, At The Portal's Health Endpoint
+    // The Probe Reaches The Portal As The Game Client Does, Over HTTPS, At The Portal's Health Endpoint
     private static string BuildUserPortalProbeURL(string address)
-    {
-        string baseURL = address.Contains("://", StringComparison.Ordinal) ? address : $"https://{address}";
-
-        return $"{baseURL.TrimEnd('/')}/health";
-    }
+        => $"https://{address}/health";
 
     /// <summary>
     ///     The user portal's address the game client is started with, or NULL when a custom portal is blank or invalid, in which case the game starts without one.
@@ -365,7 +363,7 @@ public partial class MainViewModel : ObservableObject
         if (SelectedUserPortalAddressItem?.IsCustom is not true)
             return SelectedUserPortalAddressItem?.TargetURL;
 
-        return UserPortalAddressIsValid && string.IsNullOrWhiteSpace(CustomUserPortalAddress) is false ? CustomUserPortalAddress : null;
+        return AddressValidation.NormaliseUserPortalAddress(CustomUserPortalAddress);
     }
 
     public string ResolveActiveCDNURL()
